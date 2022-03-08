@@ -1,7 +1,18 @@
+# includes function defintion, nested function (3 levels), global, nonlocal, name, attribute
 
-def foo():
-    a = 1
-    b = a
-     
-a = 1
-b = a
+def func(arg1, arg2=2, arg3=3):
+    global a
+    a = arg1
+    b = arg2
+    c = arg3
+    def func2(arg4):
+        global b
+        b = arg4
+        def func3():
+            nonlocal arg4
+            arg4 = c.f
+            d.f = b.f
+
+
+
+a.f.f = b.f

@@ -1,26 +1,31 @@
 from distutils.command.build_scripts import first_line_re
-from typing import KeysView
+from typing import Dict, KeysView, List
 from typing_extensions import Self
 
 
 class Variable:
-    name = ""                       # a simple description of this variable
-    belongsTo = None                # CodeBlock to which it belongs
+    name: str                           # variable name
+    belongsTo: 'CodeBlock'                # CodeBlock to which it belongs
 
     def __str__(self):
         return self.name
 
-    def __init__(self, name: str, belongsTo: CodeBlock):
+    def __init__(self, name: str, belongsTo: 'CodeBlock'):
         self.name = name
         self.belongsTo = belongsTo
 
 class IR:
-    belongsTo = None                # CodeBlock to which this IR belongs
+    belongsTo: 'CodeBlock'                 # CodeBlock to which this IR belongs
+    startLine:int
+    startCol: int
+    endLine: int
+    endCol: int
+
 
 
 class Assign(IR):
-    target = None
-    source = None
+    target: Variable
+    source: Variable
 
     def __init__(self, target: Variable, source: Variable):
         self.target = target
@@ -32,9 +37,9 @@ class Assign(IR):
 
 # target.fieldName = source
 class Store(IR):
-    target = None
-    source = None
-    fieldName = ""
+    target: Variable
+    source: Variable
+    fieldName: str
 
     def __init__(self, target: Variable, fieldName: str, source: Variable):
         self.target = target
@@ -46,9 +51,9 @@ class Store(IR):
 
 # target = source.fieldName
 class Load(IR):
-    target = None
-    source = None
-    fieldName = ""
+    target: Variable
+    source: Variable
+    fieldName: str
 
     def __init__(self, target: Variable, source: Variable, fieldName: str):
         self.target = target
@@ -60,55 +65,82 @@ class Load(IR):
 
 # target = New ...
 class New(IR):
-    target = None
-    objType = ""                    # module, function, class, method, instance, builtin
-    args = None                     # extra infomation to describe this object 
+    target: Variable
+    objType:str                             # module, function, class, method, instance, builtin
 
-    def __init__(self, target: Variable, objType: str, args: tuple):
+    def __init__(self, target: Variable, objType: str):
         self.target = target
         self.objType = objType
-        self.args = args
 
-    def __str__(self):
-        des = str(self.target) + " = new " + self.objType + "("
-        for arg in self.args:
-            des += str(arg) + ", "
-        des = des[:-2] + ")"
-        return des
+class NewFunction(New):
+    codeBlock: 'CodeBlock'
+
+    def __init__(self, target:Variable, codeBlock: 'CodeBlock'):
+        super().__init__(self, target, 'function')
+        self.codeBlock = codeBlock
+
+class NewClass(New):
+    codeBlock: 'CodeBlock'
+    base: List[Variable]                # variables that points to a class object
+    def __init__(self, target:Variable, codeBlock: 'CodeBlock'):
+        super().__init__(self, target, 'class')
+        self.codeBlock = codeBlock
+
+class NewInstance(New):
+    codeBlock: 'CodeBlock'
+    classType: Variable                 # a variable points to a class object
+    def __init__(self, target:Variable, codeBlock: 'CodeBlock'):
+        super().__init__(self, target, 'class')
+        self.codeBlock = codeBlock
 
 class Call(IR):
-    callee = None
-    args = None
-    keywords = None
-    
+    resVariable: Variable
+    callee: Variable
+    args: list
+    keywords: map
+
     def __init__(self, callee: Variable, args: list, keywords: map):
         self.callee = callee
         self.args = args
         self.keywords = keywords
 
 class CodeBlock:
-    name = ""
-    moduleName = ""                 # a unique description of the module to which this code block belongs
-    type = ""                       # module, class, function
+    name: str
+    moduleName: str                             # a unique description of the module to which this code block belongs
+    type: str                                   # module, class, function
     IRs = []
+    enclosing: 'CodeBlock'                        # reference to enclosing scope
 
-    enclosing = None                # reference to enclosing scope
-    localVariables = {}             # a map from name to variable
-    globalNames = []                # a list of names declared global
-    nonlocalNames = []              # a list of names declared nonlocal
-    scopeLevel = 0                  # used when type = "function", showing how deep a function is defined, startging with 0
-                                    # here, class code block and module code block is ignored in "depth"
+    localVariables = {}                         # a map from name to variable
+    globalNames = []                            # a list of names declared global
+    # nonlocalNames = []                          # a list of names declared nonlocal
+    scopeLevel: int                             # used when type = "function", showing how deep a function is defined, startging with 0
+                                                # here, class code block and module code block is ignored in "depth"
 
-    globalVariable = None          # refer to $global
-    thisClassVariable = None        # refer to $thisClass
+    globalVariable: Variable                    # refer to $global
+    thisClassVariable: Variable                 # refer to $thisClass
 
+    # posargs and kwargs both store all the arguments
+    # using two data structure is for convenience 
+    posargs: List[Variable] = []
+    kwargs: Dict[str, Variable] = {}
+    
 
-    def __init__(self, name: str, type: str):
+    def __init__(self, moduleName:str, type: str, name: str, enclosing: 'CodeBlock'):
+        self.moduleName = moduleName
         self.name = name
         self.type = type
-        globalVariable = Variable(name + ":$global", self)
+        if(enclosing.type != "function"):
+            self.enclosing = enclosing.enclosing
+            if(self.enclosing != None):
+                self.scopeLevel = enclosing.scopeLevel + 1
+            else:
+                self.scopeLevel = 0
+
+        self.globalVariable = Variable("$global", self)
         if(type == "class"):
-            thisClassVariable = Variable(name + ":$thisClass", self)
+            self.thisClassVariable = Variable("$thisClass", self)
+
 
     def addIR(self, ir: IR):
         ir.belongsTo = self
