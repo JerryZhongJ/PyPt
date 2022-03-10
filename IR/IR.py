@@ -96,10 +96,10 @@ class NewInstance(New):
 class Call(IR):
     resVariable: Variable
     callee: Variable
-    args: list
-    keywords: map
+    args: List[Variable]
+    keywords: Dict[str, Variable]
 
-    def __init__(self, callee: Variable, args: list, keywords: map):
+    def __init__(self, callee: Variable, args: List[Variable], keywords: Dict[str, Variable]):
         self.callee = callee
         self.args = args
         self.keywords = keywords
@@ -109,15 +109,16 @@ class CodeBlock:
     moduleName: str                             # a unique description of the module to which this code block belongs
     type: str                                   # module, class, function
     IRs = []
-    enclosing: 'CodeBlock'                        # reference to enclosing scope
+    enclosing: 'CodeBlock'                          # reference to enclosing scope, this is used in name resolution. 
+                                                    # Only function code block is remained
 
     localVariables = {}                         # a map from name to variable
-    globalNames = []                            # a list of names declared global
+    globalNames = set()                            # a list of names declared global
     # nonlocalNames = []                          # a list of names declared nonlocal
     scopeLevel: int                             # used when type = "function", showing how deep a function is defined, startging with 0
                                                 # here, class code block and module code block is ignored in "depth"
 
-    globalVariable: Variable                    # refer to $global
+    globalVariable: Variable                    # $global, all code blocks in a module share a single $global variable 
     thisClassVariable: Variable                 # refer to $thisClass
 
     # posargs and kwargs both store all the arguments
@@ -130,6 +131,15 @@ class CodeBlock:
         self.moduleName = moduleName
         self.name = name
         self.type = type
+
+        if(type == "module"):
+            self.globalVariable = Variable("$global", self)
+        else:
+            self.globalVariable = enclosing.globalVariable
+
+        if(type == "class"):
+            self.thisClassVariable = Variable("$thisClass", self)
+
         if(enclosing.type != "function"):
             self.enclosing = enclosing.enclosing
             if(self.enclosing != None):
@@ -137,9 +147,7 @@ class CodeBlock:
             else:
                 self.scopeLevel = 0
 
-        self.globalVariable = Variable("$global", self)
-        if(type == "class"):
-            self.thisClassVariable = Variable("$thisClass", self)
+        
 
 
     def addIR(self, ir: IR):
