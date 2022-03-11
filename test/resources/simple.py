@@ -15,5 +15,9 @@ def func(arg1, arg2=2, arg3=3):
 
 # TODO: add a class
 
+class C:
+    b = a
+    a = b.f
+    c = a.f
 
 a.f.f = b.f
