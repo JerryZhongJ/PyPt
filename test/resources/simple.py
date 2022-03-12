@@ -13,11 +13,12 @@ def func(arg1, arg2=2, arg3=3):
             arg4 = c.f
             d.f = b.f
 
-# TODO: add a class
+        class C:
+            global b
+            nonlocal c
+            b = a
+            a = b.f
+            c = a.f
 
-class C:
-    b = a
-    a = b.f
-    c = a.f
 
 a.f.f = b.f
