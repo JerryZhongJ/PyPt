@@ -11,6 +11,12 @@ class VariableNode(ast.AST):
     def __init__(self, v:Variable):
         self.var = v
 
+# represent a builtin object, for example "a = 1 + b", the result of "1 + b" is an object
+class BuiltinObjectNode(ast.AST):
+    type: str
+    def __init__(self, type:str):
+        self.type = type
+
 # Some utils        
 def makeAttribute(v: Variable, attr: str) -> ast.Attribute:
     attribute =  ast.Attribute()
@@ -51,6 +57,10 @@ def resolveName(codeBlock: CodeBlock, name: str, globalVariable: Variable=None) 
 # import statements
 # class and function definitions (these bind the class or function name in the defining block)
 # targets that are identifiers if occurring in an assignment, for loop header, or after as in a with statement or except clause. 
+
+# IR is generated from the bottom of the AST to the top.
+# After a subtree is processed, the root will be replaced by the result. This result may be useful to its parent or ancient node.
+# The result includes: VariableNode, Attribute, BuiltinObjectNode, List, Tuple.
 class CodeBlockGenerator(ast.NodeTransformer):
     codeBlock: CodeBlock
     tmpVarCount: int

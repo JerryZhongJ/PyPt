@@ -1,6 +1,5 @@
 
-from typing import Dict, List, Set
-
+from typing import Any, Dict, List
 
 
 class Variable:
@@ -110,6 +109,12 @@ class NewInstance(New):
     def __init__(self, target:Variable, codeBlock: 'CodeBlock', belongsTo: 'CodeBlock'):
         super().__init__(target, 'instance', belongsTo)
         self.codeBlock = codeBlock
+
+class NewBuiltin(New):
+    type: str
+    value: Any              # optional
+    def __init__(self, type: str, value: Any=None):
+        self.type = type
 
 class Call(IR):
     resVariable: Variable

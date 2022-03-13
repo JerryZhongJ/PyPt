@@ -1,5 +1,4 @@
 import ast
-from textwrap import indent
 from IRGeneration.CodeBlockGenerator import ModuleCodeBlockGenerator
 with open("test/resources/simple.py", "r") as f:
     astTree = ast.parse(f.read())
