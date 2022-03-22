@@ -1,6 +1,5 @@
 from typing import Dict, List, Set
-
-from IRGeneration.IR import IR, New, Variable
+import IR
 
 
 class CodeBlock:
@@ -8,23 +7,23 @@ class CodeBlock:
     # TODO: implement this
     qualified_name: str
     # type: str                                   # module, class, function
-    IRs: List[IR]
+    IRs: List[IR.IR]
     enclosing: 'CodeBlock'                          # reference to enclosing scope, this is used in name resolution. 
                                                     # Only function code block is remained
 
-    globalVariable: Variable                    # $global, all code blocks in a module share a single $global variable 
+    globalVariable: IR.Variable                    # $global, all code blocks in a module share a single $global variable 
     
 
     def __init__(self, name: str, enclosing: 'CodeBlock'):
         self.name = name
         self.IRs = []
         
-        if(enclosing != None and not isinstance(enclosing, FunctionCodeBlock)):
+        if(enclosing is not None and not isinstance(enclosing, FunctionCodeBlock)):
             self.enclosing = enclosing.enclosing
         else:
             self.enclosing = enclosing
 
-        if(self.enclosing != None):
+        if(self.enclosing is not None):
             self.scopeLevel = enclosing.scopeLevel + 1
         else:
             self.scopeLevel = 0
@@ -34,7 +33,7 @@ class CodeBlock:
         codeBlocks = []
         for ir in self.IRs:
             des += f"{ir}\n"
-            if(isinstance(ir, New)):
+            if(isinstance(ir, IR.New)):
                 codeBlocks.append(ir.codeBlock)
         
         for codeBlock in codeBlocks:
@@ -48,17 +47,17 @@ class ModuleCodeBlock(CodeBlock):
         super().__init__("", None)
         self.moduleName = moduleName
         self.qualified_name = moduleName
-        self.globalVariable = Variable("$global", self)
+        self.globalVariable = IR.Variable("$global", self)
 
 class FunctionCodeBlock(CodeBlock):
     scopeLevel: int                                     # showing how deep a function is defined, startging with 0
-    localVariables: Dict[str, Variable]                 # a map from name to variable
+    localVariables: Dict[str, IR.Variable]                 # a map from name to variable
     # posargs and kwargs both store all the arguments
     # using two data structure is for convenience 
-    posargs: List[Variable]
-    kwargs: Dict[str, Variable]
+    posargs: List[IR.Variable]
+    kwargs: Dict[str, IR.Variable]
     declaredGlobal: Set[str]                            # a list of names declared global
-
+    returnVariable: IR.Variable
     def __init__(self, name: str, enclosing:'CodeBlock'):
         super().__init__(name, enclosing)
         self.qualified_name = f"{enclosing.qualified_name}.{name}"
@@ -67,14 +66,15 @@ class FunctionCodeBlock(CodeBlock):
         self.declaredGlobal = set()
         self.posargs = []
         self.kwargs = {}
+        self.returnVariable = IR.Variable("$ret", self)
 
 
 class ClassCodeBlock(CodeBlock):
-    thisClassVariable: Variable                         # refer to $thisClass
+    thisClassVariable: IR.Variable                         # refer to $thisClass
     declaredGlobal: Set[str]                            # a list of names declared global
     attributes: Set[str]
     def __init__(self, name:str, enclosing:'CodeBlock'):
         super().__init__(name, enclosing)
         self.qualified_name = f"{enclosing.qualified_name}.{name}"
         self.globalVariable = enclosing.globalVariable
-        self.thisClassVariable = Variable("$thisClass", self)
+        self.thisClassVariable = IR.Variable("$thisClass", self)

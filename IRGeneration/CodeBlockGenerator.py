@@ -1,4 +1,5 @@
 import ast
+from inspect import Attribute
 from typing import Set, Union
 from IRGeneration.CodeBlock import ClassCodeBlock, CodeBlock, FunctionCodeBlock, ModuleCodeBlock
 
@@ -11,11 +12,6 @@ class VariableNode(ast.AST):
     def __init__(self, v:Variable):
         self.var = v
 
-# represent a builtin object, for example "a = 1 + b", the result of "1 + b" is an object
-class BuiltinObjectNode(ast.AST):
-    type: str
-    def __init__(self, type:str):
-        self.type = type
 
 # Some utils        
 def makeAttribute(v: Variable, attr: str) -> ast.Attribute:
@@ -29,7 +25,7 @@ def resolveName(codeBlock: CodeBlock, name: str, globalVariable: Variable=None) 
     
     currCodeBlock = codeBlock
     
-    while(currCodeBlock != None):
+    while(currCodeBlock is not None):
         # check if it is global
         if(isinstance(codeBlock, ModuleCodeBlock)):
             return makeAttribute(codeBlock.globalVariable, name)
@@ -47,7 +43,7 @@ def resolveName(codeBlock: CodeBlock, name: str, globalVariable: Variable=None) 
 
     # then it is global
     # TODO: distinguish global and builtin
-    if(globalVariable == None):
+    if(globalVariable is None):
         globalVariable = codeBlock.globalVariable
     return makeAttribute(globalVariable, name)
 
@@ -60,7 +56,9 @@ def resolveName(codeBlock: CodeBlock, name: str, globalVariable: Variable=None) 
 
 # IR is generated from the bottom of the AST to the top.
 # After a subtree is processed, the root will be replaced by the result. This result may be useful to its parent or ancient node.
-# The result includes: VariableNode, Attribute, BuiltinObjectNode, List, Tuple.
+# The result's type differs according to context. 
+# When it is loaded, it can be VaraibleNode
+# When it is stored, it can be one of Attribute, Subscript, Starred, Variable, List or Tuple
 class CodeBlockGenerator(ast.NodeTransformer):
     codeBlock: CodeBlock
     tmpVarCount: int
@@ -73,16 +71,14 @@ class CodeBlockGenerator(ast.NodeTransformer):
         
 
     def parse(self, node: ast.AST):
-        # print(f"preprocess {self.codeBlock.name} @ {self.codeBlock.moduleName}")
         self.preprocess(node)
+
         # all of the class, function, module have a body
         # nodes outside the body should be specially treated
-        # print(f"process {self.codeBlock.name} @ {self.codeBlock.moduleName}")
         for stmt in node.body:
             self.visit(stmt)
-        # print(f"postprocess {self.codeBlock.name} @ {self.codeBlock.moduleName}")
+        
         self.postprocess(node)
-        # print(f"exit {self.codeBlock.name} @ {self.codeBlock.moduleName}")
 
     def preprocess(self, node:ast.AST):
         pass
@@ -94,73 +90,145 @@ class CodeBlockGenerator(ast.NodeTransformer):
     def newTmpVariable(self) -> Variable:
         name = f"$t{self.tmpVarCount}"
         self.tmpVarCount += 1
-        return Variable(name, self.codeBlock)
-
-    
+        return Variable(name, self.codeBlock, temp=True)
     
     # names are resolved and replaced by variables or attributes as soon as being visited.
     def visit_Name(self, node: ast.Name) -> Union[VariableNode, ast.Attribute]:
-        return resolveName(self.codeBlock, node.id)
+        res = resolveName(self.codeBlock, node.id)
+        if(isinstance(node.ctx, ast.Load) and isinstance(res, ast.Attribute)):
+            tmp = self.newTmpVariable()
+            Load(tmp, res.value.var, res.attr, self.codeBlock)
+            return VariableNode(tmp)
+        else:
+            return res
 
     def visit_Assign(self, node: ast.Assign) -> ast.Assign:
         # assign.targets can only be Attribute, Subscript, Starred, Name, List or Tuple
         # see https://docs.python.org/zh-cn/3.9/library/ast.html
         self.generic_visit(node)
-        # print("Assign")
-        right = node.value
-        tmp: Variable = None           # used when left and right are both attributes
-        for left in node.targets:
-            if(isinstance(left, VariableNode)):
-                if(isinstance(right, VariableNode)):
-                    # left = right
-                    Assign(left.var, right.var, self.codeBlock)
-                elif(isinstance(right, ast.Attribute)):
-                    # left = right.f
-                    assert(isinstance(right.value, VariableNode))
-                    Load(left.var, right.value.var, right.attr, self.codeBlock)
-            elif(isinstance(left, ast.Attribute)):
-                if(isinstance(right, VariableNode)):
-                    # left.f = right.f
-                    assert(isinstance(left.value, VariableNode))
-                    Store(left.value.var, left.attr, right.var, self.codeBlock)
-                elif(isinstance(right, ast.Attribute)):
-                    # left.f = right.f
-                    assert(isinstance(left.value, VariableNode))
-                    assert(isinstance(right.value, VariableNode))
-                    if(tmp == None):
-                        # tmp = right.f
-                        tmp = self.newTmpVariable()
-                        Load(tmp, right.value.var, right.attr, self.codeBlock)
-                    # left.f = tmp
-                    Store(left.value.var, left.attr, tmp, self.codeBlock)
-            else:
-                # TODO: more conditions
-                assert(False)
-            
+        for target in node.targets:
+            self._handleAssign(target, node.value)
         return node
+
+    def visit_Constant(self, node: ast.Constant) -> Any:
+        if(isinstance(node.value, int)):
+            type = "int"
+        elif(isinstance(node.value, float)):
+            type = "float"
+        elif(isinstance(node.value, str)):
+            type = "str"
+        elif(isinstance(node.value, complex)):
+            type = "complex"
+        elif(node.value == None):
+            type = "None"
+        else:
+            type = "unknown"
+        tmp = self.newTmpVariable()
+        NewBuiltin(tmp, type, self.codeBlock, node.value)
+        return VariableNode(tmp)
+
+    def visit_JoinedStr(self, node: ast.JoinedStr) -> Any:
+        tmp = self.newTmpVariable()
+        NewBuiltin(tmp, "str", self.codeBlock)
+        return VariableNode(tmp)
+
+    def visit_Tuple(self, node: ast.Tuple) -> Any:
+        self.generic_visit(node)
+        if(isinstance(node.ctx, ast.Load)):
+            tmp = self.newTmpVariable()
+            NewBuiltin(tmp, "tuple", self.codeBlock)
+            i = 0
+            for elt in node.elts:
+                assert(isinstance(elt, VariableNode))
+                Store(tmp, f"${i}", elt, self.codeBlock)
+                i += 1
+            return VariableNode(tmp)
+        elif(isinstance(node.ctx, ast.Store)):
+            return node
+    
+    def visit_List(self, node: ast.List) -> Any:
+        self.generic_visit(node)
+        if(isinstance(node.ctx, ast.Load)):
+            tmp = self.newTmpVariable()
+            NewBuiltin(tmp, "list", self.codeBlock)
+            for elt in node.elts:
+                assert(isinstance(elt, VariableNode))
+                Store(tmp, "$elements", elt, self.codeBlock)
+            return VariableNode(tmp)
+        elif(isinstance(node.ctx, ast.Store)):
+            return node
+
+    def visit_Set(self, node: ast.Set) -> Any:
+        self.generic_visit(node)
+        tmp = self.newTmpVariable()
+        NewBuiltin(tmp, "set", self.codeBlock)
+        for elt in node.elts:
+            assert(isinstance(elt, VariableNode))
+            Store(tmp, "$elements", elt, self.codeBlock)
+        return VariableNode(tmp)
+
+    def visit_Dict(self, node: ast.Dict) -> Any:
+        self.generic_visit(node)
+        tmp = self.newTmpVariable()
+        NewBuiltin(tmp, "dict", self.codeBlock)
+        return VariableNode(tmp)
+        
+    def visit_UnaryOp(self, node: ast.UnaryOp) -> Any:
+        self.generic_visit(node)
+        tmp = self.newTmpVariable()
+        NewBuiltin(tmp, "unknown", self.codeBlock)
+        return VariableNode(tmp)
+
+    def visit_BinOp(self, node: ast.BinOp) -> Any:
+        self.generic_visit(node)
+        tmp = self.newTmpVariable()
+        NewBuiltin(tmp, "unknown", self.codeBlock)
+        return VariableNode(tmp)
+
+    def visit_Call(self, node: ast.Call) -> Any:
+        self.generic_visit(node)
+        assert(isinstance(node.func, VariableNode))
+        args = [v.var for v in node.args]
+        keywords = {arg:v.var for arg, v in node.keywords}
+        tmp = self.newTmpVariable()
+        Call(tmp, node.func.var, args, keywords, self.codeBlock)
+        return VariableNode(tmp)
+
+    def visit_IfExp(self, node: ast.IfExp) -> Any:
+        self.generic_visit(node)
+        tmp = self.newTmpVariable()
+        Assign(tmp, node.body.var, self.codeBlock)
+        Assign(tmp, node.orelse.var, self.codeBlock)
+        return VariableNode(tmp)
 
     def visit_Attribute(self, node: ast.Attribute) -> Union[VariableNode, ast.Attribute]:
         self.generic_visit(node)
-        # print("Attribute")
-        if(isinstance(node.value, VariableNode)):
-            # v.f -> v.f
-            return node
-        elif(isinstance(node.value, ast.Attribute)):
-            # v.f0.f1 -> tmp = v.f0 + tmp.f
-            v: VariableNode = node.value.value
-            assert(isinstance(v, VariableNode))
+
+        if(isinstance(node.ctx, ast.Load)):
+            assert(isinstance(node.value, VariableNode))
             tmp = self.newTmpVariable()
-            Load(tmp, v.var, node.value.attr, self.codeBlock)
-            node.value = VariableNode(tmp)
+            Load(tmp, node.value.var, node.attr, self.codeBlock)
+            return VariableNode(tmp)
+        elif(isinstance(node.ctx, ast.Store)):
             return node
         else:
             assert(False)
+        
+    def visit_NamedExpr(self, node: ast.NamedExpr) -> Any:
+        self.generic_visit(node)
+        self._handleAssign(node.target, node.value)
+        return node.target
+
+    def visit_AnnAssign(self, node: ast.AnnAssign) -> Any:
+        self.generic_visit(node)
+        if(hasattr(node, "value")):
+            self._handleAssign(node.target, node.value)
+        
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> ast.FunctionDef:
         # v = new_function(codeBlock)
         generator = FunctionCodeBlockGenerator(node.name, self.codeBlock)
         generator.parse(node)
-        # it may be declared global or nonlocal
         resolved = resolveName(self.codeBlock, node.name)
         if(isinstance(resolved, VariableNode)):
             NewFunction(resolved.var, generator.codeBlock, self.codeBlock)
@@ -173,18 +241,45 @@ class CodeBlockGenerator(ast.NodeTransformer):
     def visit_ClassDef(self, node: ast.ClassDef):
         generator = ClassCodeBlockGenerator(node.name, self.codeBlock)
         generator.parse(node)
+        base = [self.visit(b).var for b in self.bases]
         resolved = resolveName(self.codeBlock, node.name)
         if(isinstance(resolved, VariableNode)):
-            NewClass(resolved.var, generator.codeBlock, self.codeBlock)
+            NewClass(resolved.var, base, generator.codeBlock, self.codeBlock)
+            Call(None, resolved.var, [], {}, self.codeBlock)
         elif(isinstance(resolved, ast.Attribute)):
             tmp = self.newTmpVariable()
-            NewClass(tmp, generator.codeBlock, self.codeBlock)
+            NewClass(tmp, base, generator.codeBlock, self.codeBlock)
             Store(resolved.value.var, resolved.attr, tmp, self.codeBlock)
+            Call(None, tmp, [], {}, self.codeBlock)
         return node
 
+    def _handleAssign(self, target, value):
+        assert(isinstance(value, VariableNode))
+        if(isinstance(target, VariableNode)):
+            # left = right
+            Assign(target.var, value.var, self.codeBlock)
+        elif(isinstance(target, ast.Attribute)):
+            # left.f = right.f
+            assert(isinstance(target.value, VariableNode))
+            Store(target.value.var, target.attr, value.var, self.codeBlock)
+        elif(isinstance(target, ast.Tuple) or isinstance(target, ast.List)):
+            i = 0
+            for elt in target.elts:
+                # value might be a tuple
+                tmp = self.newTmpVariable()
+                Load(tmp, value.var, f"${i}", self.codeBlock)
+                i += 1
+                self._handleAssign(elt, VariableNode(tmp))
+
+                # value might be a list
+                tmp = self.newTmpVariable()
+                Load(tmp, value.var, "$elements", self.codeBlock)
+                self._handleAssign(elt, VariableNode(tmp))
+        else:
+            # TODO: more conditions
+            assert(False)
     # TODO: add line and column number into IR
     # TODO: to deal with "from ... import *", a populate graph may be needed
-
 
 
 class FunctionCodeBlockGenerator(CodeBlockGenerator):
@@ -219,20 +314,20 @@ class FunctionCodeBlockGenerator(CodeBlockGenerator):
         # for assignment can't be earlier than declarations
         args = node.args
         for arg in args.posonlyargs + args.args + args.kwonlyargs + [args.vararg, args.kwarg]:
-            if(arg != None):
+            if(arg is not None):
                 # add to locals
                 v = Variable(arg.arg, self.codeBlock)
                 self.codeBlock.localVariables[arg.arg] = v
 
                 # add to args
+                # TODO: default args
                 # TODO: consider vararg and kwarg
                 self.codeBlock.posargs.append(v)
                 self.codeBlock.kwargs[arg.arg] = v
+
+        # return None
+        NewBuiltin(self.codeBlock.returnVariable, "None", self.codeBlock, None)
     
-
-
-
-
 
 class ClassCodeBlockGenerator(CodeBlockGenerator):
     codeBlock: ClassCodeBlock
@@ -260,30 +355,36 @@ class ClassCodeBlockGenerator(CodeBlockGenerator):
         self.codeBlock.attributes = ls.boundNames
         
 
-    # for name loaded, because our analysis is flow-insensitive, we can't tell if this name is loaded before first assignment.
-    # we make conservative guess, and suggest that this name may resolved to a variable/attribute outside, or an attribute of this class
+    # for name loaded, because our analysis is flow-insensitive, we can't tell if this name is loaded before its first assignment.
+    # we make conservative guesses, and suggest that this name may resolved to a variable/attribute outside, or an attribute of this class
     def visit_Name(self, node: ast.Name) -> Union[VariableNode, ast.Attribute]:
+        id = node.id
         if(isinstance(node.ctx, ast.Load)):
-            outside = resolveName(self.codeBlock.enclosing, node.id, self.codeBlock.globalVariable)
+            # an varaible/attribute outside, or this class's attribute
+            outside = resolveName(self.codeBlock.enclosing, id, self.codeBlock.globalVariable)
 
-            if(node.id in self.codeBlock.attributes):
+            if(id in self.codeBlock.attributes):
                 tmp = self.newTmpVariable()
                 # $tmp = $thisClass.attr
-                Load(tmp, self.codeBlock.thisClassVariable, node.id, self.codeBlock)
+                Load(tmp, self.codeBlock.thisClassVariable, id, self.codeBlock)
                 if(isinstance(outside, VariableNode)):
                     # $tmp = v
-                    Assign(tmp, outside.var)
+                    Assign(tmp, outside.var, self.codeBlock)
                 elif(isinstance(outside, ast.Attribute)):
                     Load(tmp, outside.value.var, outside.attr, self.codeBlock)
                 return VariableNode(tmp)
+            elif(isinstance(outside, ast.Attribute)):
+                # this name is not one of this class's attributes, the name resolved to a global variable
+                tmp = self.newTmpVariable()
+                Load(tmp, outside.value.var, outside.attr, self.codeBlock)
+                return VariableNode(tmp)
             else:
-                # just return outside variable / attribute
+                # this name is not one of this class's attributes, the name resolved to a local variable
                 return outside
 
         elif(isinstance(node.ctx, ast.Store)):
-            # Not every stored name is attributes, except those declared global or nonlocal
-            return resolveName(self.codeBlock, node.id)
-
+            # return this class's attribute if it is
+            return resolveName(self.codeBlock, id)
 
 
 class ModuleCodeBlockGenerator(CodeBlockGenerator):
@@ -297,7 +398,10 @@ class ModuleCodeBlockGenerator(CodeBlockGenerator):
         assert(isinstance(node, ast.Module))
         return super().parse(node)
 
-    # TODO: may also need to scan locals for dealing with "from ... import *"
-
-     # TODO: any name bindings will be translated into this $global's attributes
+    def postprocess(self, node: ast.AST):
+        super().postprocess(node)
+        # TODO: scan all the code in this block and subblock(function, class)
+        # determine all the store of global names
+        pass
+    
 

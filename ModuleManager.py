@@ -158,6 +158,7 @@ class ModuleFinder:
         self.msg(2, "run_script", pathname)
         with io.open_code(pathname) as fp:
             stuff = ("", "rb", _PY_SOURCE)
+            # __main__ is a fully quarlified name
             self.load_module('__main__', fp, pathname, stuff)
 
     def load_file(self, pathname):
@@ -167,6 +168,7 @@ class ModuleFinder:
             stuff = (ext, "rb", _PY_SOURCE)
             self.load_module(name, fp, pathname, stuff)
 
+    # import all the module in the quarlified name, and thoes in fromlist
     def import_hook(self, name, caller=None, fromlist=None, level=-1):
         self.msg(3, "import_hook", name, caller, fromlist, level)
         parent = self.determine_parent(caller, level=level)
@@ -178,16 +180,20 @@ class ModuleFinder:
             self.ensure_fromlist(m, fromlist)
         return None
 
+    # used when relative import, return an added module
     def determine_parent(self, caller, level=-1):
         self.msgin(4, "determine_parent", caller, level)
         if not caller or level == 0:
             self.msgout(4, "determine_parent -> None")
             return None
+        # pname: parent's name
         pname = caller.__name__
         if level >= 1: # relative import
             if caller.__path__:
+                # caller is a package
                 level -= 1
             if level == 0:
+                # when caller is a package, and module is inside the pacakge
                 parent = self.modules[pname]
                 assert parent is caller
                 self.msgout(4, "determine_parent ->", parent)
@@ -213,6 +219,7 @@ class ModuleFinder:
         self.msgout(4, "determine_parent -> None")
         return None
 
+    # determine the head and import it
     def find_head_package(self, parent, name):
         self.msgin(4, "find_head_package", parent, name)
         if '.' in name:
@@ -240,6 +247,7 @@ class ModuleFinder:
         self.msgout(4, "raise ImportError: No module named", qname)
         raise ImportError("No module named " + qname)
 
+    # when the head is imported, import the rest, return the last module
     def load_tail(self, q, tail):
         self.msgin(4, "load_tail", q, tail)
         m = q
@@ -255,6 +263,7 @@ class ModuleFinder:
         self.msgout(4, "load_tail ->", m)
         return m
 
+    # import submodules in fromlist
     def ensure_fromlist(self, m, fromlist, recursive=0):
         self.msg(4, "ensure_fromlist", m, fromlist, recursive)
         for sub in fromlist:
@@ -269,6 +278,7 @@ class ModuleFinder:
                 if not submod:
                     raise ImportError("No module named " + subname)
 
+    # used when m is a package, return all submodules' name
     def find_all_submodules(self, m):
         if not m.__path__:
             return
@@ -297,6 +307,7 @@ class ModuleFinder:
                     modules[mod] = mod
         return modules.keys()
 
+    # import = find + load, import specific module
     def import_module(self, partname, fqname, parent):
         self.msgin(3, "import_module", partname, fqname, parent)
         try:
@@ -329,6 +340,7 @@ class ModuleFinder:
         self.msgout(3, "import_module ->", m)
         return m
 
+    # load = process import statements and globalnames
     def load_module(self, fqname, fp, pathname, file_info):
         suffix, mode, type = file_info
         self.msgin(2, "load_module", fqname, fp and "fp", pathname)
@@ -366,6 +378,9 @@ class ModuleFinder:
         else:
             self.badmodules[name]["-"] = 1
 
+    # name: from what module
+    # caller: in which module
+    # fromlist: import what names
     def _safe_import_hook(self, name, caller, fromlist, level=-1):
         # wrapper for self.import_hook() that won't raise ImportError
         if name in self.badmodules:
@@ -397,6 +412,7 @@ class ModuleFinder:
         code = co.co_code
         names = co.co_names
         consts = co.co_consts
+        # opargs = (op, arg)
         opargs = [(op, arg) for _, op, arg in dis._unpack_opargs(code)
                   if op != EXTENDED_ARG]
         for i, (op, oparg) in enumerate(opargs):
@@ -476,6 +492,7 @@ class ModuleFinder:
 
         fp, buf, stuff = self.find_module("__init__", m.__path__)
         try:
+            # 
             self.load_module(fqname, fp, buf, stuff)
             self.msgout(2, "load_package ->", m)
             return m
@@ -483,13 +500,14 @@ class ModuleFinder:
             if fp:
                 fp.close()
 
-    # add to self.modules: fqname -> Module
+    # add to self.modules: full quarlified name -> Module
     def add_module(self, fqname):
         if fqname in self.modules:
             return self.modules[fqname]
         self.modules[fqname] = m = Module(fqname)
         return m
 
+    # parent is used when relative import
     def find_module(self, name, path, parent=None):
         if parent is not None:
             # assert path is not None
