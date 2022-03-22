@@ -224,6 +224,28 @@ class CodeBlockGenerator(ast.NodeTransformer):
         if(hasattr(node, "value")):
             self._handleAssign(node.target, node.value)
         
+    def visit_For(self, node: ast.For) -> Any:
+        self.generic_visit(node)
+        
+        # $iterMethod = iter.__iter__
+        iterMethod = self.newTmpVariable()
+        Load(iterMethod, node.iter.var, "__iter__", self.codeBlock)
+
+        # $iterator = Call iterMethod()
+        iterator = self.newTmpVariable()
+        Call(iterator, iterMethod, [], {}, self.codeBlock)
+
+        # $nextMethod = $iterator.__next__
+        nextMethod = self.newTmpVariable()
+        Load(nextMethod, iterator, "__next__", self.codeBlock)
+
+        # value = Call $nextMethod()
+        value = self.newTmpVariable()
+        Call(value, nextMethod, [], {}, self.codeBlock)
+
+        self._handleAssign(node.target, value)
+
+
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> ast.FunctionDef:
         # v = new_function(codeBlock)
@@ -278,6 +300,31 @@ class CodeBlockGenerator(ast.NodeTransformer):
         else:
             # TODO: more conditions
             assert(False)
+
+    # return a __iter__() function, remember to attach it to some object's attribute(__iter__)
+    def _makeIterator(self, v:Variable, elts:List[Variable]):
+        iter = FunctionCodeBlock(f"<{v.name}>__iter__", self.codeBlock)
+        next = FunctionCodeBlock(f"<{v.name}>__next__", self.codeBlock)
+        
+
+        # v.__iter__ = new function
+        tmp = self.newTmpVariable()
+        NewFunction(tmp, iter, self.codeBlock)
+        Store(v, "__iter__", tmp, self.codeBlock)
+        
+        # In __iter__()
+        # $1 = new function(__next__)
+        # ret = new iterator
+        # ret.__next__ = $1
+        tmp = Variable("$1", iter)
+        NewBuiltin(iter.returnVariable, "iterator", iter)
+        NewFunction(tmp, next, iter)
+        Store(iter.returnVariable, "__next__", tmp, iter)
+
+        # In __next__(), ret = elts
+        for elt in elts:
+            Assign(next.returnVariable, elt, next)
+
     # TODO: add line and column number into IR
     # TODO: to deal with "from ... import *", a populate graph may be needed
 
