@@ -1,4 +1,9 @@
-# includes function defintion, nested function (3 levels), global, nonlocal, name, attribute
+# function defintion
+# nested function (3 levels)
+# class, class method
+# global, nonlocal
+# names
+# attributes
 
 def func(arg1, arg2=2, arg3=3):
     a = arg1
@@ -17,9 +22,11 @@ def func(arg1, arg2=2, arg3=3):
         nonlocal c
         a = b
         c = a.f
+        def method(self):
+            self.attr1 = a
+            self.attr2 = b
 
     return C
 
-func(0)()
 
 

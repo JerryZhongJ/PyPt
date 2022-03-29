@@ -236,10 +236,10 @@ class CodeBlockGenerator(ast.NodeTransformer):
             i = 0
             for elt in node.elts:
                 assert(isinstance(elt, VariableNode))
-                Store(tmp, f"${i}", elt, self.codeBlock, srcPos)
-                Store(tmp, f"$tupleElements", elt, self.codeBlock, srcPos)
+                Store(tmp, f"${i}", elt.var, self.codeBlock, srcPos)
+                Store(tmp, f"$tupleElements", elt.var, self.codeBlock, srcPos)
                 i += 1
-            self._makeIterator(tmp, [makeAttribute(tmp, "$tupleElements")])
+            self._makeIterator(tmp, [makeAttribute(tmp, "$tupleElements")], srcPos)
             return VariableNode(tmp)
         elif(isStore(node)):
             return node
@@ -254,9 +254,9 @@ class CodeBlockGenerator(ast.NodeTransformer):
             NewBuiltin(tmp, "list", self.codeBlock, srcPos)
             for elt in node.elts:
                 assert(isinstance(elt, VariableNode))
-                Store(tmp, "$values", elt, self.codeBlock, srcPos)
+                Store(tmp, "$values", elt.var, self.codeBlock, srcPos)
 
-            self._makeIterator(tmp, [makeAttribute(tmp, "$values")])
+            self._makeIterator(tmp, [makeAttribute(tmp, "$values")], srcPos)
 
             return VariableNode(tmp)
         elif(isStore(node)):
@@ -270,11 +270,11 @@ class CodeBlockGenerator(ast.NodeTransformer):
         NewBuiltin(tmp, "set", self.codeBlock, srcPos)
         for elt in node.elts:
             assert(isinstance(elt, VariableNode))
-            Store(tmp, "$values", elt, self.codeBlock, srcPos)
+            Store(tmp, "$values", elt.var, self.codeBlock, srcPos)
         
         tmp2 = self.newTmpVariable()
         Load(tmp2, tmp, "$values", self.codeBlock, srcPos)
-        self._makeIterator(tmp, [tmp2])
+        self._makeIterator(tmp, [tmp2], srcPos)
 
         return VariableNode(tmp)
 
@@ -287,11 +287,12 @@ class CodeBlockGenerator(ast.NodeTransformer):
         NewBuiltin(tmp, "dict", self.codeBlock, srcPos)
         for key in node.keys:
             if(key):
-                Store(tmp, "$keys", key, self.codeBlock, srcPos)
-        for value in node.values:
-            Store(tmp, "$values", key, self.codeBlock, srcPos)
+                Store(tmp, "$keys", key.var, self.codeBlock, srcPos)
 
-        self._makeIterator(tmp, [makeAttribute(tmp, "$keys")])
+        for value in node.values:
+            Store(tmp, "$values", value.var, self.codeBlock, srcPos)
+
+        self._makeIterator(tmp, [makeAttribute(tmp, "$keys")], srcPos)
         return VariableNode(tmp)
         
     def visit_UnaryOp(self, node: ast.UnaryOp) -> Any:
@@ -369,7 +370,7 @@ class CodeBlockGenerator(ast.NodeTransformer):
 
     def visit_Subscript(self, node: ast.Subscript) -> Any:
         srcPos = getSrcPos(node)
-        self.visit_Name(node.value)
+        node.value = self.visit(node.value)
 
         if(isLoad(node)):
             tmp = self.newTmpVariable()
@@ -435,7 +436,7 @@ class CodeBlockGenerator(ast.NodeTransformer):
         # v = new_function(codeBlock)
         srcPos = getSrcPos(node)
 
-        generator = FunctionCodeBlockGenerator(node.name, self.codeBlock)
+        generator = FunctionCodeBlockGenerator(node.name, self.codeBlock, simplify=self.simplify)
         generator.parse(node)
         func = generator.codeBlock
 
@@ -467,7 +468,7 @@ class CodeBlockGenerator(ast.NodeTransformer):
     def visit_Lambda(self, node: ast.Lambda) -> Any:
         srcPos = getSrcPos(node)
 
-        generator = FunctionCodeBlockGenerator(f"$lambda{self.lambdaCount}", self.codeBlock)
+        generator = FunctionCodeBlockGenerator(f"$lambda{self.lambdaCount}", self.codeBlock, simplify=self.simplify)
         self.lambdaCount += 1
 
         generator.parse(node)
@@ -496,7 +497,7 @@ class CodeBlockGenerator(ast.NodeTransformer):
     def visit_ClassDef(self, node: ast.ClassDef):
         srcPos = getSrcPos(node)
 
-        generator = ClassCodeBlockGenerator(node.name, self.codeBlock)
+        generator = ClassCodeBlockGenerator(node.name, self.codeBlock, simplify=self.simplify)
         generator.parse(node)
         base = [self.visit(b).var for b in node.bases]
         resolved = resolveName(self.codeBlock, node.name)
