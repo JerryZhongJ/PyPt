@@ -39,4 +39,5 @@
 
 # s = "world"
 # ss = f"hello, {s}!"
-a, b, c = 1, 2, 3
+def foo(a=int()):
+    pass
