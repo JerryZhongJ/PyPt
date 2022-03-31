@@ -26,6 +26,9 @@ def isLoad(node: ast.AST) -> bool:
 def isStore(node: ast.AST) -> bool:
     return isinstance(node.ctx, ast.Store)
 
+def isDel(node: ast.AST) -> bool:
+    return isinstance(node.ctx, ast.Del)
+
 def getSrcPos(node: ast.AST) -> bool:
     return node.lineno, node.col_offset, node.end_lineno, node.end_col_offset
 
@@ -317,7 +320,7 @@ class CodeBlockGenerator(ast.NodeTransformer):
 
         assert(isinstance(node.func, VariableNode))
         args = [v.var for v in node.args]
-        keywords = {arg:v.var for arg, v in node.keywords}
+        keywords = {kw.arg:kw.value.var for kw in node.keywords}
         tmp = self.newTmpVariable()
         Call(tmp, node.func.var, args, keywords, self.codeBlock, srcPos)
         return VariableNode(tmp)
@@ -340,10 +343,9 @@ class CodeBlockGenerator(ast.NodeTransformer):
             tmp = self.newTmpVariable()
             Load(tmp, node.value.var, node.attr, self.codeBlock, srcPos)
             return VariableNode(tmp)
-        elif(isStore(node)):
+        elif(isStore(node) or isDel(node)):
             return node
-        else:
-            assert(False)
+        
         
     def visit_NamedExpr(self, node: ast.NamedExpr) -> Any:
         srcPos = getSrcPos(node)
@@ -430,7 +432,7 @@ class CodeBlockGenerator(ast.NodeTransformer):
         value = self.newTmpVariable()
         Call(value, nextMethod, [], {}, self.codeBlock, srcPos)
 
-        self._handleAssign(node.target, value, srcPos)
+        self._handleAssign(node.target, VariableNode(value), srcPos)
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> ast.FunctionDef:
         # v = new_function(codeBlock)
@@ -623,7 +625,7 @@ class FunctionCodeBlockGenerator(CodeBlockGenerator):
         if(self.yielded):
             tmp = self.newTmpVariable()
             NewBuiltin(tmp, "generator", self.codeBlock, srcPos)
-            self._makeIterator(self.codeBlock.returnVariable, self.yielded)
+            self._makeIterator(tmp, self.yielded, srcPos)
             Assign(self.codeBlock.returnVariable, tmp, self.codeBlock, srcPos)
 
         super().postprocess(node)
@@ -646,7 +648,7 @@ class FunctionCodeBlockGenerator(CodeBlockGenerator):
 
         # $iterMethod = iter.__iter__
         iterMethod = self.newTmpVariable()
-        Load(iterMethod, node.iter.var, "__iter__", self.codeBlock, srcPos)
+        Load(iterMethod, node.value.var, "__iter__", self.codeBlock, srcPos)
 
         # $iterator = Call iterMethod()
         iterator = self.newTmpVariable()

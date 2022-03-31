@@ -315,7 +315,7 @@ class Call(IR):
         self.args[index] = None
 
     def _unsetKeyword(self, key):
-        if(key in self.keywords):
+        if(key not in self.keywords):
             return
         if(self.keywords[key].isTmp):
             self.keywords[key].usingIRs[USED_OTHERS].remove(self)
@@ -387,6 +387,9 @@ class DelAttr(IR):
     def destroy(self):
         self._unsetVar()
         super().destroy()
+
+    def _text(self):
+        return f"Del {self.var}.{self.field}"
         
 
 # TODO: GET_ITEM(from, index), SET_ITEM(to, index), to support list, tuple, set, dict

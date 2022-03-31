@@ -5,7 +5,7 @@
 # names
 # attributes
 
-def func(arg1, arg2=2, arg3=3):
+def func(arg1, arg2=2, arg3=[]):
     a = arg1
     b = arg2
     c = arg3
