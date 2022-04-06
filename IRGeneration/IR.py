@@ -105,6 +105,8 @@ class Store(IR):
         self.setTarget(target)
         self.setSource(source)
         self.field = field
+        if(target == belongsTo.globalVariable):
+            belongsTo.globalNames.add(field)
 
     def _unsetTarget(self):
         if(not hasattr(self, "target")):
@@ -215,7 +217,15 @@ class New(IR):
         self._unsetTarget()
         super().destroy()
         
-        
+class NewModule(New):
+    codeBlock: 'CodeBlock'                  
+
+    def __init__(self, target:Variable, codeBlock: 'CodeBlock', belongsTo: 'CodeBlock', srcPos: Tuple[int]):
+        super().__init__(target, 'module', belongsTo, srcPos)
+        self.codeBlock = codeBlock
+
+    def _text(self):
+        return f"{self.target} = NewModule {self.codeBlock.moduleName}"
 
 class NewFunction(New):
     codeBlock: 'CodeBlock'

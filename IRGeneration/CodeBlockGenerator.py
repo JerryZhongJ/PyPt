@@ -5,6 +5,10 @@ from IRGeneration.CodeBlock import ClassCodeBlock, CodeBlock, FunctionCodeBlock,
 
 from IRGeneration.IR import *
 from IRGeneration.Scanner import BindingScanner, DeclarationScanner
+from ModuleManager import moduleManager
+
+
+
 
 # Wrapper for variable
 class VariableNode(ast.AST):
@@ -33,7 +37,7 @@ def getSrcPos(node: ast.AST) -> bool:
     return node.lineno, node.col_offset, node.end_lineno, node.end_col_offset
 
 # codeBlock can be any, but remember that its enclosing and enclosing's enclosing must be function
-def resolveName(codeBlock: CodeBlock, name: str, globalVariable: Variable=None) -> Union[VariableNode, ast.Attribute]:
+def resolveName(codeBlock: CodeBlock, name: str) -> Union[VariableNode, ast.Attribute]:
     
     if(isinstance(codeBlock, ModuleCodeBlock)):
         return makeAttribute(codeBlock.globalVariable, name)
@@ -176,9 +180,6 @@ class CodeBlockGenerator(ast.NodeTransformer):
                             assert(False)
                     define.destroy()
                     change = True
-
-                    
-
 
     def newTmpVariable(self) -> Variable:
         name = f"$t{self.tmpVarCount}"
@@ -345,8 +346,7 @@ class CodeBlockGenerator(ast.NodeTransformer):
             return VariableNode(tmp)
         elif(isStore(node) or isDel(node)):
             return node
-        
-        
+           
     def visit_NamedExpr(self, node: ast.NamedExpr) -> Any:
         srcPos = getSrcPos(node)
         self.generic_visit(node)
@@ -362,7 +362,6 @@ class CodeBlockGenerator(ast.NodeTransformer):
         for target in node.targets:
             self._handleAssign(target, node.value, srcPos)
         
-
     def visit_AnnAssign(self, node: ast.AnnAssign) -> Any:
         srcPos = getSrcPos(node)
         self.generic_visit(node)
@@ -411,6 +410,56 @@ class CodeBlockGenerator(ast.NodeTransformer):
         for target in node.targets:
             if(isinstance(target, ast.Attribute)):
                 DelAttr(target.value.var, target.attr, self.codeBlock, srcPos)
+
+    def visit_Import(self, node: ast.Import) -> Any:
+        srcPos = getSrcPos(node)
+        for alias in node.names:
+            if(alias.asname is None):
+                name, _, _ = alias.name.partition(".")
+            else:
+                name = alias.asname
+            
+            cb = moduleManager.getCodeBlock(name=alias.name, caller=self.codeBlock.moduleName)
+            resolved = resolveName(self.codeBlock, name)
+            if(isinstance(resolved, VariableNode)):
+                NewModule(resolved.var, cb, self.codeBlock, srcPos)
+            elif(isinstance(resolved, ast.Attribute)):
+                tmp = self.newTmpVariable()
+                NewModule(tmp, cb, self.codeBlock, srcPos)
+                Store(resolved.value.var, resolved.var, tmp, self.codeBlock, srcPos)
+
+    def visit_ImportFrom(self, node: ast.ImportFrom) -> Any:
+        srcPos = getSrcPos(node)
+        fromlist = [alias.name for alias in node.names]
+        imported: ModuleCodeBlock = moduleManager.getCodeBlock(name=node.module, caller=self.codeBlock.moduleName, fromlist=fromlist, level=node.level)
+        tmpModule = self.newTmpVariable()
+        NewModule(tmpModule, imported, self.codeBlock, srcPos)
+        aliases = {}  # local name -> imported name
+        hasstar = False
+        for alias in node.names:
+            if(alias.name == "*"):
+                hasstar = True
+            if(alias.asname is None):
+                aliases[alias.name] = alias.name
+            else:
+                aliases[alias.asname] = alias.name
+             
+        if(hasstar):
+            if(not imported.done):
+                raise Exception(f"Circular import between {self.codeBlock.moduleName} and {imported}!")
+            for name in imported.globalNames:
+               aliases[name] = name
+
+        for newName, oldName in aliases.items():
+            resolved = resolveName(self.codeBlock, newName)
+            if(isinstance(resolved, VariableNode)):
+                Load(resolved.var, tmpModule, oldName, self.codeBlock, srcPos)
+            elif(isinstance(resolved, ast.Attribute)):
+                tmp = self.newTmpVariable()
+                Load(tmp, tmpModule, oldName, self.codeBlock, srcPos)
+                Store(resolved.value.var, resolved.attr, tmp, self.codeBlock, srcPos)
+
+
 
     def visit_For(self, node: ast.For) -> Any:
         srcPos = getSrcPos(node)
@@ -742,8 +791,6 @@ class ModuleCodeBlockGenerator(CodeBlockGenerator):
 
     def postprocess(self, node: ast.AST):
         super().postprocess(node)
-        # TODO: scan all the code in this block and subblock(function, class)
-        # determine all the store of global names
-        pass
+        self.done = True
     
 

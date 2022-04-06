@@ -49,10 +49,13 @@ class BindingScanner(ast.NodeVisitor):
 
     def visit_Import(self, node: ast.Import) -> None:
         for alias in node.names:
-            if(alias.asname is None and alias.name not in self.declaredNames):
-                self.boundNames.add(alias.name)
-            elif(alias.asname is not None and alias.asname not in self.declaredNames):
-                self.boundNames.add(alias.asname)
+            if(alias.asname is None):
+                name, _, _ = alias.name.partition(".")
+            else:
+                name = alias.asname
+
+            if(name not in self.declaredNames):
+                self.boundNames.add(name)
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         for alias in node.names:

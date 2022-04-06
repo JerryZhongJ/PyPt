@@ -7,7 +7,11 @@ import marshal
 import os
 import io
 import sys
+import ast
 
+from IRGeneration.CodeBlock import ModuleCodeBlock
+from IRGeneration.CodeBlockGenerator import ModuleCodeBlockGenerator
+from IRGeneration.IR import NewModule, Store, Variable
 
 LOAD_CONST = dis.opmap['LOAD_CONST']
 IMPORT_NAME = dis.opmap['IMPORT_NAME']
@@ -101,14 +105,14 @@ class Module:
         self.__name__ = name
         self.__file__ = file
         self.__path__ = path
-        self.__code__ = None
-        # The set of global names that are assigned to in the module.
-        # This includes those names imported through starimports of
-        # Python modules.
-        self.globalnames = {}
-        # The set of starimports this module did that could not be
-        # resolved, ie. a starimport from a non-Python module.
-        self.starimports = {}
+        self.codeBlock = None
+        # # The set of global names that are assigned to in the module.
+        # # This includes those names imported through starimports of
+        # # Python modules.
+        # self.globalnames = {}
+        # # The set of starimports this module did that could not be
+        # # resolved, ie. a starimport from a non-Python module.
+        # self.starimports = {}
 
     def __repr__(self):
         s = "Module(%r" % (self.__name__,)
@@ -119,9 +123,9 @@ class Module:
         s = s + ")"
         return s
 
-class ModuleFinder:
+class ModuleManager:
 
-    def __init__(self, path=None, debug=0, excludes=None, replace_paths=None):
+    def __init__(self, path=None, debug=0, excludes=None):
         if path is None:
             path = sys.path
         self.path = path
@@ -130,7 +134,7 @@ class ModuleFinder:
         self.debug = debug
         self.indent = 0
         self.excludes = excludes if excludes is not None else []
-        self.replace_paths = replace_paths if replace_paths is not None else []
+        # self.replace_paths = replace_paths if replace_paths is not None else []
         self.processed_paths = []   # Used in debugging only
 
     def msg(self, level, str, *args):
@@ -154,13 +158,21 @@ class ModuleFinder:
             self.indent = self.indent - 1
             self.msg(*args)
 
-    def run_script(self, pathname):
+    def start(self, pathname):
         self.msg(2, "run_script", pathname)
         with io.open_code(pathname) as fp:
             stuff = ("", "rb", _PY_SOURCE)
             # __main__ is a fully quarlified name
-            self.load_module('__main__', fp, pathname, stuff)
+            m = self.load_module('__main__', fp, pathname, stuff)
+            return m.codeBlock
 
+    def getCodeBlock(self, name, caller=None, fromlist=None, level=-1):
+        caller = self.modules[caller]
+        m = self.import_hook(name, caller, fromlist, level)
+        if(m is None):
+            return None
+        return m.codeBlock
+        
     def load_file(self, pathname):
         dir, name = os.path.split(pathname)
         name, ext = os.path.splitext(name)
@@ -168,17 +180,22 @@ class ModuleFinder:
             stuff = (ext, "rb", _PY_SOURCE)
             self.load_module(name, fp, pathname, stuff)
 
-    # import all the module in the quarlified name, and thoes in fromlist
-    def import_hook(self, name, caller=None, fromlist=None, level=-1):
+    # import all the module in the quarlified name, and those in fromlist
+    # if this is "import", return the head module
+    # if this is "import ... from",  import fromlist and return None
+    def _import_hook(self, name, caller=None, fromlist=None, level=-1):
         self.msg(3, "import_hook", name, caller, fromlist, level)
         parent = self.determine_parent(caller, level=level)
+        # q is imported, tail is not
         q, tail = self.find_head_package(parent, name)
         m = self.load_tail(q, tail)
         if not fromlist:
             return q
+        # "import ... from ...", and this is a package
         if m.__path__:
-            self.ensure_fromlist(m, fromlist)
-        return None
+            self.ensure_fromlist(m, caller, fromlist)
+        # return m if "import ... from ..." 
+        return m
 
     # used when relative import, return an added module
     def determine_parent(self, caller, level=-1):
@@ -248,6 +265,7 @@ class ModuleFinder:
         raise ImportError("No module named " + qname)
 
     # when the head is imported, import the rest, return the last module
+    # TODO: add globalNames here
     def load_tail(self, q, tail):
         self.msgin(4, "load_tail", q, tail)
         m = q
@@ -263,20 +281,23 @@ class ModuleFinder:
         self.msgout(4, "load_tail ->", m)
         return m
 
-    # import submodules in fromlist
-    def ensure_fromlist(self, m, fromlist, recursive=0):
-        self.msg(4, "ensure_fromlist", m, fromlist, recursive)
+    # import submodules in fromlist, m should be a pacakge
+    # TODO: add globalNames here
+    def ensure_fromlist(self, m, caller, fromlist):
+        self.msg(4, "ensure_fromlist", m, fromlist)
+        if("*" in fromlist):
+            all = self.find_all_submodules(m)
+            self.ensure_fromlist(m, caller, all)
+            fromlist = [sub for sub in fromlist if sub != "*"]
+
         for sub in fromlist:
-            if sub == "*":
-                if not recursive:
-                    all = self.find_all_submodules(m)
-                    if all:
-                        self.ensure_fromlist(m, all, 1)
-            elif not hasattr(m, sub):
+            if not hasattr(m, sub):
                 subname = "%s.%s" % (m.__name__, sub)
                 submod = self.import_module(sub, subname, m)
                 if not submod:
-                    raise ImportError("No module named " + subname)
+                    self.msg(2, "ImportError:", "No module named " + subname)
+                    self._add_badmodule(subname, caller)
+                    
 
     # used when m is a package, return all submodules' name
     def find_all_submodules(self, m):
@@ -317,6 +338,7 @@ class ModuleFinder:
         else:
             self.msgout(3, "import_module ->", m)
             return m
+        
         if fqname in self.badmodules:
             self.msgout(3, "import_module -> None")
             return None
@@ -332,6 +354,9 @@ class ModuleFinder:
 
         try:
             m = self.load_module(fqname, fp, pathname, stuff)
+            v = Variable(partname, parent.codeBlock, temp=False)
+            NewModule(v, m.codeBlock, parent.codeBlock, srcPos=(0,0,0,0))
+            Store(parent.codeBlock.globalVariable, partname, v, parent.codeBlock, srcPos=(0,0,0,0))
         finally:
             if fp:
                 fp.close()
@@ -348,25 +373,31 @@ class ModuleFinder:
             m = self.load_package(fqname, pathname)
             self.msgout(2, "load_module ->", m)
             return m
-        if type == _PY_SOURCE:
-            co = compile(fp.read(), pathname, 'exec')
-        elif type == _PY_COMPILED:
-            try:
-                data = fp.read()
-                importlib._bootstrap_external._classify_pyc(data, fqname, {})
-            except ImportError as exc:
-                self.msgout(2, "raise ImportError: " + str(exc), pathname)
-                raise
-            co = marshal.loads(memoryview(data)[16:])
-        else:
-            co = None
+
         m = self.add_module(fqname)
         m.__file__ = pathname
-        if co:
-            if self.replace_paths:
-                co = self.replace_paths_in_code(co)
-            m.__code__ = co
-            self.scan_code(co, m)
+        
+        if type == _PY_SOURCE:
+            if(fqname not in self.modules):
+                tree = ast.parse(fp.read())
+                generator = ModuleCodeBlockGenerator(fqname)
+                m.codeBlock = generator.codeBlock
+                generator.parse(tree)
+        elif type == _PY_COMPILED:
+            # try:
+            #     data = fp.read()
+            #     importlib._bootstrap_external._classify_pyc(data, fqname, {})
+            # except ImportError as exc:
+            #     self.msgout(2, "raise ImportError: " + str(exc), pathname)
+            #     raise
+            # co = marshal.loads(memoryview(data)[16:])
+            m.codeBlock = ModuleCodeBlock(fqname)
+            self.msg(1, f"{fqname}({pathname}) is a compiled file.")
+        else:
+            m.codeBlock = ModuleCodeBlock(fqname)
+            self.msg(1, f"{fqname}({pathname}) is not supported.")
+
+        
         self.msgout(2, "load_module ->", m)
         return m
 
@@ -378,34 +409,37 @@ class ModuleFinder:
         else:
             self.badmodules[name]["-"] = 1
 
+
     # name: from what module
     # caller: in which module
     # fromlist: import what names
-    def _safe_import_hook(self, name, caller, fromlist, level=-1):
+    # return head module if the statement is "import"
+    # return the last module if the statement is "import ... from ..."
+    def import_hook(self, name, caller, fromlist, level=-1):
         # wrapper for self.import_hook() that won't raise ImportError
         if name in self.badmodules:
             self._add_badmodule(name, caller)
             return
         try:
-            self.import_hook(name, caller, level=level)
+            return self._import_hook(name, caller, fromlist, level=level)
         except ImportError as msg:
             self.msg(2, "ImportError:", str(msg))
             self._add_badmodule(name, caller)
         except SyntaxError as msg:
             self.msg(2, "SyntaxError:", str(msg))
             self._add_badmodule(name, caller)
-        else:
-            if fromlist:
-                for sub in fromlist:
-                    fullname = name + "." + sub
-                    if fullname in self.badmodules:
-                        self._add_badmodule(fullname, caller)
-                        continue
-                    try:
-                        self.import_hook(name, caller, [sub], level=level)
-                    except ImportError as msg:
-                        self.msg(2, "ImportError:", str(msg))
-                        self._add_badmodule(fullname, caller)
+        # else:
+        #     if fromlist:
+        #         for sub in fromlist:
+        #             fullname = name + "." + sub
+        #             if fullname in self.badmodules:
+        #                 self._add_badmodule(fullname, caller)
+        #                 continue
+        #             try:
+        #                 self._import_hook(name, caller, [sub], level=level)
+        #             except ImportError as msg:
+        #                 self.msg(2, "ImportError:", str(msg))
+        #                 self._add_badmodule(fullname, caller)
 
     def scan_opcodes(self, co):
         # Scan the code, and yield 'interesting' opcode combinations
@@ -443,7 +477,7 @@ class ModuleFinder:
                     if "*" in fromlist:
                         have_star = 1
                     fromlist = [f for f in fromlist if f != "*"]
-                self._safe_import_hook(name, m, fromlist, level=0)
+                self.import_hook(name, m, fromlist, level=0)
                 if have_star:
                     # We've encountered an "import *". If it is a Python module,
                     # the code has already been parsed and we can suck out the
@@ -466,10 +500,10 @@ class ModuleFinder:
             elif what == "relative_import":
                 level, fromlist, name = args
                 if name:
-                    self._safe_import_hook(name, m, fromlist, level=level)
+                    self.import_hook(name, m, fromlist, level=level)
                 else:
                     parent = self.determine_parent(m, level=level)
-                    self._safe_import_hook(parent.__name__, None, fromlist, level=0)
+                    self.import_hook(parent.__name__, None, fromlist, level=0)
             else:
                 # We don't expect anything else from the generator.
                 raise RuntimeError(what)
@@ -492,7 +526,7 @@ class ModuleFinder:
 
         fp, buf, stuff = self.find_module("__init__", m.__path__)
         try:
-            # 
+            # the __init__ is treated as this package itself
             self.load_module(fqname, fp, buf, stuff)
             self.msgout(2, "load_package ->", m)
             return m
@@ -508,6 +542,7 @@ class ModuleFinder:
         return m
 
     # parent is used when relative import
+    # return file, module path, and other stuff
     def find_module(self, name, path, parent=None):
         if parent is not None:
             # assert path is not None
@@ -680,25 +715,20 @@ def test():
             print("   ", repr(item))
 
     # Create the module finder and turn its crank
-    mf = ModuleFinder(path, debug, exclude)
+    mf = ModuleManager(path, debug, exclude)
     for arg in args[1:]:
         if arg == '-m':
             domods = 1
             continue
         if domods:
             if arg[-2:] == '.*':
-                mf.import_hook(arg[:-2], None, ["*"])
+                mf._import_hook(arg[:-2], None, ["*"])
             else:
-                mf.import_hook(arg)
+                mf._import_hook(arg)
         else:
             mf.load_file(arg)
-    mf.run_script(script)
+    mf.start(script)
     mf.report()
     return mf  # for -i debugging
 
-
-if __name__ == '__main__':
-    try:
-        mf = test()
-    except KeyboardInterrupt:
-        print("\n[interrupted]")
+moduleManager = ModuleManager()

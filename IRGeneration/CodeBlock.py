@@ -61,12 +61,16 @@ class CodeBlock:
 
 class ModuleCodeBlock(CodeBlock):
     moduleName: str
-
+    done: bool
+    globalNames: Set[str]
     def __init__(self, moduleName:str):
         super().__init__("", None)
         self.moduleName = moduleName
         self.qualified_name = moduleName
         self.globalVariable = Variable("$global", self)
+        self.done = False
+        self.globalNames = set()
+
 
 class FunctionCodeBlock(CodeBlock):
     scopeLevel: int                                     # showing how deep a function is defined, startging with 0
