@@ -5,11 +5,22 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Test IR",
+            "name": "Test",
             "type": "python",
             "request": "launch",
-            "program": "test.py",
+            "module": "Python-PTA.test.TestImport",
+            "cwd": "${workspaceFolder}/..",
+            "justMyCode": true
+        },
+        {
+            "name": "Module Finder",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/modulefinder.py",
             "console": "integratedTerminal",
+            "args": [
+                "${workspaceFolder}/test/resources/Import/__main__.py"
+            ],
             "justMyCode": true
         }
     ]

@@ -105,8 +105,9 @@ class Store(IR):
         self.setTarget(target)
         self.setSource(source)
         self.field = field
+        # $global.attr = v
         if(target == belongsTo.globalVariable):
-            belongsTo.globalNames.add(field)
+            target.belongsTo.globalNames.add(field)
 
     def _unsetTarget(self):
         if(not hasattr(self, "target")):
@@ -225,7 +226,7 @@ class NewModule(New):
         self.codeBlock = codeBlock
 
     def _text(self):
-        return f"{self.target} = NewModule {self.codeBlock.moduleName}"
+        return f"{self.target} = NewModule {self.codeBlock.moduleName if self.codeBlock else ''}"
 
 class NewFunction(New):
     codeBlock: 'CodeBlock'

@@ -1,12 +1,9 @@
 import ast
-from inspect import Attribute
 from typing import Set, Union
-from IRGeneration.CodeBlock import ClassCodeBlock, CodeBlock, FunctionCodeBlock, ModuleCodeBlock
+from .CodeBlock import ClassCodeBlock, CodeBlock, FunctionCodeBlock, ModuleCodeBlock
 
-from IRGeneration.IR import *
-from IRGeneration.Scanner import BindingScanner, DeclarationScanner
-from ModuleManager import moduleManager
-
+from .IR import *
+from .Scanner import BindingScanner, DeclarationScanner
 
 
 
@@ -84,13 +81,14 @@ class CodeBlockGenerator(ast.NodeTransformer):
     lambdaCount: int
     tmpVariables: set[Variable]
     simplify: bool
-    def __init__(self, simplify=True):
+    def __init__(self, moduleManager: 'ModuleManager', simplify=True):
         # self.root = node
         # print(f"Into {name} @ {moduleName}")
         
         self.tmpVarCount = 0
         self.lambdaCount = 0
         self.tmpVariables = set()
+        self.moduleManager = moduleManager
         self.simplify = simplify
 
     def parse(self, node: ast.AST):
@@ -413,25 +411,31 @@ class CodeBlockGenerator(ast.NodeTransformer):
 
     def visit_Import(self, node: ast.Import) -> Any:
         srcPos = getSrcPos(node)
+        caller = self.codeBlock.moduleName
         for alias in node.names:
+            self.moduleManager.import_hook(alias.name, caller)
             if(alias.asname is None):
                 name, _, _ = alias.name.partition(".")
+                cb = self.moduleManager.getCodeBlock(name, caller)
             else:
                 name = alias.asname
+                cb = self.moduleManager.getCodeBlock(alias.name, caller)
             
-            cb = moduleManager.getCodeBlock(name=alias.name, caller=self.codeBlock.moduleName)
+            
             resolved = resolveName(self.codeBlock, name)
             if(isinstance(resolved, VariableNode)):
                 NewModule(resolved.var, cb, self.codeBlock, srcPos)
             elif(isinstance(resolved, ast.Attribute)):
                 tmp = self.newTmpVariable()
                 NewModule(tmp, cb, self.codeBlock, srcPos)
-                Store(resolved.value.var, resolved.var, tmp, self.codeBlock, srcPos)
+                Store(resolved.value.var, resolved.attr, tmp, self.codeBlock, srcPos)
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> Any:
         srcPos = getSrcPos(node)
+        caller = self.codeBlock.moduleName
         fromlist = [alias.name for alias in node.names]
-        imported: ModuleCodeBlock = moduleManager.getCodeBlock(name=node.module, caller=self.codeBlock.moduleName, fromlist=fromlist, level=node.level)
+        self.moduleManager.import_hook(node.module or "", caller, fromlist, level=node.level)
+        imported: ModuleCodeBlock = self.moduleManager.getCodeBlock(node.module, caller, level=node.level)
         tmpModule = self.newTmpVariable()
         NewModule(tmpModule, imported, self.codeBlock, srcPos)
         aliases = {}  # local name -> imported name
@@ -446,7 +450,7 @@ class CodeBlockGenerator(ast.NodeTransformer):
              
         if(hasstar):
             if(not imported.done):
-                raise Exception(f"Circular import between {self.codeBlock.moduleName} and {imported}!")
+                raise Exception(f"Circular import between {self.codeBlock.moduleName} and {imported.moduleName}!")
             for name in imported.globalNames:
                aliases[name] = name
 
@@ -487,7 +491,7 @@ class CodeBlockGenerator(ast.NodeTransformer):
         # v = new_function(codeBlock)
         srcPos = getSrcPos(node)
 
-        generator = FunctionCodeBlockGenerator(node.name, self.codeBlock, simplify=self.simplify)
+        generator = FunctionCodeBlockGenerator(node.name, self.codeBlock, moduleManager=self.moduleManager, simplify=self.simplify)
         generator.parse(node)
         func = generator.codeBlock
 
@@ -519,7 +523,7 @@ class CodeBlockGenerator(ast.NodeTransformer):
     def visit_Lambda(self, node: ast.Lambda) -> Any:
         srcPos = getSrcPos(node)
 
-        generator = FunctionCodeBlockGenerator(f"$lambda{self.lambdaCount}", self.codeBlock, simplify=self.simplify)
+        generator = FunctionCodeBlockGenerator(f"$lambda{self.lambdaCount}", self.codeBlock, moduleManager=self.moduleManager, simplify=self.simplify)
         self.lambdaCount += 1
 
         generator.parse(node)
@@ -548,7 +552,7 @@ class CodeBlockGenerator(ast.NodeTransformer):
     def visit_ClassDef(self, node: ast.ClassDef):
         srcPos = getSrcPos(node)
 
-        generator = ClassCodeBlockGenerator(node.name, self.codeBlock, simplify=self.simplify)
+        generator = ClassCodeBlockGenerator(node.name, self.codeBlock, moduleManager=self.moduleManager, simplify=self.simplify)
         generator.parse(node)
         base = [self.visit(b).var for b in node.bases]
         resolved = resolveName(self.codeBlock, node.name)
@@ -621,9 +625,9 @@ class FunctionCodeBlockGenerator(CodeBlockGenerator):
     codeBlock: FunctionCodeBlock
     yielded: List[Variable]
 
-    def __init__(self, name:str, enclosing: CodeBlock, simplify=True):
+    def __init__(self, name:str, enclosing: CodeBlock, moduleManager: 'ModuleManager', simplify=True):
         
-        super().__init__(simplify)
+        super().__init__(moduleManager, simplify)
         self.codeBlock = FunctionCodeBlock(name, enclosing)
         self.yielded = []
 
@@ -718,8 +722,8 @@ class ClassCodeBlockGenerator(CodeBlockGenerator):
     codeBlock: ClassCodeBlock
     attributes: Set[str]
 
-    def __init__(self, name: str, enclosing: CodeBlock, simplify=True):
-        super().__init__(simplify)
+    def __init__(self, name: str, enclosing: CodeBlock, moduleManager: 'ModuleManager', simplify=True):
+        super().__init__(moduleManager, simplify)
         self.codeBlock = ClassCodeBlock(name, enclosing)
 
     def parse(self, node: ast.AST):
@@ -781,8 +785,8 @@ class ClassCodeBlockGenerator(CodeBlockGenerator):
 class ModuleCodeBlockGenerator(CodeBlockGenerator):
     codeBlock: ModuleCodeBlock
     # module has no enclosing block
-    def __init__(self, moduleName: str, simplify=True):
-        super().__init__(simplify)
+    def __init__(self, moduleName: str, moduleManager: 'ModuleManager',simplify=True):
+        super().__init__(moduleManager, simplify)
         self.codeBlock = ModuleCodeBlock(moduleName)
 
     def parse(self, node: ast.AST):
@@ -791,6 +795,5 @@ class ModuleCodeBlockGenerator(CodeBlockGenerator):
 
     def postprocess(self, node: ast.AST):
         super().postprocess(node)
-        self.done = True
+        self.codeBlock.done = True
     
-

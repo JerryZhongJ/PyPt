@@ -21,3 +21,15 @@ def testIR(moduleName):
     if(os.path.exists(path)):
         shutil.rmtree(path)
     generator.codeBlock.dump("test/result/simplified")
+
+testIR("Def_Ref")
+
+testIR("Expr")
+
+testIR("Call")
+
+testIR("BuiltinContainer")
+
+testIR("For_Generator")
+
+testIR("Del")

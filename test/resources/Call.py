@@ -7,4 +7,4 @@ class C:
     def __init__(self, a, b = 1):
         pass
 
-c = C(foo(a=1), [], b=2)
+c = C(foo(1, b = []), b=2)

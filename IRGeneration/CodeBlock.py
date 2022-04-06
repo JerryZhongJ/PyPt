@@ -1,6 +1,6 @@
 from typing import Dict, List, Set
 
-from IRGeneration.IR import IR, New, NewClass, NewFunction, Variable
+from .IR import IR, New, NewClass, NewFunction, Variable
 import os
 
 
@@ -53,10 +53,8 @@ class CodeBlock:
             for ir in self.IRs:
                 print(ir, file=f)
                 if(isinstance(ir, NewClass) or isinstance(ir, NewFunction)):
-                    codeBlocks.append(ir.codeBlock)
-            
-            for codeBlock in codeBlocks:
-                codeBlock.dump(rootDirectory)
+                    ir.codeBlock.dump(rootDirectory)
+                
             
 
 class ModuleCodeBlock(CodeBlock):

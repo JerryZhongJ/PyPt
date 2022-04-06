@@ -9,9 +9,9 @@ import io
 import sys
 import ast
 
-from IRGeneration.CodeBlock import ModuleCodeBlock
-from IRGeneration.CodeBlockGenerator import ModuleCodeBlockGenerator
-from IRGeneration.IR import NewModule, Store, Variable
+from .IRGeneration.CodeBlock import CodeBlock, ModuleCodeBlock
+from .IRGeneration.CodeBlockGenerator import ModuleCodeBlockGenerator
+from .IRGeneration.IR import NewModule, Store, Variable
 
 LOAD_CONST = dis.opmap['LOAD_CONST']
 IMPORT_NAME = dis.opmap['IMPORT_NAME']
@@ -125,10 +125,8 @@ class Module:
 
 class ModuleManager:
 
-    def __init__(self, path=None, debug=0, excludes=None):
-        if path is None:
-            path = sys.path
-        self.path = path
+    def __init__(self, debug=0, excludes=None):
+        self.path = sys.path
         self.modules = {}
         self.badmodules = {}
         self.debug = debug
@@ -158,20 +156,33 @@ class ModuleManager:
             self.indent = self.indent - 1
             self.msg(*args)
 
-    def start(self, pathname):
+    def start(self, pathname) -> None:
         self.msg(2, "run_script", pathname)
+        self.path[0] = os.path.dirname(pathname)
         with io.open_code(pathname) as fp:
             stuff = ("", "rb", _PY_SOURCE)
             # __main__ is a fully quarlified name
             m = self.load_module('__main__', fp, pathname, stuff)
-            return m.codeBlock
+            
 
-    def getCodeBlock(self, name, caller=None, fromlist=None, level=-1):
+    def getCodeBlock(self, name: str, caller: str=None, level: int=0) -> CodeBlock:
         caller = self.modules[caller]
-        m = self.import_hook(name, caller, fromlist, level)
-        if(m is None):
+        parent = self.determine_parent(caller, level)
+        if parent and name:
+            fqname = parent.__name__ + "." + name
+        elif parent:
+            fqname = parent.__name__
+        else:
+            fqname = name
+        try:
+            return self.modules[fqname].codeBlock
+        except(KeyError):
             return None
-        return m.codeBlock
+        
+
+
+    def allCodeBlocks(self):
+        return [m.codeBlock for m in self.modules.values() if m.codeBlock is not None]
         
     def load_file(self, pathname):
         dir, name = os.path.split(pathname)
@@ -183,22 +194,21 @@ class ModuleManager:
     # import all the module in the quarlified name, and those in fromlist
     # if this is "import", return the head module
     # if this is "import ... from",  import fromlist and return None
-    def _import_hook(self, name, caller=None, fromlist=None, level=-1):
+    def _import_hook(self, name, caller=None, fromlist=None, level=0) -> None:
         self.msg(3, "import_hook", name, caller, fromlist, level)
         parent = self.determine_parent(caller, level=level)
         # q is imported, tail is not
         q, tail = self.find_head_package(parent, name)
         m = self.load_tail(q, tail)
         if not fromlist:
-            return q
+            return
         # "import ... from ...", and this is a package
         if m.__path__:
             self.ensure_fromlist(m, caller, fromlist)
-        # return m if "import ... from ..." 
-        return m
+        
 
     # used when relative import, return an added module
-    def determine_parent(self, caller, level=-1):
+    def determine_parent(self, caller, level=0):
         self.msgin(4, "determine_parent", caller, level)
         if not caller or level == 0:
             self.msgout(4, "determine_parent -> None")
@@ -246,10 +256,13 @@ class ModuleManager:
         else:
             head = name
             tail = ""
-        if parent:
+        if parent and name:
             qname = "%s.%s" % (parent.__name__, head)
+        elif parent:
+            qname = parent.__name__
         else:
             qname = head
+            
         q = self.import_module(head, qname, parent)
         if q:
             self.msgout(4, "find_head_package ->", (q, tail))
@@ -354,9 +367,10 @@ class ModuleManager:
 
         try:
             m = self.load_module(fqname, fp, pathname, stuff)
-            v = Variable(partname, parent.codeBlock, temp=False)
-            NewModule(v, m.codeBlock, parent.codeBlock, srcPos=(0,0,0,0))
-            Store(parent.codeBlock.globalVariable, partname, v, parent.codeBlock, srcPos=(0,0,0,0))
+            if(parent):
+                v = Variable(partname, parent.codeBlock, temp=False)
+                NewModule(v, m.codeBlock, parent.codeBlock, srcPos=(0,0,0,0))
+                Store(parent.codeBlock.globalVariable, partname, v, parent.codeBlock, srcPos=(0,0,0,0))
         finally:
             if fp:
                 fp.close()
@@ -378,11 +392,11 @@ class ModuleManager:
         m.__file__ = pathname
         
         if type == _PY_SOURCE:
-            if(fqname not in self.modules):
-                tree = ast.parse(fp.read())
-                generator = ModuleCodeBlockGenerator(fqname)
-                m.codeBlock = generator.codeBlock
-                generator.parse(tree)
+            
+            tree = ast.parse(fp.read())
+            generator = ModuleCodeBlockGenerator(fqname, moduleManager=self, simplify=True)
+            m.codeBlock = generator.codeBlock
+            generator.parse(tree)
         elif type == _PY_COMPILED:
             # try:
             #     data = fp.read()
@@ -413,15 +427,16 @@ class ModuleManager:
     # name: from what module
     # caller: in which module
     # fromlist: import what names
-    # return head module if the statement is "import"
-    # return the last module if the statement is "import ... from ..."
-    def import_hook(self, name, caller, fromlist, level=-1):
-        # wrapper for self.import_hook() that won't raise ImportError
+    # no return
+    def import_hook(self, name: str, caller: str, fromlist: list[str]=None, level: int=-1) -> None:
+        assert(caller in self.modules)
+        caller = self.modules[caller]
+
         if name in self.badmodules:
             self._add_badmodule(name, caller)
             return
         try:
-            return self._import_hook(name, caller, fromlist, level=level)
+            self._import_hook(name, caller, fromlist, level=level)
         except ImportError as msg:
             self.msg(2, "ImportError:", str(msg))
             self._add_badmodule(name, caller)
@@ -441,76 +456,76 @@ class ModuleManager:
         #                 self.msg(2, "ImportError:", str(msg))
         #                 self._add_badmodule(fullname, caller)
 
-    def scan_opcodes(self, co):
-        # Scan the code, and yield 'interesting' opcode combinations
-        code = co.co_code
-        names = co.co_names
-        consts = co.co_consts
-        # opargs = (op, arg)
-        opargs = [(op, arg) for _, op, arg in dis._unpack_opargs(code)
-                  if op != EXTENDED_ARG]
-        for i, (op, oparg) in enumerate(opargs):
-            if op in STORE_OPS:
-                yield "store", (names[oparg],)
-                continue
-            if (op == IMPORT_NAME and i >= 2
-                    and opargs[i-1][0] == opargs[i-2][0] == LOAD_CONST):
-                level = consts[opargs[i-2][1]]
-                fromlist = consts[opargs[i-1][1]]
-                if level == 0: # absolute import
-                    yield "absolute_import", (fromlist, names[oparg])
-                else: # relative import
-                    yield "relative_import", (level, fromlist, names[oparg])
-                continue
+    # def scan_opcodes(self, co):
+    #     # Scan the code, and yield 'interesting' opcode combinations
+    #     code = co.co_code
+    #     names = co.co_names
+    #     consts = co.co_consts
+    #     # opargs = (op, arg)
+    #     opargs = [(op, arg) for _, op, arg in dis._unpack_opargs(code)
+    #               if op != EXTENDED_ARG]
+    #     for i, (op, oparg) in enumerate(opargs):
+    #         if op in STORE_OPS:
+    #             yield "store", (names[oparg],)
+    #             continue
+    #         if (op == IMPORT_NAME and i >= 2
+    #                 and opargs[i-1][0] == opargs[i-2][0] == LOAD_CONST):
+    #             level = consts[opargs[i-2][1]]
+    #             fromlist = consts[opargs[i-1][1]]
+    #             if level == 0: # absolute import
+    #                 yield "absolute_import", (fromlist, names[oparg])
+    #             else: # relative import
+    #                 yield "relative_import", (level, fromlist, names[oparg])
+    #             continue
 
-    def scan_code(self, co, m):
-        code = co.co_code
-        scanner = self.scan_opcodes
-        for what, args in scanner(co):
-            if what == "store":
-                name, = args
-                m.globalnames[name] = 1
-            elif what == "absolute_import":
-                fromlist, name = args
-                have_star = 0
-                if fromlist is not None:
-                    if "*" in fromlist:
-                        have_star = 1
-                    fromlist = [f for f in fromlist if f != "*"]
-                self.import_hook(name, m, fromlist, level=0)
-                if have_star:
-                    # We've encountered an "import *". If it is a Python module,
-                    # the code has already been parsed and we can suck out the
-                    # global names.
-                    mm = None
-                    if m.__path__:
-                        # At this point we don't know whether 'name' is a
-                        # submodule of 'm' or a global module. Let's just try
-                        # the full name first.
-                        mm = self.modules.get(m.__name__ + "." + name)
-                    if mm is None:
-                        mm = self.modules.get(name)
-                    if mm is not None:
-                        m.globalnames.update(mm.globalnames)
-                        m.starimports.update(mm.starimports)
-                        if mm.__code__ is None:
-                            m.starimports[name] = 1
-                    else:
-                        m.starimports[name] = 1
-            elif what == "relative_import":
-                level, fromlist, name = args
-                if name:
-                    self.import_hook(name, m, fromlist, level=level)
-                else:
-                    parent = self.determine_parent(m, level=level)
-                    self.import_hook(parent.__name__, None, fromlist, level=0)
-            else:
-                # We don't expect anything else from the generator.
-                raise RuntimeError(what)
+    # def scan_code(self, co, m):
+        # code = co.co_code
+        # scanner = self.scan_opcodes
+        # for what, args in scanner(co):
+        #     if what == "store":
+        #         name, = args
+        #         m.globalnames[name] = 1
+        #     elif what == "absolute_import":
+        #         fromlist, name = args
+        #         have_star = 0
+        #         if fromlist is not None:
+        #             if "*" in fromlist:
+        #                 have_star = 1
+        #             fromlist = [f for f in fromlist if f != "*"]
+        #         self.import_hook(name, m, fromlist, level=0)
+        #         if have_star:
+        #             # We've encountered an "import *". If it is a Python module,
+        #             # the code has already been parsed and we can suck out the
+        #             # global names.
+        #             mm = None
+        #             if m.__path__:
+        #                 # At this point we don't know whether 'name' is a
+        #                 # submodule of 'm' or a global module. Let's just try
+        #                 # the full name first.
+        #                 mm = self.modules.get(m.__name__ + "." + name)
+        #             if mm is None:
+        #                 mm = self.modules.get(name)
+        #             if mm is not None:
+        #                 m.globalnames.update(mm.globalnames)
+        #                 m.starimports.update(mm.starimports)
+        #                 if mm.__code__ is None:
+        #                     m.starimports[name] = 1
+        #             else:
+        #                 m.starimports[name] = 1
+        #     elif what == "relative_import":
+        #         level, fromlist, name = args
+        #         if name:
+        #             self.import_hook(name, m, fromlist, level=level)
+        #         else:
+        #             parent = self.determine_parent(m, level=level)
+        #             self.import_hook(parent.__name__, None, fromlist, level=0)
+        #     else:
+        #         # We don't expect anything else from the generator.
+        #         raise RuntimeError(what)
 
-        for c in co.co_consts:
-            if isinstance(c, type(co)):
-                self.scan_code(c, m)
+        # for c in co.co_consts:
+        #     if isinstance(c, type(co)):
+        #         self.scan_code(c, m)
 
     def load_package(self, fqname, pathname):
         self.msgin(2, "load_package", fqname, pathname)
@@ -731,4 +746,4 @@ def test():
     mf.report()
     return mf  # for -i debugging
 
-moduleManager = ModuleManager()
+
