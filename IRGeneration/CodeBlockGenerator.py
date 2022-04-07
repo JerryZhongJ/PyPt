@@ -443,6 +443,7 @@ class CodeBlockGenerator(ast.NodeTransformer):
         for alias in node.names:
             if(alias.name == "*"):
                 hasstar = True
+                continue
             if(alias.asname is None):
                 aliases[alias.name] = alias.name
             else:
@@ -452,7 +453,9 @@ class CodeBlockGenerator(ast.NodeTransformer):
             if(not imported.done):
                 raise Exception(f"Circular import between {self.codeBlock.moduleName} and {imported.moduleName}!")
             for name in imported.globalNames:
-               aliases[name] = name
+                if(name[0] != "_"):
+                    # ignore those start with "_"
+                    aliases[name] = name
 
         for newName, oldName in aliases.items():
             resolved = resolveName(self.codeBlock, newName)

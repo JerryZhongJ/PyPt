@@ -368,9 +368,9 @@ class ModuleManager:
         try:
             m = self.load_module(fqname, fp, pathname, stuff)
             if(parent):
-                v = Variable(partname, parent.codeBlock, temp=False)
-                NewModule(v, m.codeBlock, parent.codeBlock, srcPos=(0,0,0,0))
-                Store(parent.codeBlock.globalVariable, partname, v, parent.codeBlock, srcPos=(0,0,0,0))
+                tmp = parent.generator.newTmpVariable()
+                NewModule(tmp, m.codeBlock, parent.codeBlock, srcPos=(0,0,0,0))
+                Store(parent.codeBlock.globalVariable, partname, tmp, parent.codeBlock, srcPos=(0,0,0,0))
         finally:
             if fp:
                 fp.close()
@@ -394,9 +394,9 @@ class ModuleManager:
         if type == _PY_SOURCE:
             
             tree = ast.parse(fp.read())
-            generator = ModuleCodeBlockGenerator(fqname, moduleManager=self, simplify=True)
-            m.codeBlock = generator.codeBlock
-            generator.parse(tree)
+            m.generator = ModuleCodeBlockGenerator(fqname, moduleManager=self, simplify=True)
+            m.codeBlock = m.generator.codeBlock
+            m.generator.parse(tree)
         elif type == _PY_COMPILED:
             # try:
             #     data = fp.read()
