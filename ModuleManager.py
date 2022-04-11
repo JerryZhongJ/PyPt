@@ -105,7 +105,7 @@ class Module:
         self.__name__ = name
         self.__file__ = file
         self.__path__ = path
-        self.codeBlock = None
+        self.__codeBlock__ = None
         # # The set of global names that are assigned to in the module.
         # # This includes those names imported through starimports of
         # # Python modules.
@@ -156,17 +156,26 @@ class ModuleManager:
             self.indent = self.indent - 1
             self.msg(*args)
 
-    def start(self, pathname) -> None:
-        self.msg(2, "run_script", pathname)
-        self.path[0] = os.path.dirname(pathname)
-        with io.open_code(pathname) as fp:
-            stuff = ("", "rb", _PY_SOURCE)
-            # __main__ is a fully quarlified name
-            m = self.load_module('__main__', fp, pathname, stuff)
+    def start(self, target, mode="script") -> None:
+        self.msg(2, "start", target)
+        if(mode == "script"):
+            self.path[0] = os.path.dirname(target)
+            with io.open_code(target) as fp:
+                stuff = ("", "rb", _PY_SOURCE)
+                # __main__ is a fully quarlified name
+                self.load_module('__main__', fp, target, stuff)
+        elif(mode == "module"):
+            self.import_hook(target, None)
+            try:
+                m = self.modules[target]
+            except(KeyError):
+                pass
+            if(m.__path__):
+                self.import_hook(target + ".__main__", None)
             
 
     def getCodeBlock(self, name: str, caller: str=None, level: int=0) -> CodeBlock:
-        caller = self.modules[caller]
+        caller = caller and self.modules[caller]
         parent = self.determine_parent(caller, level)
         if parent and name:
             fqname = parent.__name__ + "." + name
@@ -175,14 +184,14 @@ class ModuleManager:
         else:
             fqname = name
         try:
-            return self.modules[fqname].codeBlock
+            return self.modules[fqname].__codeBlock__
         except(KeyError):
             return None
         
 
 
     def allCodeBlocks(self):
-        return [m.codeBlock for m in self.modules.values() if m.codeBlock is not None]
+        return [m.__codeBlock__ for m in self.modules.values() if m.__codeBlock__ is not None]
         
     def load_file(self, pathname):
         dir, name = os.path.split(pathname)
@@ -368,9 +377,9 @@ class ModuleManager:
         try:
             m = self.load_module(fqname, fp, pathname, stuff)
             if(parent):
-                tmp = parent.generator.newTmpVariable()
-                NewModule(tmp, m.codeBlock, parent.codeBlock, srcPos=(0,0,0,0))
-                Store(parent.codeBlock.globalVariable, partname, tmp, parent.codeBlock, srcPos=(0,0,0,0))
+                tmp = parent.__generator__.newTmpVariable()
+                NewModule(tmp, m.__codeBlock__, parent.__codeBlock__, srcPos=(0,0,0,0))
+                Store(parent.__codeBlock__.globalVariable, partname, tmp, parent.__codeBlock__, srcPos=(0,0,0,0))
         finally:
             if fp:
                 fp.close()
@@ -394,9 +403,9 @@ class ModuleManager:
         if type == _PY_SOURCE:
             
             tree = ast.parse(fp.read())
-            m.generator = ModuleCodeBlockGenerator(fqname, moduleManager=self, simplify=True)
-            m.codeBlock = m.generator.codeBlock
-            m.generator.parse(tree)
+            m.__generator__ = ModuleCodeBlockGenerator(fqname, moduleManager=self, simplify=True)
+            m.__codeBlock__ = m.__generator__.codeBlock
+            m.__generator__.parse(tree)
         elif type == _PY_COMPILED:
             # try:
             #     data = fp.read()
@@ -405,10 +414,12 @@ class ModuleManager:
             #     self.msgout(2, "raise ImportError: " + str(exc), pathname)
             #     raise
             # co = marshal.loads(memoryview(data)[16:])
-            m.codeBlock = ModuleCodeBlock(fqname)
+            m.__codeBlock__ = ModuleCodeBlock(fqname)
+            # m.__codeBlock__.done = True
             self.msg(1, f"{fqname}({pathname}) is a compiled file.")
         else:
-            m.codeBlock = ModuleCodeBlock(fqname)
+            m.__codeBlock__ = ModuleCodeBlock(fqname)
+            # m.__codeBlock__.done = True
             self.msg(1, f"{fqname}({pathname}) is not supported.")
 
         
@@ -428,9 +439,8 @@ class ModuleManager:
     # caller: in which module
     # fromlist: import what names
     # no return
-    def import_hook(self, name: str, caller: str, fromlist: list[str]=None, level: int=-1) -> None:
-        assert(caller in self.modules)
-        caller = self.modules[caller]
+    def import_hook(self, name: str, caller: str, fromlist: list[str]=None, level: int=0) -> None:
+        caller = caller and self.modules[caller]
 
         if name in self.badmodules:
             self._add_badmodule(name, caller)

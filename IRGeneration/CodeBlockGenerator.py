@@ -1,5 +1,7 @@
 import ast
 from typing import Set, Union
+
+from numpy import isin
 from .CodeBlock import ClassCodeBlock, CodeBlock, FunctionCodeBlock, ModuleCodeBlock
 
 from .IR import *
@@ -198,6 +200,15 @@ class CodeBlockGenerator(ast.NodeTransformer):
         else:
             return res
 
+    def visit_Starred(self, node: ast.Starred) -> Any:
+        srcPos = getSrcPos(node)
+        self.generic_visit(node)
+        if(isinstance(node.value, ast.Attribute)):
+            tmp = self.newTmpVariable()
+            Load(tmp, node.value.value.var, node.value.attr, self.codeBlock, srcPos)   
+            node.value = VariableNode(tmp)
+        return node
+
     def visit_Constant(self, node: ast.Constant) -> Any:
         srcPos = getSrcPos(node)
 
@@ -235,58 +246,95 @@ class CodeBlockGenerator(ast.NodeTransformer):
         if(isLoad(node)):
             tmp = self.newTmpVariable()
             NewBuiltin(tmp, "tuple", self.codeBlock, srcPos)
-            i = 0
+            
             for elt in node.elts:
-                assert(isinstance(elt, VariableNode))
-                Store(tmp, f"${i}", elt.var, self.codeBlock, srcPos)
-                Store(tmp, f"$tupleElements", elt.var, self.codeBlock, srcPos)
-                i += 1
-            self._makeIterator(tmp, [makeAttribute(tmp, "$tupleElements")], srcPos)
+                if(isinstance(elt, ast.Starred)):
+                    tmp2 = self.newTmpVariable()
+                    Load(tmp2, elt.value.var, "$tupleElements", self.codeBlock, srcPos)
+                    Load(tmp2, elt.value.var, "$values", self.codeBlock, srcPos)
+                    Store(tmp, "$tupleElements", tmp2, self.codeBlock, srcPos)
+                else:
+                    Store(tmp, f"$tupleElements", elt.var, self.codeBlock, srcPos)
+                
+            l = len(node.elts)
+            posIndex = 0
+            while(posIndex < l and isinstance(node.elts[posIndex], VariableNode)):
+                Store(tmp, f"${posIndex}", node.elts[posIndex].var, self.codeBlock, srcPos)
+                posIndex += 1
+
+            negIndex = -1
+            while(negIndex >= -l and isinstance(node.elts[negIndex], VariableNode)):
+                Store(tmp, f"${negIndex}", node.elts[negIndex].var, self.codeBlock, srcPos)
+                negIndex -= 1
+            
+            
+            self._makeIterator(tmp, {makeAttribute(tmp, "$tupleElements")}, srcPos)
             return VariableNode(tmp)
         elif(isStore(node)):
             return node
     
+    def _makeList(self, srcPos) -> Variable:
+        tmp = self.newTmpVariable()
+        NewBuiltin(tmp, "list", self.codeBlock, srcPos)
+        self._makeIterator(tmp, {makeAttribute(tmp, "$values")}, srcPos)
+        return tmp
+
     # every list has $values
     def visit_List(self, node: ast.List) -> Any:
         srcPos = getSrcPos(node)
         self.generic_visit(node)
 
         if(isLoad(node)):
-            tmp = self.newTmpVariable()
-            NewBuiltin(tmp, "list", self.codeBlock, srcPos)
+            tmp = self._makeList(srcPos)
+            
             for elt in node.elts:
-                assert(isinstance(elt, VariableNode))
-                Store(tmp, "$values", elt.var, self.codeBlock, srcPos)
-
-            self._makeIterator(tmp, [makeAttribute(tmp, "$values")], srcPos)
+                if(isinstance(elt, ast.Starred)):
+                    tmp2 = self.newTmpVariable()
+                    Load(tmp2, elt.value.var, "$tupleElements", self.codeBlock, srcPos)
+                    Load(tmp2, elt.value.var, "$values", self.codeBlock, srcPos)
+                    Store(tmp, "$values", tmp2, self.codeBlock, srcPos)
+                else:
+                    Store(tmp, "$values", elt.var, self.codeBlock, srcPos)
 
             return VariableNode(tmp)
         elif(isStore(node)):
             return node
+    
+    def _makeSet(self, srcPos) -> Variable:
+        tmp = self.newTmpVariable()
+        NewBuiltin(tmp, "set", self.codeBlock, srcPos)
+        self._makeIterator(tmp, {makeAttribute(tmp, "$values")}, srcPos)
+        return tmp
+
     # every set has $values
     def visit_Set(self, node: ast.Set) -> Any:
         srcPos = getSrcPos(node)
         self.generic_visit(node)
 
-        tmp = self.newTmpVariable()
-        NewBuiltin(tmp, "set", self.codeBlock, srcPos)
+        tmp = self._makeSet(srcPos)
         for elt in node.elts:
-            assert(isinstance(elt, VariableNode))
-            Store(tmp, "$values", elt.var, self.codeBlock, srcPos)
-        
-        tmp2 = self.newTmpVariable()
-        Load(tmp2, tmp, "$values", self.codeBlock, srcPos)
-        self._makeIterator(tmp, [tmp2], srcPos)
+            if(isinstance(elt, ast.Starred)):
+                tmp2 = self.newTmpVariable()
+                Load(tmp2, elt.value.var, "$tupleElements", self.codeBlock, srcPos)
+                Load(tmp2, elt.value.var, "$values", self.codeBlock, srcPos)
+                Store(tmp, "$values", tmp2, self.codeBlock, srcPos)
+            else:
+                Store(tmp, "$values", elt.var, self.codeBlock, srcPos)
 
         return VariableNode(tmp)
 
+    def _makeDict(self, srcPos) -> Variable:
+        tmp = self.newTmpVariable()
+        NewBuiltin(tmp, "dict", self.codeBlock, srcPos)
+        self._makeIterator(tmp, {makeAttribute(tmp, "$keys")}, srcPos)
+        return tmp
+        
     # every dict has $values and $keys
     def visit_Dict(self, node: ast.Dict) -> Any:
         srcPos = getSrcPos(node)
         self.generic_visit(node)
 
-        tmp = self.newTmpVariable()
-        NewBuiltin(tmp, "dict", self.codeBlock, srcPos)
+        tmp = self._makeDict(srcPos)
         for key in node.keys:
             if(key):
                 Store(tmp, "$keys", key.var, self.codeBlock, srcPos)
@@ -294,9 +342,27 @@ class CodeBlockGenerator(ast.NodeTransformer):
         for value in node.values:
             Store(tmp, "$values", value.var, self.codeBlock, srcPos)
 
-        self._makeIterator(tmp, [makeAttribute(tmp, "$keys")], srcPos)
+        
         return VariableNode(tmp)
         
+    def visit_BoolOp(self, node: ast.BoolOp) -> Any:
+        srcPos = getSrcPos(node)
+        self.generic_visit(node)
+
+        tmp = self.newTmpVariable()
+        for value in node.values:
+            Assign(tmp, value.var, self.codeBlock, srcPos)
+        return VariableNode(tmp)
+
+    def visit_Compare(self, node: ast.Compare) -> Any:
+        srcPos = getSrcPos(node)
+        self.generic_visit(node)
+
+        tmp = self.newTmpVariable()
+        NewBuiltin(tmp, "bool", self.codeBlock, srcPos, value=True)
+        NewBuiltin(tmp, "bool", self.codeBlock, srcPos, value=False)
+        return VariableNode(tmp)
+
     def visit_UnaryOp(self, node: ast.UnaryOp) -> Any:
         srcPos = getSrcPos(node)
         self.generic_visit(node)
@@ -318,7 +384,8 @@ class CodeBlockGenerator(ast.NodeTransformer):
         self.generic_visit(node)
 
         assert(isinstance(node.func, VariableNode))
-        args = [v.var for v in node.args]
+        # Starred is not supported so far
+        args = [v.var for v in node.args if isinstance(v, VariableNode)]
         keywords = {kw.arg:kw.value.var for kw in node.keywords}
         tmp = self.newTmpVariable()
         Call(tmp, node.func.var, args, keywords, self.codeBlock, srcPos)
@@ -367,6 +434,7 @@ class CodeBlockGenerator(ast.NodeTransformer):
         if(hasattr(node, "value")):
             self._handleAssign(node.target, node.value, srcPos)
 
+    # let all subscribable objects have a attribute $values, tuple is an exception  
     def visit_Subscript(self, node: ast.Subscript) -> Any:
         srcPos = getSrcPos(node)
         node.value = self.visit(node.value)
@@ -392,14 +460,59 @@ class CodeBlockGenerator(ast.NodeTransformer):
     def visit_ListComp(self, node: ast.ListComp) -> Any:
         srcPos = getSrcPos(node)
         self.generic_visit(node)
+        tmp = self._makeList(srcPos)
+        Store(tmp, "$values", node.elt.var, self.codeBlock, srcPos)
+        for comp in node.generators:
+            self._handleFor(comp.target, comp.iter, srcPos)
+        return VariableNode(tmp)
 
-    def visit_SetComp(self, node: ast.ListComp) -> Any:
+
+    def visit_SetComp(self, node: ast.SetComp) -> Any:
         srcPos = getSrcPos(node)
         self.generic_visit(node)
+        tmp = self._makeSet(srcPos)
+        Store(tmp, "$values", node.elt.var, self.codeBlock, srcPos)
+        for comp in node.generators:
+            self._handleFor(comp.target, comp.iter, srcPos)
+        return VariableNode(tmp)
 
-    def visit_DictComp(self, node: ast.ListComp) -> Any:
+    def visit_DictComp(self, node: ast.DictComp) -> Any:
         srcPos = getSrcPos(node)
         self.generic_visit(node)
+        tmp = self._makeDict(srcPos)
+        Store(tmp, "$keys", node.key.var, self.codeBlock, srcPos)
+        Store(tmp, "$value", node.value.var, self.codeBlock, srcPos)
+        for comp in node.generators:
+            self._handleFor(comp.target, comp.iter, srcPos)
+        return VariableNode(tmp)
+
+    def _makeGenerator(self, elts: Set, sended: Variable, srcPos) -> Variable:
+        tmp = self.newTmpVariable()
+        NewBuiltin(tmp, "generator", self.codeBlock, srcPos)
+        self._makeIterator(tmp, elts, srcPos)
+        # TODO: This is too ugly!
+        if(sended):
+            # def send(value):
+            #    sended = value
+            send = FunctionCodeBlock(f"<{tmp.name}>send", self.codeBlock)
+            value = Variable("value", send)
+            send.args[0] = value
+            send.args["value"] = value
+            Assign(sended, value, send, srcPos)
+
+            # tmp.send = new function
+            tmp2 = self.newTmpVariable()
+            NewFunction(tmp, send, self.codeBlock, srcPos)
+            Store(tmp2, "send", tmp, self.codeBlock, srcPos)
+        return tmp
+
+    def visit_GeneratorExp(self, node: ast.GeneratorExp) -> Any:
+        srcPos = getSrcPos(node)
+        self.generic_visit(node)
+        tmp = self._makeGenerator({node.elt}, None, srcPos)
+        for comp in node.generators:
+            self._handleFor(comp.target, comp.iter, srcPos)
+        return VariableNode(tmp)
 
     def visit_Delete(self, node: ast.Delete) -> Any:
         srcPos = getSrcPos(node)
@@ -449,9 +562,9 @@ class CodeBlockGenerator(ast.NodeTransformer):
             else:
                 aliases[alias.asname] = alias.name
              
-        if(hasstar):
-            if(not imported.done):
-                raise Exception(f"Circular import between {self.codeBlock.moduleName} and {imported.moduleName}!")
+        if(hasstar and imported):
+            # if(not imported.done):
+            #     raise Exception(f"Circular import between {self.codeBlock.moduleName} and {imported.moduleName}!")
             for name in imported.globalNames:
                 if(name[0] != "_"):
                     # ignore those start with "_"
@@ -466,15 +579,10 @@ class CodeBlockGenerator(ast.NodeTransformer):
                 Load(tmp, tmpModule, oldName, self.codeBlock, srcPos)
                 Store(resolved.value.var, resolved.attr, tmp, self.codeBlock, srcPos)
 
-
-
-    def visit_For(self, node: ast.For) -> Any:
-        srcPos = getSrcPos(node)
-        self.generic_visit(node)
-        
+    def _handleFor(self, target, iter, srcPos):
         # $iterMethod = iter.__iter__
         iterMethod = self.newTmpVariable()
-        Load(iterMethod, node.iter.var, "__iter__", self.codeBlock, srcPos)
+        Load(iterMethod, iter.var, "__iter__", self.codeBlock, srcPos)
 
         # $iterator = Call iterMethod()
         iterator = self.newTmpVariable()
@@ -488,7 +596,20 @@ class CodeBlockGenerator(ast.NodeTransformer):
         value = self.newTmpVariable()
         Call(value, nextMethod, [], {}, self.codeBlock, srcPos)
 
-        self._handleAssign(node.target, VariableNode(value), srcPos)
+        self._handleAssign(target, VariableNode(value), srcPos)
+
+    def visit_For(self, node: ast.For) -> Any:
+        srcPos = getSrcPos(node)
+        self.generic_visit(node)
+        
+        self._handleFor(node.target, node.iter, srcPos)
+
+    def visit_With(self, node: ast.With) -> Any:
+        srcPos = getSrcPos(node)
+        self.generic_visit(node)
+        for item in node.items:
+            if(item.optional_vars):
+                self._handleAssign(item.optional_vars, item.context_expr, srcPos)
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> ast.FunctionDef:
         # v = new_function(codeBlock)
@@ -510,9 +631,10 @@ class CodeBlockGenerator(ast.NodeTransformer):
             arg = func.localVariables[posargs[start + i]]
             Assign(arg, defaults[i].var, func, srcPos)
         # for kwargs
-        for i in kw_defaults:
+        for i in range(len(kw_defaults)):
             arg = func.localVariables[kwonlyargs[i]]
-            Assign(arg, kw_defaults[i].var, func, srcPos)
+            if(kw_defaults[i]):
+                Assign(arg, kw_defaults[i].var, func, srcPos)
 
         resolved = resolveName(self.codeBlock, node.name)
         if(isinstance(resolved, VariableNode)):
@@ -550,7 +672,7 @@ class CodeBlockGenerator(ast.NodeTransformer):
 
         tmp = self.newTmpVariable()
         NewFunction(tmp, generator.codeBlock, self.codeBlock, srcPos)
-        return Variable(tmp)
+        return VariableNode(tmp)
     
     def visit_ClassDef(self, node: ast.ClassDef):
         srcPos = getSrcPos(node)
@@ -565,7 +687,18 @@ class CodeBlockGenerator(ast.NodeTransformer):
             tmp = self.newTmpVariable()
             NewClass(tmp, base, generator.codeBlock, self.codeBlock, srcPos)
             Store(resolved.value.var, resolved.attr, tmp, self.codeBlock, srcPos)
-        
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> Any:
+        return self.visit_FunctionDef(node)
+
+    def visit_Await(self, node: ast.Await) -> Any:
+        self.generic_visit(node)
+        return node.value
+
+    def visit_AsyncFor(self, node: ast.AsyncFor) -> Any:
+        return self.visit_For(node)
+
+    def visit_AsyncWith(self, node: ast.AsyncWith) -> Any:
+        return self.visit_With(node)
 
     def _handleAssign(self, target, value, srcPos):
         assert(isinstance(value, VariableNode))
@@ -577,24 +710,46 @@ class CodeBlockGenerator(ast.NodeTransformer):
             assert(isinstance(target.value, VariableNode))
             Store(target.value.var, target.attr, value.var, self.codeBlock, srcPos)
         elif(isinstance(target, ast.Tuple) or isinstance(target, ast.List)):
-            i = 0
+            posIndex = 0
+            negIndex = -len(target.elts)
+            afterStarred = False
             for elt in target.elts:
-                # value might be a tuple
-                tmp = self.newTmpVariable()
-                Load(tmp, value.var, f"${i}", self.codeBlock, srcPos)
-                i += 1
-                self._handleAssign(elt, VariableNode(tmp), srcPos)
+                if(isinstance(elt, ast.Starred)):
+                    afterStarred = True
+                    tmp = self._makeList(srcPos)
+                    tmp2 = self.newTmpVariable()
+                    # if value is a list
+                    Load(tmp2, value.var, "$values", self.codeBlock, srcPos)
+                    # if value is a tuple
+                    Load(tmp2, value.var, "$tupleElements", self.codeBlock, srcPos)
+                    Store(tmp, "$values", tmp2, self.codeBlock, srcPos)
+                    Assign(elt.value.var, tmp, self.codeBlock, srcPos)
+                    # TODO
+                else:
+                    if(afterStarred):
+                        i = negIndex
+                    else:
+                        i = posIndex
+                    # value might be a tuple
+                    tmp = self.newTmpVariable()
+                    Load(tmp, value.var, f"${i}", self.codeBlock, srcPos)
+                    i += 1
+                    self._handleAssign(elt, VariableNode(tmp), srcPos)
 
-                # value might be a list
-                tmp = self.newTmpVariable()
-                Load(tmp, value.var, "$values", self.codeBlock, srcPos)
-                self._handleAssign(elt, VariableNode(tmp), srcPos)
+                    # value might be a list
+                    tmp = self.newTmpVariable()
+                    Load(tmp, value.var, "$values", self.codeBlock, srcPos)
+                    self._handleAssign(elt, VariableNode(tmp), srcPos)
+
+                posIndex += 1
+                negIndex += 1
         else:
-            # TODO: more conditions
+            # I make all subscribtable objects own a attribute $values
+            # Subscript is replaced by ast.Attribute
             assert(False)
 
     # set up __iter__() for a variable 
-    def _makeIterator(self, v:Variable, elts:List[Union[Variable, ast.Attribute]], srcPos):
+    def _makeIterator(self, v:Variable, elts:Set[Union[Variable, ast.Attribute]], srcPos):
         iter = FunctionCodeBlock(f"<{v.name}>__iter__", self.codeBlock)
         next = FunctionCodeBlock(f"<{v.name}>__next__", self.codeBlock)
         
@@ -626,62 +781,99 @@ class CodeBlockGenerator(ast.NodeTransformer):
 
 class FunctionCodeBlockGenerator(CodeBlockGenerator):
     codeBlock: FunctionCodeBlock
-    yielded: List[Variable]
-
+    yielded: Set[Variable]
+    sended: Variable
     def __init__(self, name:str, enclosing: CodeBlock, moduleManager: 'ModuleManager', simplify=True):
         
         super().__init__(moduleManager, simplify)
         self.codeBlock = FunctionCodeBlock(name, enclosing)
-        self.yielded = []
+        self.yielded = set()
+        self.sended = Variable("$sended", self.codeBlock)
 
     def parse(self, node: ast.AST):
-        assert(isinstance(node, ast.FunctionDef) or isinstance(node, ast.Lambda))
+        assert(isinstance(node, ast.FunctionDef) or isinstance(node, ast.Lambda) or isinstance(node, ast.AsyncFunctionDef))
         return super().parse(node)
 
     def preprocess(self, node):
         # get all locals, including args, function defintion, class Definition
         # remember global and nonlocal
         srcPos = getSrcPos(node)
+        codeBlock = self.codeBlock
 
+        if(isinstance(node, ast.Lambda)):
+            node.body = [node.body]
+        
         ds = DeclarationScanner()
+        
         for stmt in node.body:
             ds.visit(stmt)
         
-        self.codeBlock.declaredGlobal = ds.declaredGlobal
+        codeBlock.declaredGlobal = ds.declaredGlobal
         declaredNames = ds.declaredGlobal | ds.declaredNonlocal
 
         ls = BindingScanner(declaredNames)
         for stmt in node.body:
             ls.visit(stmt)
         for name in ls.boundNames:
-            v = Variable(name, self.codeBlock)
-            self.codeBlock.localVariables[name] = v
+            v = Variable(name, codeBlock)
+            codeBlock.localVariables[name] = v
 
         # args are also local names, not affected by "global" and "nonlocal"
         # for assignment can't be earlier than declarations
         args = node.args
-        for arg in args.posonlyargs + args.args + args.kwonlyargs + [args.vararg, args.kwarg]:
-            if(arg is not None):
-                # add to locals
-                v = Variable(arg.arg, self.codeBlock)
-                self.codeBlock.localVariables[arg.arg] = v
 
-                # add to args
-                # TODO: default args
-                # TODO: consider vararg and kwarg
-                self.codeBlock.posargs.append(v)
-                self.codeBlock.kwargs[arg.arg] = v
+        # posonlyargs
+        for arg in args.posonlyargs:
+            v = Variable(arg.arg, codeBlock)
+            codeBlock.posonlyargs.append(v)
+            codeBlock.localVariables[arg.arg] = v
+        # args
+        i = len(args.posonlyargs)
+        for arg in args.args:
+            v = Variable(arg.arg, codeBlock)
+            codeBlock.args[i] = v
+            codeBlock.args[arg.arg] = v
+            codeBlock.localVariables[arg.arg] = v
+            i += 1
 
+        # kwonlyargs
+        for arg in args.kwonlyargs:
+            v = Variable(arg.arg, codeBlock)
+            codeBlock.kwonlyargs[arg.arg] = v
+            codeBlock.localVariables[arg.arg] = v
+
+        if(args.vararg):
+            v = Variable(args.vararg.arg, codeBlock)
+            # varargs are passed into this list (referenced by tmp)
+            # then v points to this list, remember v can point other object
+            # this approach can avoid varargs to spread to other object
+            tmp = self._makeList(srcPos)
+            Assign(v, tmp, codeBlock, srcPos)
+            codeBlock.vararg = tmp
+            codeBlock.localVariables[args.vararg.arg] = v
+            
+
+        if(args.kwarg):
+            v = Variable(args.kwarg.arg, codeBlock)
+            tmp = self._makeDict(srcPos)
+            codeBlock.kwarg = tmp
+            Assign(v, tmp, codeBlock, srcPos)
+            codeBlock.localVariables[args.kwarg.arg] = v
+        
         # return None
-        NewBuiltin(self.codeBlock.returnVariable, "None", self.codeBlock, srcPos, None)
+        NewBuiltin(codeBlock.returnVariable, "None", codeBlock, srcPos, None)
 
     def postprocess(self, node: ast.AST):
         srcPos = getSrcPos(node)
 
         if(self.yielded):
-            tmp = self.newTmpVariable()
-            NewBuiltin(tmp, "generator", self.codeBlock, srcPos)
-            self._makeIterator(tmp, self.yielded, srcPos)
+            if(None in self.yielded):
+                tmp = self.newTmpVariable()
+                NewBuiltin(tmp, "None", self.codeBlock, srcPos, None)
+                self.yielded.remove(None)
+                self.yielded.add(tmp)
+
+            tmp = self._makeGenerator(self.yielded, self.sended, srcPos)
             Assign(self.codeBlock.returnVariable, tmp, self.codeBlock, srcPos)
 
         super().postprocess(node)
@@ -689,14 +881,18 @@ class FunctionCodeBlockGenerator(CodeBlockGenerator):
     def visit_Return(self, node: ast.Return) -> Any:
         srcPos = getSrcPos(node)
         self.generic_visit(node)
-
-        Assign(self.codeBlock.returnVariable, node.value.var, self.codeBlock, srcPos)
+        if(node.value):
+            Assign(self.codeBlock.returnVariable, node.value.var, self.codeBlock, srcPos)
 
     def visit_Yield(self, node: ast.Yield) -> Any:
         srcPos = getSrcPos(node)
         self.generic_visit(node)
+        if(node.value):
+            self.yielded.add(node.value.var)
+        else:
+            self.yielded.add(None)
+        return VariableNode(self.sended)
 
-        self.yielded.append(node.value.var)
 
     def visit_YieldFrom(self, node: ast.YieldFrom) -> Any:
         srcPos = getSrcPos(node)
@@ -718,7 +914,8 @@ class FunctionCodeBlockGenerator(CodeBlockGenerator):
         value = self.newTmpVariable()
         Call(value, nextMethod, [], {}, self.codeBlock, srcPos)
 
-        self.yielded.append(value)
+        self.yielded.add(value)
+        return VariableNode(self.sended)
     
 
 class ClassCodeBlockGenerator(CodeBlockGenerator):
@@ -798,5 +995,5 @@ class ModuleCodeBlockGenerator(CodeBlockGenerator):
 
     def postprocess(self, node: ast.AST):
         super().postprocess(node)
-        self.codeBlock.done = True
+        # self.codeBlock.done = True
     

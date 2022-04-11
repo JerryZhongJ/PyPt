@@ -13,6 +13,14 @@
             "justMyCode": true
         },
         {
+            "name": "Test IR",
+            "type": "python",
+            "request": "launch",
+            "module": "Python-PTA.test.TestIR",
+            "cwd": "${workspaceFolder}/..",
+            "justMyCode": true
+        },
+        {
             "name": "Module Finder",
             "type": "python",
             "request": "launch",

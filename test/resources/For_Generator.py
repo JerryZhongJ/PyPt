@@ -7,7 +7,9 @@ c = {1:"1", 2:"2", 3:"3"}
 
 def gen1():
     for s in a:
-        yield s
+        ret = yield s
+
+    return ret
 def gen2():
     yield from a
 for v in a:
@@ -17,7 +19,7 @@ for v in b:
     pass
 for v in c:
     pass
-
+gen1().send("A")
 for v in gen1():
     pass
 

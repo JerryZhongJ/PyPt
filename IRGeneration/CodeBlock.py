@@ -49,7 +49,6 @@ class CodeBlock:
         with open(path, "w") as f:
 
             print(f"{self.qualified_name} ({len(self.IRs)} lines):", file=f)
-            codeBlocks = []
             for ir in self.IRs:
                 print(ir, file=f)
                 if(isinstance(ir, NewClass) or isinstance(ir, NewFunction)):
@@ -59,14 +58,14 @@ class CodeBlock:
 
 class ModuleCodeBlock(CodeBlock):
     moduleName: str
-    done: bool
+    # done: bool
     globalNames: Set[str]
     def __init__(self, moduleName:str):
         super().__init__("", None)
         self.moduleName = moduleName
         self.qualified_name = moduleName
         self.globalVariable = Variable("$global", self)
-        self.done = False
+        # self.done = False
         self.globalNames = set()
 
 
@@ -75,8 +74,11 @@ class FunctionCodeBlock(CodeBlock):
     localVariables: Dict[str, Variable]                 # a map from name to variable
     # posargs and kwargs both store all the arguments
     # using two data structure is for convenience 
-    posargs: List[Variable]
-    kwargs: Dict[str, Variable]
+    posonlyargs: List[Variable]
+    args: Dict[str, Variable]
+    vararg: Variable
+    kwonlyargs: Dict[str, Variable]
+    kwarg: Variable
     declaredGlobal: Set[str]                            # a list of names declared global
     returnVariable: Variable
     def __init__(self, name: str, enclosing:'CodeBlock'):
@@ -85,8 +87,9 @@ class FunctionCodeBlock(CodeBlock):
         self.globalVariable = enclosing.globalVariable
         self.localVariables = {}
         self.declaredGlobal = set()
-        self.posargs = []
-        self.kwargs = {}
+        self.posonlyargs = []
+        self.args = {}
+        self.kwonlyargs = {}
         self.returnVariable = Variable("$ret", self)
 
 
