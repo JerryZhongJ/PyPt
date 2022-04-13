@@ -4,7 +4,7 @@ from typing import Set, Union
 from numpy import isin
 from .CodeBlock import ClassCodeBlock, CodeBlock, FunctionCodeBlock, ModuleCodeBlock
 
-from .IR import *
+from .Stmts import *
 from .Scanner import BindingScanner, DeclarationScanner
 
 
@@ -120,7 +120,7 @@ class CodeBlockGenerator(ast.NodeTransformer):
                 # not used tmp variables
                 if(len(allUses) == 0):
                     for define in allDefines:
-                        define: IR
+                        define: IRStmt
                         if(not isinstance(define, Call)):
                             define.destroy()
                             change = True
@@ -154,12 +154,12 @@ class CodeBlockGenerator(ast.NodeTransformer):
                     for use in allUses:
                         if(isinstance(use, Assign)):
                             use.setSource(v)
-                        elif(isinstance(use, Store)):
+                        elif(isinstance(use, SetAttr)):
                             if(use.target == tmp):
                                 use.setTarget(v)
                             if(use.source == tmp):
                                 use.setSource(v)
-                        elif(isinstance(use, Load)):
+                        elif(isinstance(use, GetAttr)):
                             use.setSource(v)
                         elif(isinstance(use, Call)):
                             if(use.callee == tmp):
@@ -195,7 +195,7 @@ class CodeBlockGenerator(ast.NodeTransformer):
         res = resolveName(self.codeBlock, node.id)
         if(isLoad(node) and isinstance(res, ast.Attribute)):
             tmp = self.newTmpVariable()
-            Load(tmp, res.value.var, res.attr, self.codeBlock, srcPos)
+            GetAttr(tmp, res.value.var, res.attr, self.codeBlock, srcPos)
             return VariableNode(tmp)
         else:
             return res
@@ -205,7 +205,7 @@ class CodeBlockGenerator(ast.NodeTransformer):
         self.generic_visit(node)
         if(isinstance(node.value, ast.Attribute)):
             tmp = self.newTmpVariable()
-            Load(tmp, node.value.value.var, node.value.attr, self.codeBlock, srcPos)   
+            GetAttr(tmp, node.value.value.var, node.value.attr, self.codeBlock, srcPos)   
             node.value = VariableNode(tmp)
         return node
 
@@ -250,21 +250,21 @@ class CodeBlockGenerator(ast.NodeTransformer):
             for elt in node.elts:
                 if(isinstance(elt, ast.Starred)):
                     tmp2 = self.newTmpVariable()
-                    Load(tmp2, elt.value.var, "$tupleElements", self.codeBlock, srcPos)
-                    Load(tmp2, elt.value.var, "$values", self.codeBlock, srcPos)
-                    Store(tmp, "$tupleElements", tmp2, self.codeBlock, srcPos)
+                    GetAttr(tmp2, elt.value.var, "$tupleElements", self.codeBlock, srcPos)
+                    GetAttr(tmp2, elt.value.var, "$values", self.codeBlock, srcPos)
+                    SetAttr(tmp, "$tupleElements", tmp2, self.codeBlock, srcPos)
                 else:
-                    Store(tmp, f"$tupleElements", elt.var, self.codeBlock, srcPos)
+                    SetAttr(tmp, f"$tupleElements", elt.var, self.codeBlock, srcPos)
                 
             l = len(node.elts)
             posIndex = 0
             while(posIndex < l and isinstance(node.elts[posIndex], VariableNode)):
-                Store(tmp, f"${posIndex}", node.elts[posIndex].var, self.codeBlock, srcPos)
+                SetAttr(tmp, f"${posIndex}", node.elts[posIndex].var, self.codeBlock, srcPos)
                 posIndex += 1
 
             negIndex = -1
             while(negIndex >= -l and isinstance(node.elts[negIndex], VariableNode)):
-                Store(tmp, f"${negIndex}", node.elts[negIndex].var, self.codeBlock, srcPos)
+                SetAttr(tmp, f"${negIndex}", node.elts[negIndex].var, self.codeBlock, srcPos)
                 negIndex -= 1
             
             
@@ -290,11 +290,11 @@ class CodeBlockGenerator(ast.NodeTransformer):
             for elt in node.elts:
                 if(isinstance(elt, ast.Starred)):
                     tmp2 = self.newTmpVariable()
-                    Load(tmp2, elt.value.var, "$tupleElements", self.codeBlock, srcPos)
-                    Load(tmp2, elt.value.var, "$values", self.codeBlock, srcPos)
-                    Store(tmp, "$values", tmp2, self.codeBlock, srcPos)
+                    GetAttr(tmp2, elt.value.var, "$tupleElements", self.codeBlock, srcPos)
+                    GetAttr(tmp2, elt.value.var, "$values", self.codeBlock, srcPos)
+                    SetAttr(tmp, "$values", tmp2, self.codeBlock, srcPos)
                 else:
-                    Store(tmp, "$values", elt.var, self.codeBlock, srcPos)
+                    SetAttr(tmp, "$values", elt.var, self.codeBlock, srcPos)
 
             return VariableNode(tmp)
         elif(isStore(node)):
@@ -315,11 +315,11 @@ class CodeBlockGenerator(ast.NodeTransformer):
         for elt in node.elts:
             if(isinstance(elt, ast.Starred)):
                 tmp2 = self.newTmpVariable()
-                Load(tmp2, elt.value.var, "$tupleElements", self.codeBlock, srcPos)
-                Load(tmp2, elt.value.var, "$values", self.codeBlock, srcPos)
-                Store(tmp, "$values", tmp2, self.codeBlock, srcPos)
+                GetAttr(tmp2, elt.value.var, "$tupleElements", self.codeBlock, srcPos)
+                GetAttr(tmp2, elt.value.var, "$values", self.codeBlock, srcPos)
+                SetAttr(tmp, "$values", tmp2, self.codeBlock, srcPos)
             else:
-                Store(tmp, "$values", elt.var, self.codeBlock, srcPos)
+                SetAttr(tmp, "$values", elt.var, self.codeBlock, srcPos)
 
         return VariableNode(tmp)
 
@@ -337,10 +337,10 @@ class CodeBlockGenerator(ast.NodeTransformer):
         tmp = self._makeDict(srcPos)
         for key in node.keys:
             if(key):
-                Store(tmp, "$keys", key.var, self.codeBlock, srcPos)
+                SetAttr(tmp, "$keys", key.var, self.codeBlock, srcPos)
 
         for value in node.values:
-            Store(tmp, "$values", value.var, self.codeBlock, srcPos)
+            SetAttr(tmp, "$values", value.var, self.codeBlock, srcPos)
 
         
         return VariableNode(tmp)
@@ -407,7 +407,7 @@ class CodeBlockGenerator(ast.NodeTransformer):
         if(isLoad(node)):
             assert(isinstance(node.value, VariableNode))
             tmp = self.newTmpVariable()
-            Load(tmp, node.value.var, node.attr, self.codeBlock, srcPos)
+            GetAttr(tmp, node.value.var, node.attr, self.codeBlock, srcPos)
             return VariableNode(tmp)
         elif(isStore(node) or isDel(node)):
             return node
@@ -445,12 +445,12 @@ class CodeBlockGenerator(ast.NodeTransformer):
             if(isinstance(node.slice, ast.Constant) and isinstance(node.slice.value, int)):
                 i = node.slice.value
                 # $tmp = v.$i
-                Load(tmp, node.value.var, f"${i}", self.codeBlock,srcPos)
+                GetAttr(tmp, node.value.var, f"${i}", self.codeBlock,srcPos)
             else:
-                Load(tmp, node.value.var, "$tupleElements", self.codeBlock, srcPos)
+                GetAttr(tmp, node.value.var, "$tupleElements", self.codeBlock, srcPos)
             
             # if it is list, set, dict
-            Load(tmp, node.value.var, "$values", self.codeBlock, srcPos)
+            GetAttr(tmp, node.value.var, "$values", self.codeBlock, srcPos)
             return VariableNode(tmp)
         elif(isStore(node)):
             # if it is list, set, dict
@@ -461,7 +461,7 @@ class CodeBlockGenerator(ast.NodeTransformer):
         srcPos = getSrcPos(node)
         self.generic_visit(node)
         tmp = self._makeList(srcPos)
-        Store(tmp, "$values", node.elt.var, self.codeBlock, srcPos)
+        SetAttr(tmp, "$values", node.elt.var, self.codeBlock, srcPos)
         for comp in node.generators:
             self._handleFor(comp.target, comp.iter, srcPos)
         return VariableNode(tmp)
@@ -471,7 +471,7 @@ class CodeBlockGenerator(ast.NodeTransformer):
         srcPos = getSrcPos(node)
         self.generic_visit(node)
         tmp = self._makeSet(srcPos)
-        Store(tmp, "$values", node.elt.var, self.codeBlock, srcPos)
+        SetAttr(tmp, "$values", node.elt.var, self.codeBlock, srcPos)
         for comp in node.generators:
             self._handleFor(comp.target, comp.iter, srcPos)
         return VariableNode(tmp)
@@ -480,8 +480,8 @@ class CodeBlockGenerator(ast.NodeTransformer):
         srcPos = getSrcPos(node)
         self.generic_visit(node)
         tmp = self._makeDict(srcPos)
-        Store(tmp, "$keys", node.key.var, self.codeBlock, srcPos)
-        Store(tmp, "$value", node.value.var, self.codeBlock, srcPos)
+        SetAttr(tmp, "$keys", node.key.var, self.codeBlock, srcPos)
+        SetAttr(tmp, "$value", node.value.var, self.codeBlock, srcPos)
         for comp in node.generators:
             self._handleFor(comp.target, comp.iter, srcPos)
         return VariableNode(tmp)
@@ -503,7 +503,7 @@ class CodeBlockGenerator(ast.NodeTransformer):
             # tmp.send = new function
             tmp2 = self.newTmpVariable()
             NewFunction(tmp, send, self.codeBlock, srcPos)
-            Store(tmp2, "send", tmp, self.codeBlock, srcPos)
+            SetAttr(tmp2, "send", tmp, self.codeBlock, srcPos)
         return tmp
 
     def visit_GeneratorExp(self, node: ast.GeneratorExp) -> Any:
@@ -541,7 +541,7 @@ class CodeBlockGenerator(ast.NodeTransformer):
             elif(isinstance(resolved, ast.Attribute)):
                 tmp = self.newTmpVariable()
                 NewModule(tmp, cb, self.codeBlock, srcPos)
-                Store(resolved.value.var, resolved.attr, tmp, self.codeBlock, srcPos)
+                SetAttr(resolved.value.var, resolved.attr, tmp, self.codeBlock, srcPos)
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> Any:
         srcPos = getSrcPos(node)
@@ -573,16 +573,16 @@ class CodeBlockGenerator(ast.NodeTransformer):
         for newName, oldName in aliases.items():
             resolved = resolveName(self.codeBlock, newName)
             if(isinstance(resolved, VariableNode)):
-                Load(resolved.var, tmpModule, oldName, self.codeBlock, srcPos)
+                GetAttr(resolved.var, tmpModule, oldName, self.codeBlock, srcPos)
             elif(isinstance(resolved, ast.Attribute)):
                 tmp = self.newTmpVariable()
-                Load(tmp, tmpModule, oldName, self.codeBlock, srcPos)
-                Store(resolved.value.var, resolved.attr, tmp, self.codeBlock, srcPos)
+                GetAttr(tmp, tmpModule, oldName, self.codeBlock, srcPos)
+                SetAttr(resolved.value.var, resolved.attr, tmp, self.codeBlock, srcPos)
 
     def _handleFor(self, target, iter, srcPos):
         # $iterMethod = iter.__iter__
         iterMethod = self.newTmpVariable()
-        Load(iterMethod, iter.var, "__iter__", self.codeBlock, srcPos)
+        GetAttr(iterMethod, iter.var, "__iter__", self.codeBlock, srcPos)
 
         # $iterator = Call iterMethod()
         iterator = self.newTmpVariable()
@@ -590,7 +590,7 @@ class CodeBlockGenerator(ast.NodeTransformer):
 
         # $nextMethod = $iterator.__next__
         nextMethod = self.newTmpVariable()
-        Load(nextMethod, iterator, "__next__", self.codeBlock, srcPos)
+        GetAttr(nextMethod, iterator, "__next__", self.codeBlock, srcPos)
 
         # value = Call $nextMethod()
         value = self.newTmpVariable()
@@ -642,7 +642,7 @@ class CodeBlockGenerator(ast.NodeTransformer):
         elif(isinstance(resolved, ast.Attribute)):
             tmp = self.newTmpVariable()
             NewFunction(tmp, func, self.codeBlock, srcPos)
-            Store(resolved.value.var, resolved.attr, tmp, self.codeBlock, srcPos)
+            SetAttr(resolved.value.var, resolved.attr, tmp, self.codeBlock, srcPos)
        
 
     def visit_Lambda(self, node: ast.Lambda) -> Any:
@@ -686,7 +686,7 @@ class CodeBlockGenerator(ast.NodeTransformer):
         elif(isinstance(resolved, ast.Attribute)):
             tmp = self.newTmpVariable()
             NewClass(tmp, base, generator.codeBlock, self.codeBlock, srcPos)
-            Store(resolved.value.var, resolved.attr, tmp, self.codeBlock, srcPos)
+            SetAttr(resolved.value.var, resolved.attr, tmp, self.codeBlock, srcPos)
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> Any:
         return self.visit_FunctionDef(node)
 
@@ -708,7 +708,7 @@ class CodeBlockGenerator(ast.NodeTransformer):
         elif(isinstance(target, ast.Attribute)):
             # left.f = right.f
             assert(isinstance(target.value, VariableNode))
-            Store(target.value.var, target.attr, value.var, self.codeBlock, srcPos)
+            SetAttr(target.value.var, target.attr, value.var, self.codeBlock, srcPos)
         elif(isinstance(target, ast.Tuple) or isinstance(target, ast.List)):
             posIndex = 0
             negIndex = -len(target.elts)
@@ -719,10 +719,10 @@ class CodeBlockGenerator(ast.NodeTransformer):
                     tmp = self._makeList(srcPos)
                     tmp2 = self.newTmpVariable()
                     # if value is a list
-                    Load(tmp2, value.var, "$values", self.codeBlock, srcPos)
+                    GetAttr(tmp2, value.var, "$values", self.codeBlock, srcPos)
                     # if value is a tuple
-                    Load(tmp2, value.var, "$tupleElements", self.codeBlock, srcPos)
-                    Store(tmp, "$values", tmp2, self.codeBlock, srcPos)
+                    GetAttr(tmp2, value.var, "$tupleElements", self.codeBlock, srcPos)
+                    SetAttr(tmp, "$values", tmp2, self.codeBlock, srcPos)
                     Assign(elt.value.var, tmp, self.codeBlock, srcPos)
                     # TODO
                 else:
@@ -732,13 +732,13 @@ class CodeBlockGenerator(ast.NodeTransformer):
                         i = posIndex
                     # value might be a tuple
                     tmp = self.newTmpVariable()
-                    Load(tmp, value.var, f"${i}", self.codeBlock, srcPos)
+                    GetAttr(tmp, value.var, f"${i}", self.codeBlock, srcPos)
                     i += 1
                     self._handleAssign(elt, VariableNode(tmp), srcPos)
 
                     # value might be a list
                     tmp = self.newTmpVariable()
-                    Load(tmp, value.var, "$values", self.codeBlock, srcPos)
+                    GetAttr(tmp, value.var, "$values", self.codeBlock, srcPos)
                     self._handleAssign(elt, VariableNode(tmp), srcPos)
 
                 posIndex += 1
@@ -757,7 +757,7 @@ class CodeBlockGenerator(ast.NodeTransformer):
         # v.__iter__ = new function
         tmp = self.newTmpVariable()
         NewFunction(tmp, iter, self.codeBlock, srcPos)
-        Store(v, "__iter__", tmp, self.codeBlock, srcPos)
+        SetAttr(v, "__iter__", tmp, self.codeBlock, srcPos)
         
         # In __iter__()
         # $1 = new function(__next__)
@@ -766,14 +766,14 @@ class CodeBlockGenerator(ast.NodeTransformer):
         tmp = Variable("$1", iter)
         NewBuiltin(iter.returnVariable, "iterator", iter, srcPos)
         NewFunction(tmp, next, iter, srcPos)
-        Store(iter.returnVariable, "__next__", tmp, iter, srcPos)
+        SetAttr(iter.returnVariable, "__next__", tmp, iter, srcPos)
 
         # In __next__(), ret = elts
         for elt in elts:
             if(isinstance(elt, Variable)):
                 Assign(next.returnVariable, elt, next, srcPos)
             elif(isinstance(elt, ast.Attribute)):
-                Load(next.returnVariable, elt.value.var, elt.attr, next, srcPos)
+                GetAttr(next.returnVariable, elt.value.var, elt.attr, next, srcPos)
 
     # TODO: add line and column number into IR
     # TODO: to deal with "from ... import *", a populate graph may be needed
@@ -900,7 +900,7 @@ class FunctionCodeBlockGenerator(CodeBlockGenerator):
 
         # $iterMethod = iter.__iter__
         iterMethod = self.newTmpVariable()
-        Load(iterMethod, node.value.var, "__iter__", self.codeBlock, srcPos)
+        GetAttr(iterMethod, node.value.var, "__iter__", self.codeBlock, srcPos)
 
         # $iterator = Call iterMethod()
         iterator = self.newTmpVariable()
@@ -908,7 +908,7 @@ class FunctionCodeBlockGenerator(CodeBlockGenerator):
 
         # $nextMethod = $iterator.__next__
         nextMethod = self.newTmpVariable()
-        Load(nextMethod, iterator, "__next__", self.codeBlock, srcPos)
+        GetAttr(nextMethod, iterator, "__next__", self.codeBlock, srcPos)
 
         # value = Call $nextMethod()
         value = self.newTmpVariable()
@@ -961,17 +961,17 @@ class ClassCodeBlockGenerator(CodeBlockGenerator):
             if(id in codeBlock.attributes):
                 tmp = self.newTmpVariable()
                 # $tmp = $thisClass.attr
-                Load(tmp, codeBlock.thisClassVariable, id, codeBlock, srcPos)
+                GetAttr(tmp, codeBlock.thisClassVariable, id, codeBlock, srcPos)
                 if(isinstance(outside, VariableNode)):
                     # $tmp = v
                     Assign(tmp, outside.var, codeBlock, srcPos)
                 elif(isinstance(outside, ast.Attribute)):
-                    Load(tmp, outside.value.var, outside.attr, codeBlock, srcPos)
+                    GetAttr(tmp, outside.value.var, outside.attr, codeBlock, srcPos)
                 return VariableNode(tmp)
             elif(isinstance(outside, ast.Attribute)):
                 # this name is not one of this class's attributes, the name resolved to a global variable
                 tmp = self.newTmpVariable()
-                Load(tmp, outside.value.var, outside.attr, codeBlock, srcPos)
+                GetAttr(tmp, outside.value.var, outside.attr, codeBlock, srcPos)
                 return VariableNode(tmp)
             else:
                 # this name is not one of this class's attributes, the name resolved to a local variable

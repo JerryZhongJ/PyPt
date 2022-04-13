@@ -1,19 +1,26 @@
-from typing import Any
+from typing import Any, List
 
 from PTA.Pointers import VarPtr
 
-from ..IRGeneration.IR import IR
-from ..IRGeneration.CodeBlock import ClassCodeBlock, CodeBlock, FunctionCodeBlock
+from ..IR.Stmts import IRStmt, Call, NewBuiltin, NewClass, NewFunction
+from ..IR.CodeBlock import ClassCodeBlock, CodeBlock, FunctionCodeBlock, ModuleCodeBlock
+
+# Object is the representation of object entity, and should not contain any analysis data
+# Object's attributes' value remain static during the analysis
 class Object:
     pass
 
 class ModuleObject(Object):
-    moduleName: str
-    codeBlock: CodeBlock
+    codeBlock: ModuleCodeBlock
     def __eq__(self, other):
-        return isinstance(other, ModuleObject) and other.moduleName == self.moduleName
+        return isinstance(other, ModuleObject) and other.codeBlock == self.codeBlock
     def __hash__(self):
         return hash(self.moduleName)
+    def __init__(self, codeBlock: ModuleCodeBlock):
+        self.codeBlock
+    def getModuleName(self):
+        return self.codeBlock.moduleName
+
 
 class ConstObject(Object):
     value: Any
@@ -21,27 +28,42 @@ class ConstObject(Object):
         return isinstance(other, ConstObject) and self.value == other.value
     def __hash__(self):
         return hash(self.value)
+    def __init__(self, value):
+        self.value = value
 
 class AllocationSiteObject(Object):
-    alloc_site: IR
+    alloc_site: IRStmt
     def __eq__(self, other):
         return isinstance(other, AllocationSiteObject) and self.alloc_site == other.alloc_site
     def __hash__(self):
         return hash(self.alloc_site)
+    def __init__(self, alloc_site):
+        self.alloc_site = alloc_site
     
 
 class FunctionObject(AllocationSiteObject):
-    codeBlock: FunctionCodeBlock
+    alloc_site: NewFunction
+    def getCodeBlock(self) -> FunctionCodeBlock:
+        return self.alloc_site.codeBlock
 
 class ClassObject(AllocationSiteObject):
-    codeBlock: ClassCodeBlock
-    bases: list[VarPtr]
+    alloc_site: NewClass
+    def getCodeBlock(self) -> ClassCodeBlock:
+        return self.alloc_site.codeBlock
+    def getBases(self) -> List[VarPtr]:
+        return [VarPtr(base) for base in self.alloc_site.bases]
+
 
 class InstanceObject(AllocationSiteObject):
-    type: ClassObject
+    alloc_site: Call
+    
+
+    
 
 class BuiltinObject(AllocationSiteObject):
-    type: str
+    alloc_site: NewBuiltin
+    
+    
 
 class MethodObject(Object):
     selfObj: InstanceObject
@@ -50,3 +72,6 @@ class MethodObject(Object):
         return isinstance(other, MethodObject) and self.selfObj == other.selfObj and self.func == other.func
     def __hash__(self):
         return hash((self.selfObj, self.func))
+    def __init__(self, selfObj, func):
+        self.selfObj = selfObj
+        self.func = func

@@ -27,7 +27,7 @@ class Variable:
         if(temp):
             self.usingIRs = ([], [], [], [])
 
-class IR:
+class IRStmt:
     belongsTo: 'CodeBlock'                 # 'CodeBlock' to which this IR belongs
     srcPos: Tuple[int]
 
@@ -47,7 +47,7 @@ class IR:
     
 
 
-class Assign(IR):
+class Assign(IRStmt):
     target: Variable
     source: Variable
 
@@ -95,7 +95,7 @@ class Assign(IR):
 
 
 # target.fieldName = source
-class Store(IR):
+class SetAttr(IRStmt):
     target: Variable
     source: Variable
     field: str
@@ -144,7 +144,7 @@ class Store(IR):
         return  f"{self.target}.{self.field} = {self.source}"
 
 # target = source.fieldName
-class Load(IR):
+class GetAttr(IRStmt):
     target: Variable
     source: Variable
     field: str
@@ -191,7 +191,7 @@ class Load(IR):
         return f"{self.target} = {self.source}.{self.field}"
 
 # target = New ...
-class New(IR):
+class New(IRStmt):
     target: Variable
     objType:str                             # module, function, class, method, instance, builtin
 
@@ -287,7 +287,7 @@ class NewBuiltin(New):
 
 # Important: calling a class object equarls to creating an instance! 
 # adding a function/module code block should add all class code block inside!
-class Call(IR):
+class Call(IRStmt):
     target: Variable               
     callee: Variable
     args: List[Variable]
@@ -372,7 +372,7 @@ class Call(IR):
         return f"{self.target} = Call {self.callee} ({', '.join(args)})"
         
 
-class DelAttr(IR):
+class DelAttr(IRStmt):
     var: Variable
     field: str
     

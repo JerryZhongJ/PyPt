@@ -1,6 +1,6 @@
 from typing import Dict, List, Set
 
-from .IR import IR, New, NewClass, NewFunction, Variable
+from .Stmts import IRStmt, New, NewClass, NewFunction, Variable
 import os
 
 
@@ -9,12 +9,12 @@ class CodeBlock:
     moduleName: str
     qualified_name: str
     # type: str                                   # module, class, function
-    IRs: List[IR]
+    IRs: List[IRStmt]
     enclosing: 'CodeBlock'                          # reference to enclosing scope, this is used in name resolution. 
                                                     # Only function code block is remained
 
     globalVariable: Variable                    # $global, all code blocks in a module share a single $global variable 
-    
+    scopeLevel: int                             # indicate that how many context is needed for this codeblock
 
     def __init__(self, name: str, enclosing: 'CodeBlock'):
         self.name = name
@@ -27,15 +27,10 @@ class CodeBlock:
         else:
             self.enclosing = enclosing
 
-        if(self.enclosing is not None):
-            self.scopeLevel = enclosing.scopeLevel + 1
-        else:
-            self.scopeLevel = 0
-
-    def addIR(self, ir:IR):
+    def addIR(self, ir:IRStmt):
         self.IRs.append(ir)
 
-    def removeIR(self, ir:IR):
+    def removeIR(self, ir:IRStmt):
         self.IRs.remove(ir)
     
     def dump(self, rootDirectory: str):
@@ -67,6 +62,7 @@ class ModuleCodeBlock(CodeBlock):
         self.globalVariable = Variable("$global", self)
         # self.done = False
         self.globalNames = set()
+        self.scopeLevel = 0
 
 
 class FunctionCodeBlock(CodeBlock):
@@ -91,6 +87,10 @@ class FunctionCodeBlock(CodeBlock):
         self.args = {}
         self.kwonlyargs = {}
         self.returnVariable = Variable("$ret", self)
+        if(self.enclosing == None):
+            self.scopeLevel = 1
+        else:
+            self.scopeLevel = enclosing.scopeLevel + 1
 
 
 class ClassCodeBlock(CodeBlock):
@@ -102,3 +102,4 @@ class ClassCodeBlock(CodeBlock):
         self.qualified_name = f"{enclosing.qualified_name}.{name}"
         self.globalVariable = enclosing.globalVariable
         self.thisClassVariable = Variable("$thisClass", self)
+        self.scopeLevel = enclosing.scopeLevel
