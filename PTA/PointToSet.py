@@ -30,7 +30,7 @@ class PointToSet:
                 return False
         elif(isinstance(pointer, AttrPtr)):
             o = pointer.obj
-            f = pointer.field
+            f = pointer.attr
             if(o not in self.attrPtrSet):
                 self.attrPtrSet[o] = {}
             
@@ -53,11 +53,17 @@ class PointToSet:
 
         elif(isinstance(pointer, AttrPtr)):
             o = pointer.obj
-            f = pointer.field
-            if(o not in self.attrPtrSet):
+            f = pointer.attr
+            try:
+                return self.attrPtrSet[o][f].copy()
+            except(KeyError):
                 return set()
-            if(f not in self.attrPtrSet[o]):
-                return set()
-            return self.attrPtrSet[o][f].copy()
+
+    def getAllAttr(self, obj: Object):
+        if(obj in self.attrPtrSet):
+            return set()
+        else:
+            return self.attrPtrSet[obj].keys()
+            
         
     

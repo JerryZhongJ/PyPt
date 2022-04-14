@@ -94,20 +94,20 @@ class Assign(IRStmt):
         return f"{self.target} = {self.source}"
 
 
-# target.fieldName = source
+# target.attr = source
 class SetAttr(IRStmt):
     target: Variable
     source: Variable
-    field: str
+    attr: str
 
-    def __init__(self, target: Variable, field: str, source: Variable, belongsTo: 'CodeBlock', srcPos: Tuple[int]):
+    def __init__(self, target: Variable, attr: str, source: Variable, belongsTo: 'CodeBlock', srcPos: Tuple[int]):
         super().__init__(belongsTo, srcPos)
         self.setTarget(target)
         self.setSource(source)
-        self.field = field
+        self.attr = attr
         # $global.attr = v
         if(target == belongsTo.globalVariable):
-            target.belongsTo.globalNames.add(field)
+            target.belongsTo.globalNames.add(attr)
 
     def _unsetTarget(self):
         if(not hasattr(self, "target")):
@@ -141,19 +141,19 @@ class SetAttr(IRStmt):
         super().destroy()
 
     def _text(self):
-        return  f"{self.target}.{self.field} = {self.source}"
+        return  f"{self.target}.{self.attr} = {self.source}"
 
-# target = source.fieldName
+# target = source.attr
 class GetAttr(IRStmt):
     target: Variable
     source: Variable
-    field: str
+    attr: str
 
-    def __init__(self, target: Variable, source: Variable, field: str, belongsTo: 'CodeBlock', srcPos: Tuple[int]):
+    def __init__(self, target: Variable, source: Variable, attr: str, belongsTo: 'CodeBlock', srcPos: Tuple[int]):
         super().__init__(belongsTo, srcPos)
         self.setTarget(target)
         self.setSource(source)
-        self.field = field
+        self.attr = attr
 
     def _unsetTarget(self):
         if(not hasattr(self, "target")):
@@ -188,7 +188,7 @@ class GetAttr(IRStmt):
         super().destroy()
 
     def _text(self):
-        return f"{self.target} = {self.source}.{self.field}"
+        return f"{self.target} = {self.source}.{self.attr}"
 
 # target = New ...
 class New(IRStmt):
@@ -374,12 +374,12 @@ class Call(IRStmt):
 
 class DelAttr(IRStmt):
     var: Variable
-    field: str
+    attr: str
     
-    def __init__(self, v: Variable, field: str, belongsTo: 'CodeBlock', srcPos: Tuple[int]):
+    def __init__(self, v: Variable, attr: str, belongsTo: 'CodeBlock', srcPos: Tuple[int]):
         super().__init__(belongsTo, srcPos)
         self.setVar(v)
-        self.field = field
+        self.attr = attr
 
         
     def _unsetVar(self):
@@ -400,7 +400,7 @@ class DelAttr(IRStmt):
         super().destroy()
 
     def _text(self):
-        return f"Del {self.var}.{self.field}"
+        return f"Del {self.var}.{self.attr}"
         
 
 # TODO: GET_ITEM(from, index), SET_ITEM(to, index), to support list, tuple, set, dict

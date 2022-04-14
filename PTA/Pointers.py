@@ -1,5 +1,6 @@
+from pydoc import resolve
 from .Objects import Object
-from ..IRGeneration.IR import Variable
+from ..IR.Stmts import Variable
 
 
 class Pointer:
@@ -12,11 +13,19 @@ class VarPtr(Pointer):
     def __hash__(self):
         return hash(self.var)
 
+    def __init__(self, var):
+        self.var = var
+
 class AttrPtr(Pointer):
     obj: Object
-    field: str
-
+    attr: str
+    
     def __eq__(self, other):
-        return isinstance(other, AttrPtr) and self.obj == other.obj and self.field == other.field
+        return isinstance(other, AttrPtr) and self.obj == other.obj and self.attr == other.attr
     def __hash__(self) -> int:
-        return hash((self.obj, self.field))
+        return hash((self.obj, self.attr))
+    
+    def __init__(self, obj, attr):
+        self.obj = obj
+        self.attr = attr
+        

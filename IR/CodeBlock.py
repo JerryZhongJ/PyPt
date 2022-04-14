@@ -9,7 +9,7 @@ class CodeBlock:
     moduleName: str
     qualified_name: str
     # type: str                                   # module, class, function
-    IRs: List[IRStmt]
+    stmts: List[IRStmt]
     enclosing: 'CodeBlock'                          # reference to enclosing scope, this is used in name resolution. 
                                                     # Only function code block is remained
 
@@ -18,7 +18,7 @@ class CodeBlock:
 
     def __init__(self, name: str, enclosing: 'CodeBlock'):
         self.name = name
-        self.IRs = []
+        self.stmts = []
         if(enclosing is not None):
             self.moduleName = enclosing.moduleName
 
@@ -28,10 +28,10 @@ class CodeBlock:
             self.enclosing = enclosing
 
     def addIR(self, ir:IRStmt):
-        self.IRs.append(ir)
+        self.stmts.append(ir)
 
     def removeIR(self, ir:IRStmt):
-        self.IRs.remove(ir)
+        self.stmts.remove(ir)
     
     def dump(self, rootDirectory: str):
         path = self.moduleName.replace(".", "/")
@@ -43,8 +43,8 @@ class CodeBlock:
         path = os.path.join(path, filename)
         with open(path, "w") as f:
 
-            print(f"{self.qualified_name} ({len(self.IRs)} lines):", file=f)
-            for ir in self.IRs:
+            print(f"{self.qualified_name} ({len(self.stmts)} lines):", file=f)
+            for ir in self.stmts:
                 print(ir, file=f)
                 if(isinstance(ir, NewClass) or isinstance(ir, NewFunction)):
                     ir.codeBlock.dump(rootDirectory)
