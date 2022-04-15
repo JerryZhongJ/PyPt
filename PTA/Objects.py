@@ -1,6 +1,6 @@
-from typing import Any, List
+from typing import Any, List, Set
 
-from PTA.Pointers import VarPtr
+from .Pointers import VarPtr
 
 from ..IR.Stmts import IRStmt, Call, NewBuiltin, NewClass, NewFunction
 from ..IR.CodeBlock import ClassCodeBlock, CodeBlock, FunctionCodeBlock, ModuleCodeBlock
@@ -53,10 +53,14 @@ class ClassObject(AllocationSiteObject):
     def getBases(self) -> List[VarPtr]:
         return [VarPtr(base) for base in self.alloc_site.bases]
 
+    def getAttributes(self) -> Set[str]:
+        return self.getCodeBlock().attributes
+
 
 class InstanceObject(AllocationSiteObject):
     alloc_site: Call
-    
+    def getType(self):
+        return VarPtr(self.alloc_site.callee)
 
     
 

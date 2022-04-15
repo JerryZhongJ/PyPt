@@ -1,7 +1,5 @@
-from re import I
 from typing import Dict, Set
 
-from matplotlib.colors import PowerNorm
 
 from ..IR.Stmts import Variable
 
@@ -42,6 +40,27 @@ class PointToSet:
                 return True
             else:
                 return False
+    
+    def putAll(self, pointer: Pointer, objs: Set[Object]) -> Set[Object]:
+        if(isinstance(pointer, VarPtr)):
+            var = pointer.var
+            if(pointer not in self.varPtrSet):
+                self.varPtrSet[var] = set()
+            diff = objs - self.varPtrSet[var]
+            self.varPtrSet[var] |= objs
+            return diff
+        elif(isinstance(pointer, AttrPtr)):
+            o = pointer.obj
+            f = pointer.attr
+            if(o not in self.attrPtrSet):
+                self.attrPtrSet[o] = {}
+            
+            if(f not in self.attrPtrSet[o]):
+                self.attrPtrSet[o][f] = set()
+            
+            diff = objs - self.varPtrSet[var]
+            self.attrPtrSet[o][f] |= objs
+            return diff
 
     def get(self, pointer: Pointer) -> Set:
         if(isinstance(pointer, VarPtr)):

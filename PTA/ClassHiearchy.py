@@ -6,12 +6,6 @@ from .PointToSet import PointToSet
 from .Pointers import VarPtr
 from .Objects import ClassObject
 
-def mergeInplace(to, ffrom):
-        for obj, sset in ffrom.items():
-            if obj not in to:
-                to[obj] = set()
-
-            to[obj] |= sset
 # Here MRO mean an order in which methods are resolved, a tuple consists of class objects
 MRO = Tuple[ClassObject]
 SubclassInfo = Tuple[ClassObject, int]
@@ -23,7 +17,7 @@ class ClassHiearchy:
         self.mros = {}
         self.pointToSet = pointToSet
 
-    def addClass(self, classObj: ClassObject) -> Dict[ClassObject, Set[MRO]]:
+    def addClass(self, classObj: ClassObject) -> Set[MRO]:
         if(classObj in self.mros):
             return
         self.mros[classObj] = set()
@@ -35,21 +29,22 @@ class ClassHiearchy:
 
         allAdd = {}
         for baseObj in self.pointToSet.get(bases[0]):
-            mergeInplace(allAdd, self.addClassBase(classObj, 0, baseObj))
+            allAdd |= self.addClassBase(classObj, 0, baseObj)
 
         return allAdd
 
         
-    def addClassBase(self, classObj: ClassObject, index: int, baseObj: ClassObject) -> Dict[ClassObject, Set[MRO]]:
+    def addClassBase(self, classObj: ClassObject, index: int, baseObj: ClassObject) -> Set[MRO]:
         self.subClasses[baseObj].add(classObj)
         return self.addBaseMRO(classObj, index, self.mros[baseObj])
 
-    def addBaseMRO(self, classObj: ClassObject, index: int, mroList: Set[MRO]) -> Dict[ClassObject, Set[MRO]]:
+    def addBaseMRO(self, classObj: ClassObject, index: int, mroList: Set[MRO]) -> Set[MRO]:
         bases = classObj.getBases()
         # yield mros
         def select(start: int) -> Generator[List[MRO], None, None]:
             if(start == len(bases)):
                 yield []
+                return
             if(start == index):
                 for mro in mroList:
                     for tail in select(start + 1):
@@ -67,12 +62,13 @@ class ClassHiearchy:
             order = [classObj] + [mro[0] for mro in mros]
             mros.append(order)
             res = self._c3(mros)
+            assert(res[0] == classObj)
             if(res and res not in self.mros[classObj]):
                 add.add(res)
                 self.mros[classObj].add(res)
-        allAdd = {classObj: res}
+        allAdd = add.copy()
         for subclass, index in self.subClasses[classObj]:
-            self._mergeInplace(allAdd, self.addBaseMRO(subclass, index, add))
+            allAdd |= self.addBaseMRO(subclass, index, add)
         return allAdd
 
     # return None if it is illegal

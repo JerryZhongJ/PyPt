@@ -861,7 +861,7 @@ class FunctionCodeBlockGenerator(CodeBlockGenerator):
             codeBlock.localVariables[args.kwarg.arg] = v
         
         # return None
-        NewBuiltin(codeBlock.returnVariable, "None", codeBlock, srcPos, None)
+        NewBuiltin(codeBlock.returnVariable, "NoneType", codeBlock, srcPos, None)
 
     def postprocess(self, node: ast.AST):
         srcPos = getSrcPos(node)

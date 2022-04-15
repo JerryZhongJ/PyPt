@@ -9,9 +9,9 @@ import io
 import sys
 import ast
 
-from .IRGeneration.CodeBlock import CodeBlock, ModuleCodeBlock
-from .IRGeneration.CodeBlockGenerator import ModuleCodeBlockGenerator
-from .IRGeneration.IR import NewModule, Store, Variable
+from .IR.CodeBlock import CodeBlock, ModuleCodeBlock
+from .IR.CodeBlockGenerator import ModuleCodeBlockGenerator
+from .IR.Stmts import NewModule, SetAttr, Variable
 
 LOAD_CONST = dis.opmap['LOAD_CONST']
 IMPORT_NAME = dis.opmap['IMPORT_NAME']
@@ -379,7 +379,7 @@ class ModuleManager:
             if(parent):
                 tmp = parent.__generator__.newTmpVariable()
                 NewModule(tmp, m.__codeBlock__, parent.__codeBlock__, srcPos=(0,0,0,0))
-                Store(parent.__codeBlock__.globalVariable, partname, tmp, parent.__codeBlock__, srcPos=(0,0,0,0))
+                SetAttr(parent.__codeBlock__.globalVariable, partname, tmp, parent.__codeBlock__, srcPos=(0,0,0,0))
         finally:
             if fp:
                 fp.close()
