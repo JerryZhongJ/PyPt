@@ -1,6 +1,6 @@
 from typing import Dict, Set
 
-from PTA.Pointers import Pointer
+from .Pointers import Pointer
 
 
 class PointerFlow:

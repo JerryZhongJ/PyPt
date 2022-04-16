@@ -290,17 +290,17 @@ class NewBuiltin(New):
 class Call(IRStmt):
     target: Variable               
     callee: Variable
-    args: List[Variable]
-    keywords: Dict[str, Variable]
+    posargs: List[Variable]
+    kwargs: Dict[str, Variable]
 
     def __init__(self, target: Variable, callee: Variable, args: List[Variable], keywords: Dict[str, Variable], belongsTo: 'CodeBlock', srcPos: Tuple[int]):
         super().__init__(belongsTo, srcPos)
         self.setTarget(target)
         self.setCallee(callee)
-        self.args = [None] * len(args)
+        self.posargs = [None] * len(args)
         for i in range(len(args)):
             self.setArg(i, args[i])
-        self.keywords = {}
+        self.kwargs = {}
         for key, arg in keywords.items():
             self.setKeyword(key, arg)
 
@@ -319,18 +319,18 @@ class Call(IRStmt):
         del self.callee
 
     def _unsetArg(self, index):
-        if(self.args[index] is None):
+        if(self.posargs[index] is None):
             return
-        if(self.args[index].isTmp):
-            self.args[index].usingIRs[USED_OTHERS].remove(self)
-        self.args[index] = None
+        if(self.posargs[index].isTmp):
+            self.posargs[index].usingIRs[USED_OTHERS].remove(self)
+        self.posargs[index] = None
 
     def _unsetKeyword(self, key):
-        if(key not in self.keywords):
+        if(key not in self.kwargs):
             return
-        if(self.keywords[key].isTmp):
-            self.keywords[key].usingIRs[USED_OTHERS].remove(self)
-        del self.keywords[key]
+        if(self.kwargs[key].isTmp):
+            self.kwargs[key].usingIRs[USED_OTHERS].remove(self)
+        del self.kwargs[key]
 
     def setTarget(self, target):
         self._unsetTarget()
@@ -348,26 +348,26 @@ class Call(IRStmt):
         self._unsetArg(index)
         if(arg.isTmp):
             arg.usingIRs[USED_OTHERS].append(self)
-        self.args[index] = arg
+        self.posargs[index] = arg
     
     def setKeyword(self, key, arg):
         self._unsetKeyword(key)
         if(arg.isTmp):
             arg.usingIRs[USED_OTHERS].append(self)
-        self.keywords[key] = arg
+        self.kwargs[key] = arg
 
     def destroy(self):
         self._unsetTarget()
         self._unsetCallee()
-        for i in range(len(self.args)):
+        for i in range(len(self.posargs)):
             self._unsetArg(i)
-        for key in self.keywords:
+        for key in self.kwargs:
             self._unsetKeyword(key)
         super().destroy()
 
     def _text(self):
-        args = [str(arg) for arg in self.args]
-        kws = [f"{kw}={arg}" for kw, arg in self.keywords.items()]
+        args = [str(arg) for arg in self.posargs]
+        kws = [f"{kw}={arg}" for kw, arg in self.kwargs.items()]
         args += kws
         return f"{self.target} = Call {self.callee} ({', '.join(args)})"
         

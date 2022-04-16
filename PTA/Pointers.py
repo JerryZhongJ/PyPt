@@ -1,4 +1,3 @@
-from pydoc import resolve
 from .Objects import Object
 from ..IR.Stmts import Variable
 

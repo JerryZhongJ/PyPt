@@ -1,4 +1,4 @@
-from typing import Any, List, Set
+from typing import Any, List, Set, Tuple
 
 from .Pointers import VarPtr
 
@@ -48,20 +48,43 @@ class FunctionObject(AllocationSiteObject):
 
 class ClassObject(AllocationSiteObject):
     alloc_site: NewClass
+    mro: Tuple['ClassObject']
     def getCodeBlock(self) -> ClassCodeBlock:
         return self.alloc_site.codeBlock
-    def getBases(self) -> List[VarPtr]:
-        return [VarPtr(base) for base in self.alloc_site.bases]
+    
+    # def getBases(self):
+    #     return [VarPtr(base) for base in self.alloc_site.bases]
+
+    def __hash__(self):
+        return hash((self.alloc_site, self.mro))
+
+    def __eq__(self, other):
+        return isinstance(other, ClassObject) and self.alloc_site == other.alloc_site and self.mro == other.mro
 
     def getAttributes(self) -> Set[str]:
         return self.getCodeBlock().attributes
+    
+    # this mro do not contain itself, 
+    def __init__(self, alloc_site, mro):
+        super().__init__(alloc_site)
+        self.mro = self, *mro
 
 
 class InstanceObject(AllocationSiteObject):
     alloc_site: Call
-    def getType(self):
-        return VarPtr(self.alloc_site.callee)
+    type: ClassObject
+    # def getType(self):
+    #     return VarPtr(self.alloc_site.callee)
 
+    def __hash__(self):
+        return hash((self.alloc_site, self.type))
+
+    def __eq__(self, other):
+        return isinstance(other, InstanceObject) and self.alloc_site == other.alloc_site and self.type == other.type
+    
+    def __init__(self, alloc_site, type):
+        super().__init__(alloc_site)
+        self.type = type
     
 
 class BuiltinObject(AllocationSiteObject):
