@@ -1,8 +1,7 @@
-from msilib.schema import Class
-from typing import Dict, Generator, List, Set, Tuple
+from typing import Dict, List, Set, Tuple
 from ..IR.CodeBlock import CodeBlock, FunctionCodeBlock, ModuleCodeBlock
-from ..IR.Stmts import Assign, Call, DelAttr, GetAttr, NewBuiltin, NewClass, NewFunction, NewModule, SetAttr, Variable
-# from .ClassHiearchy import MRO, ClassHiearchy
+from ..IR.Stmts import Assign, Call, DelAttr, GetAttr, NewBuiltin, NewClass, NewFunction, NewModule, SetAttr
+from .ClassHiearchy import MRO, ClassHiearchy
 from .Objects import BuiltinObject, ClassObject, ConstObject, FunctionObject, InstanceObject, MethodObject, ModuleObject, Object
 from .BindingStmts import BindingStmts
 from .PointerFlow import PointerFlow
@@ -10,19 +9,18 @@ from .Pointers import AttrPtr, Pointer, VarPtr
 from .CallGraph import CallGraph
 from .PointToSet import PointToSet
 
-RESOLVED_PREFIX = "$r_"
-MRO = Tuple[ClassObject]
+FAKE_PREFIX = "$r_"
 
-def isResolved(attr: str):
-    return attr.startswith(RESOLVED_PREFIX)
-ResolveInfo = Tuple[ClassObject, int]
+def isFakeAttr(attr: str):
+    return attr.startswith(FAKE_PREFIX)
+ResolveInfo = Tuple[MRO, int]
 class Analysis:
     pointToSet: PointToSet
     callgraph: CallGraph
     pointerFlow: PointerFlow
     bindingStmts: BindingStmts
     definedCodeBlocks: Set[CodeBlock]
-    # classHiearchy: ClassHiearchy
+    classHiearchy: ClassHiearchy
     persist_attr: Dict[ClassObject, Dict[str, Set[ResolveInfo]]]
     workList: List[Tuple[Pointer, Set[Object]]]
     def __init__(self):
@@ -31,42 +29,47 @@ class Analysis:
         self.pointerFlow = PointerFlow()
         self.bindingStmts = BindingStmts()
         self.definedCodeBlocks = set()
-        # self.classHiearchy = ClassHiearchy(self.pointToSet)
+        self.classHiearchy = ClassHiearchy(self.pointToSet)
         self.persist_attr = {}
         self.workList = []
 
     def addReachable(self, codeBlock):
-        if(self.callgraph.isReachable(codeBlock)):
-            return
         for stmt in codeBlock:
             if(isinstance(stmt, Assign)):
-                targetVar = VarPtr(stmt.target)
-                sourceVar = VarPtr(stmt.source)
-                self.addFlow(sourceVar, targetVar)
+                sourcePtr = VarPtr(stmt.source)
+                targetPtr = VarPtr(stmt.target)
+                self.addFlow(sourcePtr, targetPtr)
             elif(isinstance(stmt, NewModule)):
                 obj = ModuleObject(stmt.codeBlock)
-                globalVar = VarPtr(stmt.codeBlock.globalVariable)
-                self.workList.append((globalVar, {obj}))
-                targetVar = VarPtr(stmt.target)
-                self.workList.append((targetVar, {obj}))
+                targetPtr = VarPtr(stmt.target)
+                globalPtr = VarPtr(stmt.codeBlock.globalVariable)
+                self.workList.append((targetPtr, {obj}))
+                self.workList.append((globalPtr, {obj}))
                 self.addDefined(stmt.codeBlock)
                 self.addReachable(stmt.codeBlock)
             elif(isinstance(stmt, NewFunction)):
                 obj = FunctionObject(stmt)
-                targetVar = VarPtr(stmt.target)
-                self.workList.append((targetVar, {obj}))
+                targetPtr = VarPtr(stmt.target)
+                self.workList.append((targetPtr, {obj}))
                 self.addDefined(stmt.codeBlock)
             elif(isinstance(stmt, NewClass)):
-                
+                obj = ClassObject(stmt)
+                targetPtr = VarPtr(stmt.target)
+                thisPtr = VarPtr(stmt.codeBlock.thisClassVariable)
+                self.workList.append((targetPtr, {obj}))
+                self.workList.append((thisPtr, {obj}))
                 self.addDefined(stmt.codeBlock)
                 self.addReachable(stmt.codeBlock)
+                self.classHiearchy.addClass(obj)
+                self.persist_attr[obj] = {}
+                for attr in obj.getAttributes():
+                    self.persist_attr[obj][attr] = set()
             elif(isinstance(stmt, NewBuiltin)):
-                targetVar = VarPtr(stmt.target)
                 if(stmt.value or stmt.type == "NoneType"):
                     obj = ConstObject(stmt.value)
                 else:
                     obj = BuiltinObject(stmt)
-                self.workList.append(targetVar, {obj})
+                self.workList.append(targetPtr, {obj})
 
     def addDefined(self, codeBlock: CodeBlock):
         if(codeBlock in self.definedCodeBlocks):
@@ -86,11 +89,13 @@ class Analysis:
                     self.bindingStmts.bind(varPtr, stmt)
                     self.processNewClass(stmt, i, self.pointToSet.get(varPtr))
             elif(isinstance(stmt, Call)):
-                self.bindingStmts(VarPtr(stmt.callee), stmt)
-                # TODO
+                varPtr = VarPtr(stmt.callee)
+                self.bindingStmts(varPtr, stmt)
+                self.processCall(stmt, self.pointToSet.get(varPtr))
             elif(isinstance(stmt, DelAttr)):
-                self.bindingStmts(VarPtr(stmt.var), stmt)
-                # TODO
+                varPtr = VarPtr(stmt.var)
+                self.bindingStmts(varPtr, stmt)
+                self.processDelAttr(stmt, self.pointToSet.get(varPtr))
 
     def analyze(self, entry: ModuleCodeBlock):
         self.addDefined(entry)
@@ -136,18 +141,24 @@ class Analysis:
         
     # classObj.$r_attr <- parent.attr
     # where parent is the first class that has this attr as its persistent attributes along MRO
-    def resolveAttribute(self, classObj: ClassObject, attr: str, mroIndex: int = 0):
+    def resolveAttribute(self, classObj: ClassObject, attr: str, resolveInfo: ResolveInfo=None):
         assert(classObj, ClassObject)
-        
-        mro = classObj.mro
-        childAttr = AttrPtr(classObj, RESOLVED_PREFIX + attr)
-        while(mroIndex < len(mro)):
-            parent = mro[mroIndex]
-            parentAttr = AttrPtr(parent, attr)
-            self.addFlow(parentAttr, childAttr)
-            if(attr in self.persist_attr[parent]):
-                self.persist_attr[parent][attr].add((classObj, mroIndex))
-                break
+        if(not resolveInfo):
+            if((FAKE_PREFIX + attr) in self.pointToSet.getAllAttr(classObj)):
+                
+                return
+            for mro in self.classHiearchy.getMROs(classObj):
+                self.resolveAttribute(classObj, attr, (mro, 0))
+        else:
+            mro, i = resolveInfo
+            childAttr = AttrPtr(classObj, FAKE_PREFIX + attr)
+            while(i < len(mro)):
+                parent = mro[i]
+                parentAttr = AttrPtr(parent, attr)
+                self.addFlow(parentAttr, childAttr)
+                if(attr in self.persist_attr[parent]):
+                    self.persist_attr[parent][attr].add((mro, i))
+                    break
 
     
 
@@ -164,53 +175,31 @@ class Analysis:
                 insAttr = AttrPtr(obj, stmt.attr)
                 self.addFlow(insAttr, varPtr)
                 classObj = obj.type
+                
                 self.resolveAttribute(classObj, stmt.attr)
                 # instance.attr <- class.$r_attr
-                classAttr = AttrPtr(classObj, RESOLVED_PREFIX + stmt.attr)
+                classAttr = AttrPtr(classObj, FAKE_PREFIX + stmt.attr)
                 self.addFlow(classAttr, insAttr)
 
             elif(isinstance(obj, ClassObject)):
                 self.resolveAttribute(classObj, stmt.attr)
                 # instance.attr <- class.$r_attr
-                classAttr = AttrPtr(obj, RESOLVED_PREFIX + stmt.attr)
+                classAttr = AttrPtr(obj, FAKE_PREFIX + stmt.attr)
                 self.addFlow(classAttr, varPtr)
             else:
                 attrPtr = AttrPtr(obj, stmt.attr)
                 self.addFlow(attrPtr, varPtr)
 
     def processNewClass(self, stmt: NewClass, index: int, objs: Set[Object]):
-        
-        def select(start: int) -> Generator[List[ClassObject], None, None]:
-            if(start == len(stmt.bases)):
-                yield []
-            else:
-                if(start != index):
-                    varPtr = VarPtr(stmt.bases[start])
-                    objs = self.pointToSet.get(varPtr)
-
-                for obj in objs:
-                    if(not isinstance(obj, ClassObject)):
-                        continue
-                    for tail in select(start + 1):
-                        tail.insert(0, obj)
-                        yield tail
-
-        classObjs = set()
-        for bases in select(0):
-            mros = [base.mro for base in bases]
-            mro = self.c3_merge(mros)
-            if(mro):
-                classObj = ClassObject(stmt, mro)
-                self.persist_attr[classObj] = {}
-                for attr in classObj.getAttributes():
-                    self.persist_attr[classObj][attr] = set()
-                classObjs.add(classObj)
-            
-        targetVar = VarPtr(stmt.target)
-        self.workList.append((targetVar, classObjs))
-        thisClass = VarPtr(stmt.codeBlock.thisClassVariable)
-        self.workList.append((thisClass, classObjs))
-        
+        mroChange = set()
+        for obj in objs:
+            mroChange |= self.classHiearchy.addClassBase(ClassObject(stmt), index, obj)
+        for mro in mroChange:
+            classObj = mro[0]
+            for attr in self.pointToSet.getAllAttr(classObj):
+                if(isFakeAttr(attr)):
+                    attr = attr[len(FAKE_PREFIX):]
+                    self.resolveAttribute(classObj, attr, mro, 0)
 
     def processCall(self, stmt: Call, objs: Set[Object]):
         varPtr = VarPtr(stmt.target)
@@ -265,46 +254,6 @@ class Analysis:
         attr = stmt.attr
         for obj in objs:
             if(isinstance(obj, ClassObject) and attr in self.persist_attr[obj]):
-                for subclass, index in self.persist_attr[attr]:
-                    self.resolveAttribute(subclass, attr, index + 1)
+                for mro, index in self.persist_attr[attr]:
+                    self.resolveAttribute(mro[0], attr, (mro, index + 1))
                 del self.persist_attr[obj][attr]
-
-        
-
-    def c3_merge(self, mros) -> MRO:
-        nexts = {}
-        inDegrees = {}
-        for mro in mros:
-            for i in range(len(mro)):
-                if(mro[i] not in nexts):
-                    nexts[mro[i]] = set()
-                    inDegrees[mro[i]] = 0
-        
-        for mro in mros:
-            for i in range(len(mro) - 1):
-                nexts[mro[i]].add(mro[i + 1])
-                inDegrees[mro[i + 1]] += 1
-
-        mro = []
-        while(len(inDegrees) != 0):
-            select = None
-            for obj, degree in inDegrees.items():
-                if(degree == 0):
-                    if(select != None):
-                        # illegal
-                        return 
-                    select = obj
-            if(select == None):
-                return 
-            mro.append(select)
-            for next in nexts[obj]:
-                inDegrees[next] -= 1
-
-            del nexts[obj]
-            del inDegrees[obj]
-        return *mro,
-
-    
-        
-
-

@@ -164,10 +164,10 @@ class CodeBlockGenerator(ast.NodeTransformer):
                         elif(isinstance(use, Call)):
                             if(use.callee == tmp):
                                 use.setCallee(v)
-                            for arg in use.args:
+                            for arg in use.posargs:
                                 if(arg == tmp):
-                                    use.setArg(use.args.index(arg), v)
-                            for key, arg in use.keywords.items():
+                                    use.setArg(use.posargs.index(arg), v)
+                            for key, arg in use.kwargs.items():
                                 if(arg == tmp):
                                     use.setKeyword(key, v)
                         elif(isinstance(use, NewClass)):
