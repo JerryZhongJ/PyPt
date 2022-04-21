@@ -5,7 +5,15 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Test",
+            "name": "Test PTA",
+            "type": "python",
+            "request": "launch",
+            "module": "Python-PTA.test.TestPTA",
+            "cwd": "${workspaceFolder}/..",
+            "justMyCode": true
+        },
+        {
+            "name": "Test Import",
             "type": "python",
             "request": "launch",
             "module": "Python-PTA.test.TestImport",

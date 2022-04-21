@@ -1,0 +1,11 @@
+<__main__.func.func2>$t0 = New list                             12,4 - 18,20
+<__main__.func.func2>$t1 = NewFunction                          12,4 - 18,20
+<__main__.func.func2>$t0.__iter__ = <__main__.func.func2>$t1    12,4 - 18,20
+<__main__.func.func2>args = <__main__.func.func2>$t0            12,4 - 18,20
+<__main__.func.func2>$t2 = New dict                             12,4 - 18,20
+<__main__.func.func2>$t3 = NewFunction                          12,4 - 18,20
+<__main__.func.func2>$t2.__iter__ = <__main__.func.func2>$t3    12,4 - 18,20
+<__main__.func.func2>kwargs = <__main__.func.func2>$t2          12,4 - 18,20
+<__main__.func.func2>$ret = New NoneType                        12,4 - 18,20
+<__main__.func.func2>func3 = NewFunction                        14,8 - 17,17
+<__main__.func.func2>$ret = <__main__.func.func2>func3          18,8 - 18,20

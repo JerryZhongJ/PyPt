@@ -1,4 +1,6 @@
-from .Objects import Object
+import typing
+if typing.TYPE_CHECKING:
+    from .Objects import Object
 from ..IR.Stmts import Variable
 
 
@@ -15,8 +17,14 @@ class VarPtr(Pointer):
     def __init__(self, var):
         self.var = var
 
+    def __str__(self):
+        return str(self.var)
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
 class AttrPtr(Pointer):
-    obj: Object
+    obj: 'Object'
     attr: str
     
     def __eq__(self, other):
@@ -28,3 +36,5 @@ class AttrPtr(Pointer):
         self.obj = obj
         self.attr = attr
         
+    def __str__(self):
+        return f"{self.obj}.{self.attr}"

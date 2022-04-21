@@ -1,0 +1,17 @@
+<__main__>$t0 = New int (2)                           8,20 - 8,21
+<__main__>$t1 = New list                              8,28 - 8,30
+<__main__>$t2 = NewFunction                           8,28 - 8,30
+<__main__>$t1.__iter__ = <__main__>$t2                8,28 - 8,30
+<__main__>$t3 = NewFunction                           8,0  - 30,12
+<__main__>$global.func = <__main__>$t3                8,0  - 30,12
+<__main__>$t4 = <__main__>$global.func                32,4 - 32,8
+<__main__>$t5 = New int (0)                           32,9 - 32,10
+<__main__>$t6 = Call <__main__>$t4 (<__main__>$t5)    32,4 - 32,11
+<__main__>$t7 = Call <__main__>$t6 ()                 32,4 - 32,13
+<__main__>$global.b = <__main__>$t7                   32,0 - 32,13
+<__main__>$t8 = <__main__>$global.b                   33,9 - 33,10
+<__main__>$t9 = <__main__>$t8.method                  33,9 - 33,17
+<__main__>$t10 = Call <__main__>$t9 ()                33,9 - 33,19
+<__main__>$global._func3 = <__main__>$t10             33,0 - 33,19
+<__main__>$t11 = <__main__>$global._func3             34,0 - 34,6
+<__main__>$t12 = Call <__main__>$t11 ()               34,0 - 34,8

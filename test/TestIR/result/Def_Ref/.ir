@@ -1,0 +1,17 @@
+<Def_Ref>$t0 = New int (2)                         8,20 - 8,21
+<Def_Ref>$t1 = New list                            8,28 - 8,30
+<Def_Ref>$t2 = NewFunction                         8,28 - 8,30
+<Def_Ref>$t1.__iter__ = <Def_Ref>$t2               8,28 - 8,30
+<Def_Ref>$t3 = NewFunction                         8,0  - 30,12
+<Def_Ref>$global.func = <Def_Ref>$t3               8,0  - 30,12
+<Def_Ref>$t4 = <Def_Ref>$global.func               32,4 - 32,8
+<Def_Ref>$t5 = New int (0)                         32,9 - 32,10
+<Def_Ref>$t6 = Call <Def_Ref>$t4 (<Def_Ref>$t5)    32,4 - 32,11
+<Def_Ref>$t7 = Call <Def_Ref>$t6 ()                32,4 - 32,13
+<Def_Ref>$global.b = <Def_Ref>$t7                  32,0 - 32,13
+<Def_Ref>$t8 = <Def_Ref>$global.b                  33,9 - 33,10
+<Def_Ref>$t9 = <Def_Ref>$t8.method                 33,9 - 33,17
+<Def_Ref>$t10 = Call <Def_Ref>$t9 ()               33,9 - 33,19
+<Def_Ref>$global._func3 = <Def_Ref>$t10            33,0 - 33,19
+<Def_Ref>$t11 = <Def_Ref>$global._func3            34,0 - 34,6
+<Def_Ref>$t12 = Call <Def_Ref>$t11 ()              34,0 - 34,8

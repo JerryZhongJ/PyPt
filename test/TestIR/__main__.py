@@ -1,5 +1,5 @@
 import ast
-from ..IRGeneration.CodeBlockGenerator import ModuleCodeBlockGenerator
+from ...IR.CodeBlockGenerator import ModuleCodeBlockGenerator
 import shutil
 import os
 resource = os.path.join(os.path.dirname(__file__), "resources")
@@ -26,9 +26,9 @@ def testIR(moduleName):
 if(os.path.exists(result)):
     shutil.rmtree(result)
 
-# testIR("Def_Ref")
+testIR("Def_Ref")
 
-testIR("Expr")
+# testIR("Expr")
 
 # testIR("Call")
 

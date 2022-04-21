@@ -1,6 +1,9 @@
 
 from typing import Any, Dict, List, Tuple
+import typing
 
+if typing.TYPE_CHECKING:
+    from .CodeBlock import CodeBlock, ClassCodeBlock, FunctionCodeBlock, ModuleCodeBlock
 DEFINED_WITH_VAR = 0
 DEFINED_OTHERS = 1
 USED_BY_VAR = 2
@@ -17,7 +20,7 @@ class Variable:
         return self.qualified_name
 
     def __repr__(self):
-        return self.__str__()
+        return f"Variable: {self.qualified_name}"
 
     def __init__(self, name: str, belongsTo: 'CodeBlock', temp=False):
         self.name = name
@@ -27,23 +30,29 @@ class Variable:
         if(temp):
             self.usingIRs = ([], [], [], [])
 
+    def __hash__(self):
+        return hash((self.belongsTo, self.name))
+
 class IRStmt:
     belongsTo: 'CodeBlock'                 # 'CodeBlock' to which this IR belongs
     srcPos: Tuple[int]
 
     def __init__(self, belongsTo: 'CodeBlock', srcPos: Tuple[int]):
         self.belongsTo = belongsTo
-        belongsTo.IRs.append(self)
+        belongsTo.stmts.append(self)
         self.srcPos = srcPos
 
     def destroy(self):
-        self.belongsTo.IRs.remove(self)
+        self.belongsTo.stmts.remove(self)
 
-    def __str__(self):
-        return f"({self.srcPos[0]}:{self.srcPos[1]},\t{self.srcPos[2]}:{self.srcPos[3]})\t{self._text()}"
+    # def __str__(self):
+    #     return f"({self.srcPos[0]}:{self.srcPos[1]},\t{self.srcPos[2]}:{self.srcPos[3]})\t{self.__str__()}"
 
     def __repr__(self):
-        return self._text()
+        return f"IRStmt: {str(self)}"
+
+    def __hash__(self):
+        return hash((self.belongsTo, self.srcPos))
     
 
 
@@ -90,7 +99,7 @@ class Assign(IRStmt):
         self._unsetSource()
         super().destroy()
 
-    def _text(self):
+    def __str__(self):
         return f"{self.target} = {self.source}"
 
 
@@ -140,7 +149,7 @@ class SetAttr(IRStmt):
         self._unsetSource()
         super().destroy()
 
-    def _text(self):
+    def __str__(self):
         return  f"{self.target}.{self.attr} = {self.source}"
 
 # target = source.attr
@@ -187,7 +196,7 @@ class GetAttr(IRStmt):
         self._unsetSource()
         super().destroy()
 
-    def _text(self):
+    def __str__(self):
         return f"{self.target} = {self.source}.{self.attr}"
 
 # target = New ...
@@ -219,27 +228,27 @@ class New(IRStmt):
         super().destroy()
         
 class NewModule(New):
-    codeBlock: 'CodeBlock'                  
+    codeBlock: 'ModuleCodeBlock'                  
 
     def __init__(self, target:Variable, codeBlock: 'CodeBlock', belongsTo: 'CodeBlock', srcPos: Tuple[int]):
         super().__init__(target, 'module', belongsTo, srcPos)
         self.codeBlock = codeBlock
 
-    def _text(self):
+    def __str__(self):
         return f"{self.target} = NewModule {self.codeBlock.moduleName if self.codeBlock else ''}"
 
 class NewFunction(New):
-    codeBlock: 'CodeBlock'
+    codeBlock: 'FunctionCodeBlock'
 
     def __init__(self, target:Variable, codeBlock: 'CodeBlock', belongsTo: 'CodeBlock', srcPos: Tuple[int]):
         super().__init__(target, 'function', belongsTo, srcPos)
         self.codeBlock = codeBlock
 
-    def _text(self):
+    def __str__(self):
         return f"{self.target} = NewFunction"
 
 class NewClass(New):
-    codeBlock: 'CodeBlock'
+    codeBlock: 'ClassCodeBlock'
     bases: List[Variable]                # variables that points to a class object
 
     def __init__(self, target:Variable, bases:List[Variable], codeBlock: 'CodeBlock', belongsTo: 'CodeBlock', srcPos: Tuple[int]):
@@ -267,7 +276,7 @@ class NewClass(New):
             self._unsetBase(i)
         super().destroy()
 
-    def _text(self):
+    def __str__(self):
         bases = [str(b) for b in self.bases]
         return f"{self.target} = NewClass ({', '.join(bases)})"
         
@@ -281,7 +290,7 @@ class NewBuiltin(New):
         self.type = type
         self.value = value
 
-    def _text(self):
+    def __str__(self):
         return f"{self.target} = New {self.type}" + (f" ({self.value})" if self.value is not None else "")
 
 
@@ -365,7 +374,7 @@ class Call(IRStmt):
             self._unsetKeyword(key)
         super().destroy()
 
-    def _text(self):
+    def __str__(self):
         args = [str(arg) for arg in self.posargs]
         kws = [f"{kw}={arg}" for kw, arg in self.kwargs.items()]
         args += kws
@@ -399,7 +408,7 @@ class DelAttr(IRStmt):
         self._unsetVar()
         super().destroy()
 
-    def _text(self):
+    def __str__(self):
         return f"Del {self.var}.{self.attr}"
         
 

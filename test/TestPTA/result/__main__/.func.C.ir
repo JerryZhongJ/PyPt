@@ -1,0 +1,6 @@
+<__main__.func.C>$thisClass.a = <__main__.func>b             23,8  - 23,13
+<__main__.func.C>$t0 = <__main__.func.C>$thisClass.a         24,12 - 24,13
+<__main__.func.C>$t0 = <__main__.func>a                      24,12 - 24,13
+<__main__.func>c = <__main__.func.C>$t0.f                    24,12 - 24,15
+<__main__.func.C>$t2 = NewFunction                           25,8  - 28,26
+<__main__.func.C>$thisClass.method = <__main__.func.C>$t2    25,8  - 28,26

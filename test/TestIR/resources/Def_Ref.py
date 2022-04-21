@@ -11,11 +11,11 @@ def func(arg1, arg2=2, arg3=[]):
     c = arg3
     def func2(*args, **kwargs):
         global b
-        def func3():
+        def func3(self):
             nonlocal c
-            c = b
-            # b should be global
-            a = c
+            c = self
+            c.f = b
+        return func3
             
     class C:
         global b
@@ -25,8 +25,13 @@ def func(arg1, arg2=2, arg3=[]):
         def method(self):
             self.attr1 = a
             self.attr2 = b
+            return func2()
 
     return C
+b = "b"
+c = func(0)()
+_func3 = c.method()
+_func3()
 
 
 

@@ -304,7 +304,6 @@ class ModuleManager:
         return m
 
     # import submodules in fromlist, m should be a pacakge
-    # TODO: add globalNames here
     def ensure_fromlist(self, m, caller, fromlist):
         self.msg(4, "ensure_fromlist", m, fromlist)
         if("*" in fromlist):
@@ -403,7 +402,7 @@ class ModuleManager:
         if type == _PY_SOURCE:
             
             tree = ast.parse(fp.read())
-            m.__generator__ = ModuleCodeBlockGenerator(fqname, moduleManager=self, simplify=True)
+            m.__generator__ = ModuleCodeBlockGenerator(fqname, moduleManager=self)
             m.__codeBlock__ = m.__generator__.codeBlock
             m.__generator__.parse(tree)
         elif type == _PY_COMPILED:

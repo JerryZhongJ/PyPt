@@ -15,11 +15,15 @@ class ModuleObject(Object):
     def __eq__(self, other):
         return isinstance(other, ModuleObject) and other.codeBlock == self.codeBlock
     def __hash__(self):
-        return hash(self.moduleName)
+        return hash(self.codeBlock.moduleName)
     def __init__(self, codeBlock: ModuleCodeBlock):
-        self.codeBlock
+        self.codeBlock = codeBlock
     def getModuleName(self):
         return self.codeBlock.moduleName
+    def __str__(self):
+        return f"Module({self.codeBlock.moduleName})"
+    def __repr__(self):
+        return self.__str__()
 
 
 class ConstObject(Object):
@@ -30,6 +34,10 @@ class ConstObject(Object):
         return hash(self.value)
     def __init__(self, value):
         self.value = value
+    def __str__(self):
+        return f"Const({self.value})"
+    def __repr__(self):
+        return self.__str__()
 
 class AllocationSiteObject(Object):
     alloc_site: IRStmt
@@ -45,6 +53,10 @@ class FunctionObject(AllocationSiteObject):
     alloc_site: NewFunction
     def getCodeBlock(self) -> FunctionCodeBlock:
         return self.alloc_site.codeBlock
+    def __str__(self):
+        return f"Function({self.getCodeBlock().qualified_name})"
+    def __repr__(self):
+        return self.__str__()
 
 class ClassObject(AllocationSiteObject):
     alloc_site: NewClass
@@ -55,6 +67,11 @@ class ClassObject(AllocationSiteObject):
 
     def getAttributes(self) -> Set[str]:
         return self.getCodeBlock().attributes
+
+    def __str__(self):
+        return f"Class({self.getCodeBlock().qualified_name})"
+    def __repr__(self):
+        return self.__str__()
 
 
 class InstanceObject(AllocationSiteObject):
@@ -71,10 +88,22 @@ class InstanceObject(AllocationSiteObject):
         self.alloc_site = alloc_site
         self.type = type
 
+    def __str__(self):
+        return f"Instance {self.type.getCodeBlock().qualified_name}({self.alloc_site})"
+    def __repr__(self):
+        return self.__str__()
     
 
 class BuiltinObject(AllocationSiteObject):
     alloc_site: NewBuiltin
+
+    def getType(self):
+        return self.alloc_site.type
+
+    def __str__(self):
+        return f"Builtin({self.alloc_site})"
+    def __repr__(self):
+        return self.__str__()
     
     
 
@@ -88,3 +117,7 @@ class MethodObject(Object):
     def __init__(self, selfObj, func):
         self.selfObj = selfObj
         self.func = func
+    def __str__(self):
+        return f"Method(self: {self.selfObj}, {self.func})"
+    def __repr__(self):
+        return self.__str__()

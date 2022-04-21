@@ -1,4 +1,4 @@
-from typing import Dict, List, Set
+from typing import Dict, List, Set, Union
 
 from .Stmts import IRStmt, New, NewClass, NewFunction, Variable
 import os
@@ -42,14 +42,25 @@ class CodeBlock:
         filename = self.qualified_name[len(self.moduleName):] + ".ir"
         path = os.path.join(path, filename)
         with open(path, "w") as f:
-
-            print(f"{self.qualified_name} ({len(self.stmts)} lines):", file=f)
+            lines = [(str(stmt), f"{stmt.srcPos[0]},{stmt.srcPos[1]}", f"{stmt.srcPos[2]},{stmt.srcPos[3]}") for stmt in self.stmts]
+            colwidth0 = 0
+            colwidth1 = 0
+            for line in lines:
+                w0 = len(line[0])
+                w1 = len(line[1])
+                colwidth0 = w0 if w0 > colwidth0 else colwidth0
+                colwidth1 = w1 if w1 > colwidth1 else colwidth1
+            for line in lines:
+                print(f"{line[0]:<{colwidth0}}    {line[1]:<{colwidth1}} - {line[2]}", file=f)
             for ir in self.stmts:
-                print(ir, file=f)
                 if(isinstance(ir, NewClass) or isinstance(ir, NewFunction)):
                     ir.codeBlock.dump(rootDirectory)
                 
-            
+    def __hash__(self):
+        return hash(self.qualified_name)
+
+    def __repr__(self):
+        return f"CodeBlock: {self.qualified_name}"
 
 class ModuleCodeBlock(CodeBlock):
     moduleName: str
@@ -71,7 +82,7 @@ class FunctionCodeBlock(CodeBlock):
     # posargs and kwargs both store all the arguments
     # using two data structure is for convenience 
     posonlyargs: List[Variable]
-    args: Dict[str, Variable]
+    args: Dict[Union[int, str], Variable]
     vararg: Variable
     kwonlyargs: Dict[str, Variable]
     kwarg: Variable
@@ -86,6 +97,8 @@ class FunctionCodeBlock(CodeBlock):
         self.posonlyargs = []
         self.args = {}
         self.kwonlyargs = {}
+        self.vararg = None
+        self.kwarg = None
         self.returnVariable = Variable("$ret", self)
         if(self.enclosing == None):
             self.scopeLevel = 1

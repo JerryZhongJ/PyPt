@@ -1,0 +1,4 @@
+<Def_Ref.func.C.method>$ret = New NoneType                   25,8  - 28,26
+<Def_Ref.func.C.method>self.attr1 = <Def_Ref.func>a          26,12 - 26,26
+<Def_Ref.func.C.method>self.attr2 = <Def_Ref.func>b          27,12 - 27,26
+<Def_Ref.func.C.method>$ret = Call <Def_Ref.func>func2 ()    28,19 - 28,26

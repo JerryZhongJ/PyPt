@@ -1,0 +1,9 @@
+<__main__.func>$ret = New NoneType        8,0  - 30,12
+<__main__.func>a = <__main__.func>arg1    9,4  - 9,12
+<__main__.func>b = <__main__.func>arg2    10,4 - 10,12
+<__main__.func>c = <__main__.func>arg3    11,4 - 11,12
+<__main__.func>func2 = NewFunction        12,4 - 18,20
+<__main__.func>C = NewClass ()            20,4 - 28,26
+<__main__.func>$ret = <__main__.func>C    30,4 - 30,12
+<__main__.func>arg2 = <__main__>$t0       8,0  - 30,12
+<__main__.func>arg3 = <__main__>$t1       8,0  - 30,12

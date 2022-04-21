@@ -1,0 +1,11 @@
+__main__.func:
+<__main__.func>C = NewClass () -> __main__.func.C
+
+__main__:
+<__main__>$t6 = Call <__main__>$t4 (<__main__>$t5) -> __main__.func
+<__main__>$t10 = Call <__main__>$t9 ()             -> __main__.func.C.method
+<__main__>$t12 = Call <__main__>$t11 ()            -> __main__.func.func2.func3
+
+__main__.func.C.method:
+<__main__.func.C.method>$ret = Call <__main__.func>func2 () -> __main__.func.func2
+

@@ -1,0 +1,6 @@
+<Def_Ref.func.C>$thisClass.a = <Def_Ref.func>b             23,8  - 23,13
+<Def_Ref.func.C>$t0 = <Def_Ref.func.C>$thisClass.a         24,12 - 24,13
+<Def_Ref.func.C>$t0 = <Def_Ref.func>a                      24,12 - 24,13
+<Def_Ref.func>c = <Def_Ref.func.C>$t0.f                    24,12 - 24,15
+<Def_Ref.func.C>$t2 = NewFunction                          25,8  - 28,26
+<Def_Ref.func.C>$thisClass.method = <Def_Ref.func.C>$t2    25,8  - 28,26

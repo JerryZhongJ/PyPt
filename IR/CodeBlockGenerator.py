@@ -83,7 +83,7 @@ class CodeBlockGenerator(ast.NodeTransformer):
     lambdaCount: int
     tmpVariables: set[Variable]
     simplify: bool
-    def __init__(self, moduleManager: 'ModuleManager', simplify=True):
+    def __init__(self, moduleManager: 'ModuleManager', simplify=False):
         # self.root = node
         # print(f"Into {name} @ {moduleName}")
         
@@ -750,8 +750,8 @@ class CodeBlockGenerator(ast.NodeTransformer):
 
     # set up __iter__() for a variable 
     def _makeIterator(self, v:Variable, elts:Set[Union[Variable, ast.Attribute]], srcPos):
-        iter = FunctionCodeBlock(f"<{v.name}>__iter__", self.codeBlock)
-        next = FunctionCodeBlock(f"<{v.name}>__next__", self.codeBlock)
+        iter = FunctionCodeBlock(f"{v.name}__iter__", self.codeBlock)
+        next = FunctionCodeBlock(f"{v.name}__next__", self.codeBlock)
         
 
         # v.__iter__ = new function

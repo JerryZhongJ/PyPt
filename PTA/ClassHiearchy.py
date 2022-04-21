@@ -16,22 +16,22 @@ class ClassHiearchy:
     def __init__(self, pointToSet):
         self.mros = {}
         self.pointToSet = pointToSet
+        self.subClasses = {}
 
     def addClass(self, classObj: ClassObject) -> Set[MRO]:
         if(classObj in self.mros):
             return
         self.mros[classObj] = set()
+        self.subClasses[classObj] = set()
         bases = classObj.getBases()
         
-        for i in len(bases):
+        for i in range(len(bases)):
             for baseObj in self.pointToSet.get(bases[i]):
                 self.subClasses[baseObj].add(classObj)
 
-        allAdd = {}
-        for baseObj in self.pointToSet.get(bases[0]):
-            allAdd |= self.addClassBase(classObj, 0, baseObj)
+        add = self.addBaseMRO(classObj, -1, {})
 
-        return allAdd
+        return add
 
         
     def addClassBase(self, classObj: ClassObject, index: int, baseObj: ClassObject) -> Set[MRO]:
@@ -44,8 +44,8 @@ class ClassHiearchy:
         def select(start: int) -> Generator[List[MRO], None, None]:
             if(start == len(bases)):
                 yield []
-                return
-            if(start == index):
+                
+            elif(start == index):
                 for mro in mroList:
                     for tail in select(start + 1):
                         tail.insert(0, mro)

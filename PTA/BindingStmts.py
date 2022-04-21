@@ -19,7 +19,8 @@ class BindingStmts:
     def bind(self, varPtr, stmt):
         if(varPtr not in self.bindings):
             self.bindings[varPtr] = (set(), set(), set(), set(), set())
-        elif(isinstance(stmt, SetAttr) and stmt.target == varPtr.var):
+        
+        if(isinstance(stmt, SetAttr) and stmt.target == varPtr.var):
             self.bindings[varPtr][SETATTR].add(stmt)
         elif(isinstance(stmt, GetAttr) and stmt.source == varPtr.var):
             self.bindings[varPtr][GETATTR].add(stmt)
@@ -61,7 +62,7 @@ class BindingStmts:
         if(varPtr not in self.bindings):
             return set()
         else:
-            return self.bindings[varPtr][DelAttr].copy()
+            return self.bindings[varPtr][DELATTR].copy()
 
     
 
