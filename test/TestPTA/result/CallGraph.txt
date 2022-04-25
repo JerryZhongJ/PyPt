@@ -1,3 +1,21 @@
 __main__:
-<__main__>$t13 = Call <__main__>$t3 (<__main__>$t4, <__main__>$t5, <__main__>$t6, <__main__>$t7, <__main__>$t8, arg5=<__main__>$t9, arg4=<__main__>$t10, arg8=<__main__>$t11, arg9=<__main__>$t12) -> __main__.func
+<__main__>$t0 = NewClass ()                                -> __main__.A0
+<__main__>$t2 = NewClass (<__main__>$t1)                   -> __main__.B0
+<__main__>$t11 = NewClass ()                               -> __main__.A1
+<__main__>$t13 = NewClass (<__main__>$t12)                 -> __main__.B1
+<__main__>$t15 = NewClass (<__main__>$t14)                 -> __main__.C1
+<__main__>$t18 = NewClass (<__main__>$t16, <__main__>$t17) -> __main__.D1
+<__main__>$t27 = NewClass ()                               -> __main__.A2
+<__main__>$t29 = NewClass (<__main__>$t28)                 -> __main__.B2
+<__main__>$t31 = NewClass (<__main__>$t30)                 -> __main__.C2
+<__main__>$t34 = NewClass (<__main__>$t32, <__main__>$t33) -> __main__.D2
+<__main__>$t44 = NewClass ()                               -> __main__.A3
+<__main__>$t46 = NewClass (<__main__>$t45)                 -> __main__.B3
+<__main__>$t48 = NewClass (<__main__>$t47)                 -> __main__.C3
+<__main__>$t52 = NewClass (<__main__>$t50, <__main__>$t51) -> __main__.D3
+<__main__>$t55 = NewClass (<__main__>$t53, <__main__>$t54) -> __main__.D3
+<__main__>$t7 = Call <__main__>$t6 ()                      -> __main__.B0.foo
+<__main__>$t23 = Call <__main__>$t22 ()                    -> __main__.C1.foo
+<__main__>$t40 = Call <__main__>$t39 ()                    -> __main__.C2.foo, __main__.A2.foo
+<__main__>$t60 = Call <__main__>$t59 ()                    -> __main__.B3.foo, __main__.C3.foo
 

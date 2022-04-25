@@ -323,7 +323,7 @@ class Analysis:
         attr = stmt.attr
         for obj in objs:
             if(isinstance(obj, ClassObject) and attr in self.persist_attr[obj]):
-                for mro, index in self.persist_attr[attr]:
+                for mro, index in self.persist_attr[obj][attr]:
                     self.resolveAttribute(mro[0], attr, (mro, index + 1))
                 del self.persist_attr[obj][attr]
 

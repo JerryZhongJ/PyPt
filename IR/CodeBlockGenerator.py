@@ -867,17 +867,17 @@ class FunctionCodeBlockGenerator(CodeBlockGenerator):
             codeBlock.localVariables[args.kwarg.arg] = v
         
         # return None
-        NewBuiltin(codeBlock.returnVariable, "NoneType", codeBlock, srcPos, None)
+        # NewBuiltin(codeBlock.returnVariable, "NoneType", codeBlock, srcPos, None)
 
     def postprocess(self, node: ast.AST):
         srcPos = getSrcPos(node)
 
         if(self.yielded):
-            if(None in self.yielded):
-                tmp = self.newTmpVariable()
-                NewBuiltin(tmp, "None", self.codeBlock, srcPos, None)
-                self.yielded.remove(None)
-                self.yielded.add(tmp)
+            # if(None in self.yielded):
+            #     tmp = self.newTmpVariable()
+            #     NewBuiltin(tmp, "None", self.codeBlock, srcPos, None)
+            #     self.yielded.remove(None)
+            #     # self.yielded.add(tmp)
 
             tmp = self._makeGenerator(self.yielded, self.sended, srcPos)
             Assign(self.codeBlock.returnVariable, tmp, self.codeBlock, srcPos)
@@ -895,8 +895,8 @@ class FunctionCodeBlockGenerator(CodeBlockGenerator):
         self.generic_visit(node)
         if(node.value):
             self.yielded.add(node.value.var)
-        else:
-            self.yielded.add(None)
+        # else:
+        #     self.yielded.add(None)
         return VariableNode(self.sended)
 
 

@@ -37,19 +37,43 @@ print(ret1)
 # multiple inheritence: diamond
 class A2:
     def foo(self):
-        return "A1.foo"
+        return "A2.foo"
 
 class B2(A2):
     pass
 
 class C2(A2):
     def foo(self):
-        return "C1.foo"
+        return "C2.foo"
 class D2(B2, C2):
     pass
 
 ins2 = D2()
 del C2.foo
-ret2 = ins2.foo()       # should only be "C2.foo", "A2.foo"
+ret2 = ins2.foo()       # should be "C2.foo", "A2.foo"
 print(ret2)
 
+# same name multiple class
+class A3:
+    def foo(self):
+        return "A3.foo"
+
+class B3(A3):
+    def foo(self):
+        return "B3.foo"
+
+class C3(A3):
+    def foo(self):
+        return "C3.foo"
+
+if True:
+
+    class D3(B3, C3):
+        pass
+else:
+    class D3(C3, B3):
+        pass
+
+ins3 = D3()
+ret3 = ins3.foo()       # should be "B3.foo", "C3.foo"
+print(ret3)

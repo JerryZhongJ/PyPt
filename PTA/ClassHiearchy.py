@@ -88,21 +88,21 @@ class ClassHiearchy:
 
         mro = []
         while(len(inDegrees) != 0):
-            select = None
+            selected = None
             for obj, degree in inDegrees.items():
                 if(degree == 0):
-                    if(select != None):
+                    if(selected != None):
                         # illegal
                         return 
-                    select = obj
-            if(select == None):
+                    selected = obj
+            if(selected == None):
                 return 
-            mro.append(select)
-            for next in nexts[obj]:
+            mro.append(selected)
+            for next in nexts[selected]:
                 inDegrees[next] -= 1
 
-            del nexts[obj]
-            del inDegrees[obj]
+            del nexts[selected]
+            del inDegrees[selected]
         return *mro,
 
     def getMROs(self, classObj: ClassObject) -> Set[MRO]:
