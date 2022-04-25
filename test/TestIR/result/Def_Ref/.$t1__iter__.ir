@@ -1,3 +1,0 @@
-<Def_Ref.$t1__iter__>$ret = New iterator                        8,28 - 8,30
-<Def_Ref.$t1__iter__>$1 = NewFunction                           8,28 - 8,30
-<Def_Ref.$t1__iter__>$ret.__next__ = <Def_Ref.$t1__iter__>$1    8,28 - 8,30

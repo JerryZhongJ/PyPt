@@ -1,4 +1,0 @@
-<__main__.func.C.method>$ret = New NoneType                    25,8  - 28,26
-<__main__.func.C.method>self.attr1 = <__main__.func>a          26,12 - 26,26
-<__main__.func.C.method>self.attr2 = <__main__.func>b          27,12 - 27,26
-<__main__.func.C.method>$ret = Call <__main__.func>func2 ()    28,19 - 28,26

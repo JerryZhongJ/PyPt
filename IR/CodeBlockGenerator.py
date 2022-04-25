@@ -1,13 +1,13 @@
 import ast
 from typing import Set, Union
 
-from numpy import isin
 from .CodeBlock import ClassCodeBlock, CodeBlock, FunctionCodeBlock, ModuleCodeBlock
 
 from .Stmts import *
 from .Scanner import BindingScanner, DeclarationScanner
 
-
+if typing.TYPE_CHECKING:
+    from ModuleManager import ModuleManager
 
 # Wrapper for variable
 class VariableNode(ast.AST):
@@ -236,9 +236,8 @@ class CodeBlockGenerator(ast.NodeTransformer):
         return VariableNode(tmp)
 
     # every tuple has attribtues $n, where n is a number, and $tupleElements
-    # why is called $tupleElements not $values, 
-    # because when i get some item from something, i simply refer to its $values
-    # however, when it comes to tuple, i hope elements can be seperated possibly, by refer to its $n
+    # $values refers to the elements whose indexes are mixed together, we can't tell which one is what
+    # $tupleElements refer to those that has clear index, for example the first element of a tuple
     def visit_Tuple(self, node: ast.Tuple) -> Any:
         srcPos = getSrcPos(node)
 
@@ -246,29 +245,36 @@ class CodeBlockGenerator(ast.NodeTransformer):
         if(isLoad(node)):
             tmp = self.newTmpVariable()
             NewBuiltin(tmp, "tuple", self.codeBlock, srcPos)
-            
-            for elt in node.elts:
+                
+                
+            l = len(node.elts)
+            # from the front to the first starred expression
+            posIndex = 0
+            while(posIndex < l and isinstance(node.elts[posIndex], VariableNode)):
+                elt = node.elts[posIndex]
+                SetAttr(tmp, f"${posIndex}", elt.var, self.codeBlock, srcPos)
+                SetAttr(tmp, f"$tupleElements", elt.var, self.codeBlock, srcPos)
+                posIndex += 1
+            # from the end to the last starred expression
+            negIndex = -1
+            while(negIndex >= -l and isinstance(node.elts[negIndex], VariableNode)):
+                elt = node.elts[posIndex]
+                SetAttr(tmp, f"${negIndex}", elt.var, self.codeBlock, srcPos)
+                SetAttr(tmp, f"$tupleElements", elt.var, self.codeBlock, srcPos)
+                negIndex -= 1
+
+            # from the first starred expression to the last starred expression
+            for i in range(posIndex, l + negIndex + 1):
+                elt = node.elts[i]
                 if(isinstance(elt, ast.Starred)):
                     tmp2 = self.newTmpVariable()
                     GetAttr(tmp2, elt.value.var, "$tupleElements", self.codeBlock, srcPos)
                     GetAttr(tmp2, elt.value.var, "$values", self.codeBlock, srcPos)
-                    SetAttr(tmp, "$tupleElements", tmp2, self.codeBlock, srcPos)
+                    SetAttr(tmp, "$values", tmp2, self.codeBlock, srcPos)
                 else:
-                    SetAttr(tmp, f"$tupleElements", elt.var, self.codeBlock, srcPos)
-                
-            l = len(node.elts)
-            posIndex = 0
-            while(posIndex < l and isinstance(node.elts[posIndex], VariableNode)):
-                SetAttr(tmp, f"${posIndex}", node.elts[posIndex].var, self.codeBlock, srcPos)
-                posIndex += 1
-
-            negIndex = -1
-            while(negIndex >= -l and isinstance(node.elts[negIndex], VariableNode)):
-                SetAttr(tmp, f"${negIndex}", node.elts[negIndex].var, self.codeBlock, srcPos)
-                negIndex -= 1
+                    SetAttr(tmp, "$values", elt.var, self.codeBlock, srcPos)
             
-            
-            self._makeIterator(tmp, {makeAttribute(tmp, "$tupleElements")}, srcPos)
+            self._makeIterator(tmp, {makeAttribute(tmp, "$tupleElements"), makeAttribute(tmp, "$values")}, srcPos)
             return VariableNode(tmp)
         elif(isStore(node)):
             return node
@@ -496,8 +502,8 @@ class CodeBlockGenerator(ast.NodeTransformer):
             #    sended = value
             send = FunctionCodeBlock(f"<{tmp.name}>send", self.codeBlock)
             value = Variable("value", send)
-            send.args[0] = value
-            send.args["value"] = value
+            send.posargs[0] = value
+            send.posargs["value"] = value
             Assign(sended, value, send, srcPos)
 
             # tmp.send = new function
@@ -825,21 +831,21 @@ class FunctionCodeBlockGenerator(CodeBlockGenerator):
         # posonlyargs
         for arg in args.posonlyargs:
             v = Variable(arg.arg, codeBlock)
-            codeBlock.posonlyargs.append(v)
+            codeBlock.posargs.append(v)
             codeBlock.localVariables[arg.arg] = v
         # args
-        i = len(args.posonlyargs)
+        
         for arg in args.args:
             v = Variable(arg.arg, codeBlock)
-            codeBlock.args[i] = v
-            codeBlock.args[arg.arg] = v
+            codeBlock.posargs.append(v)
+            codeBlock.kwargs[arg.arg] = v
             codeBlock.localVariables[arg.arg] = v
-            i += 1
+        
 
         # kwonlyargs
         for arg in args.kwonlyargs:
             v = Variable(arg.arg, codeBlock)
-            codeBlock.kwonlyargs[arg.arg] = v
+            codeBlock.kwargs[arg.arg] = v
             codeBlock.localVariables[arg.arg] = v
 
         if(args.vararg):

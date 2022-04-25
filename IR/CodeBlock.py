@@ -81,10 +81,11 @@ class FunctionCodeBlock(CodeBlock):
     localVariables: Dict[str, Variable]                 # a map from name to variable
     # posargs and kwargs both store all the arguments
     # using two data structure is for convenience 
-    posonlyargs: List[Variable]
-    args: Dict[Union[int, str], Variable]
+    # posonlyargs: List[Variable]
+    posargs: List[Variable]
+    kwargs: Dict[str, Variable]
     vararg: Variable
-    kwonlyargs: Dict[str, Variable]
+    # kwonlyargs: Dict[str, Variable]
     kwarg: Variable
     declaredGlobal: Set[str]                            # a list of names declared global
     returnVariable: Variable
@@ -94,9 +95,10 @@ class FunctionCodeBlock(CodeBlock):
         self.globalVariable = enclosing.globalVariable
         self.localVariables = {}
         self.declaredGlobal = set()
-        self.posonlyargs = []
-        self.args = {}
-        self.kwonlyargs = {}
+        # self.posonlyargs = []
+        self.posargs = []
+        self.kwargs = {}
+        # self.kwonlyargs = {}
         self.vararg = None
         self.kwarg = None
         self.returnVariable = Variable("$ret", self)

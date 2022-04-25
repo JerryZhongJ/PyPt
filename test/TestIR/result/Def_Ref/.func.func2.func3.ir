@@ -1,3 +1,0 @@
-<Def_Ref.func.func2.func3>$ret = New NoneType                14,8  - 17,17
-<Def_Ref.func>c = <Def_Ref.func.func2.func3>self             16,12 - 16,20
-<Def_Ref.func.func2.func3>b = <Def_Ref.func.func2.func3>b    17,12 - 17,17

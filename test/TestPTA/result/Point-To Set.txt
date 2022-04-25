@@ -1,75 +1,42 @@
 __main__:
 <__main__>$global -> Module(__main__)
-<__main__>$t0     -> Const(2)
-<__main__>$t1     -> Builtin(<__main__>$t1 = New list)
-<__main__>$t2     -> Function(__main__.$t1__iter__)
+<__main__>$t0     -> Builtin(<__main__>$t0 = New int (0))
+<__main__>$t1     -> Builtin(<__main__>$t1 = New int (0))
+<__main__>$t2     -> Function(__main__.func)
+<__main__>$t4     -> Builtin(<__main__>$t4 = New int (1))
+<__main__>$t5     -> Builtin(<__main__>$t5 = New int (2))
+<__main__>$t6     -> Builtin(<__main__>$t6 = New int (3))
+<__main__>$t7     -> Builtin(<__main__>$t7 = New int (6))
+<__main__>$t8     -> Builtin(<__main__>$t8 = New int (7))
+<__main__>$t9     -> Builtin(<__main__>$t9 = New int (5))
+<__main__>$t10    -> Builtin(<__main__>$t10 = New int (4))
+<__main__>$t11    -> Builtin(<__main__>$t11 = New int (8))
+<__main__>$t12    -> Builtin(<__main__>$t12 = New int (9))
 <__main__>$t3     -> Function(__main__.func)
-<__main__>$t5     -> Const(0)
-<__main__>$t4     -> Function(__main__.func)
-<__main__>$t11    -> Function(__main__.func.func2.func3)
-<__main__>$t8     -> Instance __main__.func.C(<__main__>$t7 = Call <__main__>$t6 ())
-<__main__>$t6     -> Class(__main__.func.C)
-<__main__>$t7     -> Instance __main__.func.C(<__main__>$t7 = Call <__main__>$t6 ())
-<__main__>$t9     -> Method(self: Instance __main__.func.C(<__main__>$t7 = Call <__main__>$t6 ()), Function(__main__.func.C.method))
-<__main__>$t10    -> Function(__main__.func.func2.func3)
-<__main__>$t12    -> Const(None)
+<__main__>$t13    -> Builtin(<__main__.func>$ret = New NoneType)
 
 __main__.func:
-<__main__.func>arg1  -> Const(0)
-<__main__.func>$ret  -> Class(__main__.func.C)
-<__main__.func>a     -> Const(0)
-<__main__.func>b     -> Const(2)
-<__main__.func>c     -> 
-<__main__.func>func2 -> Function(__main__.func.func2)
-<__main__.func>C     -> Class(__main__.func.C)
-<__main__.func>arg2  -> Const(2)
-<__main__.func>arg3  -> Builtin(<__main__>$t1 = New list)
-
-__main__.func.C:
-<__main__.func.C>$thisClass -> Class(__main__.func.C)
-<__main__.func.C>$t0        -> Const(2)
-<__main__.func.C>$t2        -> Function(__main__.func.C.method)
-
-__main__.func.C.method:
-<__main__.func.C.method>self -> Instance __main__.func.C(<__main__>$t7 = Call <__main__>$t6 ())
-<__main__.func.C.method>$ret -> Function(__main__.func.func2.func3)
-
-__main__.func.func2:
-<__main__.func.func2>$t0    -> Builtin(<__main__.func.func2>$t0 = New list)
-<__main__.func.func2>$t1    -> Function(__main__.func.func2.$t0__iter__)
-<__main__.func.func2>args   -> Builtin(<__main__.func.func2>$t0 = New list)
-<__main__.func.func2>$t2    -> Builtin(<__main__.func.func2>$t2 = New dict)
-<__main__.func.func2>$t3    -> Function(__main__.func.func2.$t2__iter__)
-<__main__.func.func2>kwargs -> Builtin(<__main__.func.func2>$t2 = New dict)
-<__main__.func.func2>$ret   -> Function(__main__.func.func2.func3)
-<__main__.func.func2>func3  -> Function(__main__.func.func2.func3)
-
-__main__.func.func2.func3:
-<__main__.func.func2.func3>$ret -> Const(None)
-<__main__.func.func2.func3>b    -> 
+<__main__.func>arg1   -> Builtin(<__main__>$t4 = New int (1))
+<__main__.func>arg2   -> Builtin(<__main__>$t5 = New int (2))
+<__main__.func>arg3   -> Builtin(<__main__>$t1 = New int (0)), Builtin(<__main__>$t6 = New int (3))
+<__main__.func>arg5   -> Builtin(<__main__>$t9 = New int (5))
+<__main__.func>arg4   -> Builtin(<__main__>$t0 = New int (0)), Builtin(<__main__>$t10 = New int (4))
+<__main__.func>$t0    -> Builtin(<__main__.func>$t0 = New list)
+<__main__.func>$t1    -> Function(__main__.func.$t0__iter__)
+<__main__.func>args   -> Builtin(<__main__.func>$t0 = New list)
+<__main__.func>$t2    -> Builtin(<__main__.func>$t2 = New dict)
+<__main__.func>$t3    -> Function(__main__.func.$t2__iter__)
+<__main__.func>kwargs -> Builtin(<__main__.func>$t2 = New dict)
+<__main__.func>$ret   -> Builtin(<__main__.func>$ret = New NoneType)
 
 Module(__main__): 
-.b      -> Instance __main__.func.C(<__main__>$t7 = Call <__main__>$t6 ())
-._func3 -> Const(None), Function(__main__.func.func2.func3)
-.func   -> Function(__main__.func)
+.func -> Function(__main__.func)
 
-Builtin(<__main__>$t1 = New list): 
-.__iter__ -> Function(__main__.$t1__iter__)
+Builtin(<__main__.func>$t0 = New list): 
+.$values  -> Builtin(<__main__>$t8 = New int (7)), Builtin(<__main__>$t7 = New int (6))
+.__iter__ -> Function(__main__.func.$t0__iter__)
 
-Class(__main__.func.C): 
-.a         -> Const(2)
-.method    -> Function(__main__.func.C.method)
-.$r_a      -> Const(2)
-.$r_method -> Function(__main__.func.C.method)
-
-Instance __main__.func.C(<__main__>$t7 = Call <__main__>$t6 ()): 
-.method -> Method(self: Instance __main__.func.C(<__main__>$t7 = Call <__main__>$t6 ()), Function(__main__.func.C.method))
-.attr1  -> Const(0)
-.attr2  -> Const(2)
-
-Builtin(<__main__.func.func2>$t0 = New list): 
-.__iter__ -> Function(__main__.func.func2.$t0__iter__)
-
-Builtin(<__main__.func.func2>$t2 = New dict): 
-.__iter__ -> Function(__main__.func.func2.$t2__iter__)
+Builtin(<__main__.func>$t2 = New dict): 
+.$values  -> Builtin(<__main__>$t11 = New int (8)), Builtin(<__main__>$t12 = New int (9))
+.__iter__ -> Function(__main__.func.$t2__iter__)
 

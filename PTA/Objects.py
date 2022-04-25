@@ -26,18 +26,18 @@ class ModuleObject(Object):
         return self.__str__()
 
 
-class ConstObject(Object):
-    value: Any
-    def __eq__(self, other):
-        return isinstance(other, ConstObject) and self.value == other.value
-    def __hash__(self):
-        return hash(self.value)
-    def __init__(self, value):
-        self.value = value
-    def __str__(self):
-        return f"Const({self.value})"
-    def __repr__(self):
-        return self.__str__()
+# class ConstObject(Object):
+#     value: Any
+#     def __eq__(self, other):
+#         return isinstance(other, ConstObject) and self.value == other.value
+#     def __hash__(self):
+#         return hash(self.value)
+#     def __init__(self, value):
+#         self.value = value
+#     def __str__(self):
+#         return f"Const({self.value})"
+#     def __repr__(self):
+#         return self.__str__()
 
 class AllocationSiteObject(Object):
     alloc_site: IRStmt

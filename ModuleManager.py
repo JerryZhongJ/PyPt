@@ -377,8 +377,8 @@ class ModuleManager:
             m = self.load_module(fqname, fp, pathname, stuff)
             if(parent):
                 tmp = parent.__generator__.newTmpVariable()
-                NewModule(tmp, m.__codeBlock__, parent.__codeBlock__, srcPos=(0,0,0,0))
-                SetAttr(parent.__codeBlock__.globalVariable, partname, tmp, parent.__codeBlock__, srcPos=(0,0,0,0))
+                NewModule(tmp, m.__codeBlock__, parent.__codeBlock__)
+                SetAttr(parent.__codeBlock__.globalVariable, partname, tmp, parent.__codeBlock__)
         finally:
             if fp:
                 fp.close()

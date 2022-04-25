@@ -1,9 +1,0 @@
-<Def_Ref.func>$ret = New NoneType       8,0  - 30,12
-<Def_Ref.func>a = <Def_Ref.func>arg1    9,4  - 9,12
-<Def_Ref.func>b = <Def_Ref.func>arg2    10,4 - 10,12
-<Def_Ref.func>c = <Def_Ref.func>arg3    11,4 - 11,12
-<Def_Ref.func>func2 = NewFunction       12,4 - 18,20
-<Def_Ref.func>C = NewClass ()           20,4 - 28,26
-<Def_Ref.func>$ret = <Def_Ref.func>C    30,4 - 30,12
-<Def_Ref.func>arg2 = <Def_Ref>$t0       8,0  - 30,12
-<Def_Ref.func>arg3 = <Def_Ref>$t1       8,0  - 30,12

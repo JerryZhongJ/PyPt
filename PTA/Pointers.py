@@ -21,7 +21,7 @@ class VarPtr(Pointer):
         return str(self.var)
 
     def __repr__(self) -> str:
-        return self.__str__()
+        return f"VarPtr: {str(self)}"
 
 class AttrPtr(Pointer):
     obj: 'Object'
@@ -38,3 +38,6 @@ class AttrPtr(Pointer):
         
     def __str__(self):
         return f"{self.obj}.{self.attr}"
+    
+    def __repr__(self):
+        return f"AttrPtr: {str(self)}"

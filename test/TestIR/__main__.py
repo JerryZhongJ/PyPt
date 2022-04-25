@@ -26,6 +26,8 @@ def testIR(moduleName):
 if(os.path.exists(result)):
     shutil.rmtree(result)
 
+os.mkdir(result)
+
 testIR("Def_Ref")
 
 # testIR("Expr")

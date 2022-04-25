@@ -37,7 +37,7 @@ class IRStmt:
     belongsTo: 'CodeBlock'                 # 'CodeBlock' to which this IR belongs
     srcPos: Tuple[int]
 
-    def __init__(self, belongsTo: 'CodeBlock', srcPos: Tuple[int]):
+    def __init__(self, belongsTo: 'CodeBlock', srcPos: Tuple[int]=(-1,-1,-1,-1)):
         self.belongsTo = belongsTo
         belongsTo.stmts.append(self)
         self.srcPos = srcPos
@@ -60,7 +60,7 @@ class Assign(IRStmt):
     target: Variable
     source: Variable
 
-    def __init__(self, target: Variable, source: Variable, belongsTo: 'CodeBlock', srcPos: Tuple[int]):
+    def __init__(self, target: Variable, source: Variable, belongsTo: 'CodeBlock', srcPos: Tuple[int]=(-1,-1,-1,-1)):
         super().__init__(belongsTo, srcPos)
 
         self.setTarget(target)
@@ -109,7 +109,7 @@ class SetAttr(IRStmt):
     source: Variable
     attr: str
 
-    def __init__(self, target: Variable, attr: str, source: Variable, belongsTo: 'CodeBlock', srcPos: Tuple[int]):
+    def __init__(self, target: Variable, attr: str, source: Variable, belongsTo: 'CodeBlock', srcPos: Tuple[int]=(-1,-1,-1,-1)):
         super().__init__(belongsTo, srcPos)
         self.setTarget(target)
         self.setSource(source)
@@ -158,7 +158,7 @@ class GetAttr(IRStmt):
     source: Variable
     attr: str
 
-    def __init__(self, target: Variable, source: Variable, attr: str, belongsTo: 'CodeBlock', srcPos: Tuple[int]):
+    def __init__(self, target: Variable, source: Variable, attr: str, belongsTo: 'CodeBlock', srcPos: Tuple[int]=(-1,-1,-1,-1)):
         super().__init__(belongsTo, srcPos)
         self.setTarget(target)
         self.setSource(source)
@@ -204,7 +204,7 @@ class New(IRStmt):
     target: Variable
     objType:str                             # module, function, class, method, instance, builtin
 
-    def __init__(self, target: Variable, objType: str, belongsTo: 'CodeBlock', srcPos: Tuple[int]):
+    def __init__(self, target: Variable, objType: str, belongsTo: 'CodeBlock', srcPos: Tuple[int]=(-1,-1,-1,-1)):
         super().__init__(belongsTo, srcPos)
         self.setTarget(target)
         self.objType = objType
@@ -230,7 +230,7 @@ class New(IRStmt):
 class NewModule(New):
     codeBlock: 'ModuleCodeBlock'                  
 
-    def __init__(self, target:Variable, codeBlock: 'CodeBlock', belongsTo: 'CodeBlock', srcPos: Tuple[int]):
+    def __init__(self, target:Variable, codeBlock: 'CodeBlock', belongsTo: 'CodeBlock', srcPos: Tuple[int]=(-1,-1,-1,-1)):
         super().__init__(target, 'module', belongsTo, srcPos)
         self.codeBlock = codeBlock
 
@@ -240,7 +240,7 @@ class NewModule(New):
 class NewFunction(New):
     codeBlock: 'FunctionCodeBlock'
 
-    def __init__(self, target:Variable, codeBlock: 'CodeBlock', belongsTo: 'CodeBlock', srcPos: Tuple[int]):
+    def __init__(self, target:Variable, codeBlock: 'CodeBlock', belongsTo: 'CodeBlock', srcPos: Tuple[int]=(-1,-1,-1,-1)):
         super().__init__(target, 'function', belongsTo, srcPos)
         self.codeBlock = codeBlock
 
@@ -251,7 +251,7 @@ class NewClass(New):
     codeBlock: 'ClassCodeBlock'
     bases: List[Variable]                # variables that points to a class object
 
-    def __init__(self, target:Variable, bases:List[Variable], codeBlock: 'CodeBlock', belongsTo: 'CodeBlock', srcPos: Tuple[int]):
+    def __init__(self, target:Variable, bases:List[Variable], codeBlock: 'CodeBlock', belongsTo: 'CodeBlock', srcPos: Tuple[int]=(-1,-1,-1,-1)):
         super().__init__(target, 'class', belongsTo, srcPos)
         self.codeBlock = codeBlock
         self.bases = [None] * len(bases)
@@ -285,7 +285,7 @@ class NewClass(New):
 class NewBuiltin(New):
     type: str
     value: Any                          # optional, for example the value of str, int, double can be use
-    def __init__(self, target:Variable, type: str, belongsTo: 'CodeBlock', srcPos: Tuple[int], value: Any=None):
+    def __init__(self, target:Variable, type: str, belongsTo: 'CodeBlock', srcPos: Tuple[int]=(-1,-1,-1,-1), value: Any=None):
         super().__init__(target, 'builtin', belongsTo, srcPos)
         self.type = type
         self.value = value
@@ -302,7 +302,7 @@ class Call(IRStmt):
     posargs: List[Variable]
     kwargs: Dict[str, Variable]
 
-    def __init__(self, target: Variable, callee: Variable, args: List[Variable], keywords: Dict[str, Variable], belongsTo: 'CodeBlock', srcPos: Tuple[int]):
+    def __init__(self, target: Variable, callee: Variable, args: List[Variable], keywords: Dict[str, Variable], belongsTo: 'CodeBlock', srcPos: Tuple[int]=(-1,-1,-1,-1)):
         super().__init__(belongsTo, srcPos)
         self.setTarget(target)
         self.setCallee(callee)

@@ -1,3 +1,0 @@
-<__main__.func.func2.func3>$ret = New NoneType        14,8  - 17,17
-<__main__.func>c = <__main__.func.func2.func3>self    16,12 - 16,20
-<__main__.func.func2.func3>b = <__main__.func>c       17,12 - 17,17

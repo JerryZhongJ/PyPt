@@ -6,13 +6,13 @@ from ..IR.CodeBlock import CodeBlock
 
 from ..IR.Stmts import Variable
 
-from .Objects import BuiltinObject, ClassObject, ConstObject, FunctionObject, InstanceObject, ModuleObject, Object
+from .Objects import BuiltinObject, ClassObject, FunctionObject, InstanceObject, ModuleObject, Object
 
 from .Pointers import AttrPtr, Pointer, VarPtr
 
 
 class PointToSet:
-    varPtrSet: Dict[Variable, Set]
+    varPtrSet: Dict[VarPtr, Set]
     attrPtrSet: Dict[Object, Dict[str, Set]]
 
     def __init__(self):
@@ -21,7 +21,7 @@ class PointToSet:
 
     def put(self, pointer: Pointer, obj: Object) -> bool:
         if(isinstance(pointer, VarPtr)):
-            var = pointer.var
+            var = pointer
             if(pointer not in self.varPtrSet):
                 self.varPtrSet[var] = set()
             if(obj not in self.varPtrSet[var]):
@@ -46,7 +46,7 @@ class PointToSet:
     
     def putAll(self, pointer: Pointer, objs: Set[Object]) -> Set[Object]:
         if(isinstance(pointer, VarPtr)):
-            var = pointer.var
+            var = pointer
             if(pointer not in self.varPtrSet):
                 self.varPtrSet[var] = set()
             diff = objs - self.varPtrSet[var]
@@ -67,11 +67,11 @@ class PointToSet:
 
     def get(self, pointer: Pointer) -> Set:
         if(isinstance(pointer, VarPtr)):
-            v = pointer.var
-            if(v not in self.varPtrSet):
+            var = pointer
+            if(var not in self.varPtrSet):
                 return set()
             else:
-                return self.varPtrSet[v].copy()
+                return self.varPtrSet[var].copy()
 
         elif(isinstance(pointer, AttrPtr)):
             o = pointer.obj
@@ -90,9 +90,9 @@ class PointToSet:
     
     def dump(self, fp):
     
-        pointToSet:Dict[CodeBlock, Dict[Variable, Set[Object]]] = {stmt.belongsTo:{} for stmt in self.varPtrSet}
-        for stmt, pointTo in self.varPtrSet.items():
-            pointToSet[stmt.belongsTo][stmt] = pointTo
+        pointToSet:Dict[CodeBlock, Dict[VarPtr, Set[Object]]] = {varPtr.var.belongsTo:{} for varPtr in self.varPtrSet}
+        for varPtr, pointTo in self.varPtrSet.items():
+            pointToSet[varPtr.var.belongsTo][varPtr] = pointTo
 
         
         for codeBlock, map in pointToSet.items():
@@ -102,8 +102,7 @@ class PointToSet:
                 w = len(str(var))
                 colwidth = w if colwidth < w else colwidth
             for var, objs in map.items():
-                objects_str = [str(obj) for obj in objs]
-                print(f"{str(var):<{colwidth}} -> {', '.join(objects_str)}", file=fp)
+                print(f"{str(var):<{colwidth}} -> {', '.join([str(obj) for obj in objs])}", file=fp)
             print("", file=fp)
 
         for obj, map in self.attrPtrSet.items():

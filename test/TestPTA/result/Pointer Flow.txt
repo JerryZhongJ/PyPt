@@ -1,71 +1,35 @@
 -> :
-<__main__>$t7    -> Module(__main__).b
-<__main__>$t10    -> Module(__main__)._func3
-<__main__>$t3    -> Module(__main__).func
-Module(__main__).func    -> <__main__>$t4
-Module(__main__)._func3    -> <__main__>$t11
-Module(__main__).b    -> <__main__>$t8
-<__main__>$t2    -> Builtin(<__main__>$t1 = New list).__iter__
-<__main__>$t5    -> <__main__.func>arg1
-<__main__.func>$ret    -> <__main__>$t6
-<__main__.func>arg1    -> <__main__.func>a
-<__main__.func>arg2    -> <__main__.func>b
-<__main__.func>arg3    -> <__main__.func>c
-<__main__.func>a    -> Instance __main__.func.C(<__main__>$t7 = Call <__main__>$t6 ()).attr1, <__main__.func.C>$t0
-<__main__.func>C    -> <__main__.func>$ret
-<__main__>$t0    -> <__main__.func>arg2
+<__main__>$t2    -> Module(__main__).func
+Module(__main__).func    -> <__main__>$t3
+<__main__>$t4    -> <__main__.func>arg1
+<__main__>$t5    -> <__main__.func>arg2
+<__main__>$t6    -> <__main__.func>arg3
+<__main__>$t9    -> <__main__.func>arg5
+<__main__>$t10    -> <__main__.func>arg4
+<__main__.func>$ret    -> <__main__>$t13
+<__main__.func>$t0    -> <__main__.func>args
+<__main__.func>$t2    -> <__main__.func>kwargs
 <__main__>$t1    -> <__main__.func>arg3
-<__main__.func>b    -> Instance __main__.func.C(<__main__>$t7 = Call <__main__>$t6 ()).attr2, Class(__main__.func.C).a
-<__main__.func.C>$t2    -> Class(__main__.func.C).method
-Class(__main__.func.C).a    -> Class(__main__.func.C).$r_a
-Class(__main__.func.C).$r_a    -> <__main__.func.C>$t0
-Const(0).f    -> <__main__.func>c
-Const(2).f    -> <__main__.func>c
-Instance __main__.func.C(<__main__>$t7 = Call <__main__>$t6 ()).method    -> <__main__>$t9
-Class(__main__.func.C).method    -> Class(__main__.func.C).$r_method
-Class(__main__.func.C).$r_method    -> Instance __main__.func.C(<__main__>$t7 = Call <__main__>$t6 ()).method
-<__main__.func.C.method>$ret    -> <__main__>$t10
-<__main__.func.func2>$ret    -> <__main__.func.C.method>$ret
-<__main__.func.func2>$t0    -> <__main__.func.func2>args
-<__main__.func.func2>$t2    -> <__main__.func.func2>kwargs
-<__main__.func.func2>func3    -> <__main__.func.func2>$ret
-<__main__.func.func2>$t1    -> Builtin(<__main__.func.func2>$t0 = New list).__iter__
-<__main__.func.func2>$t3    -> Builtin(<__main__.func.func2>$t2 = New dict).__iter__
-<__main__.func.func2.func3>$ret    -> <__main__>$t12
-<__main__.func.func2.func3>self    -> <__main__.func>c
-<__main__.func>c    -> <__main__.func.func2.func3>b
+<__main__>$t0    -> <__main__.func>arg4
+<__main__>$t7    -> Builtin(<__main__.func>$t0 = New list).$values
+<__main__.func>$t1    -> Builtin(<__main__.func>$t0 = New list).__iter__
+<__main__>$t8    -> Builtin(<__main__.func>$t0 = New list).$values
+<__main__>$t11    -> Builtin(<__main__.func>$t2 = New dict).$values
+<__main__.func>$t3    -> Builtin(<__main__.func>$t2 = New dict).__iter__
+<__main__>$t12    -> Builtin(<__main__.func>$t2 = New dict).$values
 
 <- :
-Module(__main__).b    <- <__main__>$t7
-Module(__main__)._func3    <- <__main__>$t10
-Module(__main__).func    <- <__main__>$t3
-<__main__>$t4    <- Module(__main__).func
-<__main__>$t11    <- Module(__main__)._func3
-<__main__>$t8    <- Module(__main__).b
-Builtin(<__main__>$t1 = New list).__iter__    <- <__main__>$t2
-<__main__.func>arg1    <- <__main__>$t5
-<__main__>$t6    <- <__main__.func>$ret
-<__main__.func>a    <- <__main__.func>arg1
-<__main__.func>b    <- <__main__.func>arg2
-<__main__.func>c    <- Const(2).f, Const(0).f, <__main__.func.func2.func3>self, <__main__.func>arg3
-<__main__.func.C>$t0    <- Class(__main__.func.C).$r_a, <__main__.func>a
-<__main__.func>$ret    <- <__main__.func>C
-<__main__.func>arg2    <- <__main__>$t0
-<__main__.func>arg3    <- <__main__>$t1
-Class(__main__.func.C).a    <- <__main__.func>b
-Class(__main__.func.C).method    <- <__main__.func.C>$t2
-Class(__main__.func.C).$r_a    <- Class(__main__.func.C).a
-<__main__>$t9    <- Instance __main__.func.C(<__main__>$t7 = Call <__main__>$t6 ()).method
-Class(__main__.func.C).$r_method    <- Class(__main__.func.C).method
-Instance __main__.func.C(<__main__>$t7 = Call <__main__>$t6 ()).method    <- Class(__main__.func.C).$r_method
-<__main__>$t10    <- <__main__.func.C.method>$ret
-<__main__.func.C.method>$ret    <- <__main__.func.func2>$ret
-<__main__.func.func2>args    <- <__main__.func.func2>$t0
-<__main__.func.func2>kwargs    <- <__main__.func.func2>$t2
-<__main__.func.func2>$ret    <- <__main__.func.func2>func3
-Instance __main__.func.C(<__main__>$t7 = Call <__main__>$t6 ()).attr1    <- <__main__.func>a
-Instance __main__.func.C(<__main__>$t7 = Call <__main__>$t6 ()).attr2    <- <__main__.func>b
-Builtin(<__main__.func.func2>$t0 = New list).__iter__    <- <__main__.func.func2>$t1
-Builtin(<__main__.func.func2>$t2 = New dict).__iter__    <- <__main__.func.func2>$t3
-<__main__>$t12    <- <__main__.func.func2.func3>$ret
-<__main__.func.func2.func3>b    <- <__main__.func>c
+Module(__main__).func    <- <__main__>$t2
+<__main__>$t3    <- Module(__main__).func
+<__main__.func>arg1    <- <__main__>$t4
+<__main__.func>arg2    <- <__main__>$t5
+<__main__.func>arg3    <- <__main__>$t6, <__main__>$t1
+<__main__.func>arg5    <- <__main__>$t9
+<__main__.func>arg4    <- <__main__>$t0, <__main__>$t10
+<__main__>$t13    <- <__main__.func>$ret
+<__main__.func>args    <- <__main__.func>$t0
+<__main__.func>kwargs    <- <__main__.func>$t2
+Builtin(<__main__.func>$t0 = New list).$values    <- <__main__>$t7, <__main__>$t8
+Builtin(<__main__.func>$t0 = New list).__iter__    <- <__main__.func>$t1
+Builtin(<__main__.func>$t2 = New dict).$values    <- <__main__>$t12, <__main__>$t11
+Builtin(<__main__.func>$t2 = New dict).__iter__    <- <__main__.func>$t3
