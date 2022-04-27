@@ -1,207 +1,121 @@
 -> :
-<__main__>$t48    -> Module(__main__).C3
-<__main__>$t23    -> Module(__main__).ret1
-<__main__>$t31    -> Module(__main__).C2
-<__main__>$t18    -> Module(__main__).D1
-<__main__>$t36    -> Module(__main__).ins2
-<__main__>$t13    -> Module(__main__).B1
-<__main__>$t15    -> Module(__main__).C1
-<__main__>$t55    -> Module(__main__).D3
-<__main__>$t0    -> Module(__main__).A0
-<__main__>$t7    -> Module(__main__).ret0
-<__main__>$t40    -> Module(__main__).ret2
-<__main__>$t34    -> Module(__main__).D2
-<__main__>$t20    -> Module(__main__).ins1
-<__main__>$t2    -> Module(__main__).B0
-<__main__>$t11    -> Module(__main__).A1
-<__main__>$t4    -> Module(__main__).ins0
-<__main__>$t57    -> Module(__main__).ins3
-<__main__>$t29    -> Module(__main__).B2
-<__main__>$t27    -> Module(__main__).A2
-<__main__>$t46    -> Module(__main__).B3
-<__main__>$t44    -> Module(__main__).A3
-<__main__>$t60    -> Module(__main__).ret3
-<__main__>$t52    -> Module(__main__).D3
-Module(__main__).A1    -> <__main__>$t14, <__main__>$t12
-Module(__main__).B2    -> <__main__>$t32
-Module(__main__).print    -> <__main__>$t41, <__main__>$t24, <__main__>$t61, <__main__>$t8
-Module(__main__).ret0    -> <__main__>$t9
-Module(__main__).C3    -> <__main__>$t53, <__main__>$t51
-Module(__main__).ret3    -> <__main__>$t62
-Module(__main__).A0    -> <__main__>$t1
-Module(__main__).C2    -> <__main__>$t33, <__main__>$t37
-Module(__main__).B1    -> <__main__>$t16
-Module(__main__).D2    -> <__main__>$t35
-Module(__main__).ins3    -> <__main__>$t58
-Module(__main__).ins1    -> <__main__>$t21
-Module(__main__).D1    -> <__main__>$t19
-Module(__main__).ins2    -> <__main__>$t38
-Module(__main__).B0    -> <__main__>$t3
-Module(__main__).A3    -> <__main__>$t45, <__main__>$t47
-Module(__main__).A2    -> <__main__>$t28, <__main__>$t30
-Module(__main__).C1    -> <__main__>$t17
-Module(__main__).ret1    -> <__main__>$t25
-Module(__main__).ret2    -> <__main__>$t42
-Module(__main__).B3    -> <__main__>$t54, <__main__>$t50
-Module(__main__).ins0    -> <__main__>$t5
-Module(__main__).D3    -> <__main__>$t56
-<__main__.A0>$t0    -> Class(__main__.A0).foo
-<__main__.B0>$t0    -> Class(__main__.B0).foo
-<__main__.A1>$t0    -> Class(__main__.A1).foo
-<__main__.C1>$t0    -> Class(__main__.C1).foo
-<__main__.A2>$t0    -> Class(__main__.A2).foo
-<__main__.C2>$t0    -> Class(__main__.C2).foo
-<__main__.A3>$t0    -> Class(__main__.A3).foo
-<__main__.B3>$t0    -> Class(__main__.B3).foo
-<__main__.C3>$t0    -> Class(__main__.C3).foo
-Class(__main__.B0).$r___init__    -> Instance __main__.B0(<__main__>$t4 = Call <__main__>$t3 ()).__init__
-Class(__main__.B0).__init__    -> Class(__main__.B0).$r___init__
-Class(__main__.A0).__init__    -> Class(__main__.B0).$r___init__
-Instance __main__.B0(<__main__>$t4 = Call <__main__>$t3 ()).__init__    -> <__main__>__main__.B0.__init__
-Class(__main__.D1).$r___init__    -> Instance __main__.D1(<__main__>$t20 = Call <__main__>$t19 ()).__init__
-Class(__main__.D1).__init__    -> Class(__main__.D1).$r___init__
-Class(__main__.B1).__init__    -> Class(__main__.D1).$r___init__
-Class(__main__.C1).__init__    -> Class(__main__.D1).$r___init__
-Class(__main__.A1).__init__    -> Class(__main__.D1).$r___init__
-Instance __main__.D1(<__main__>$t20 = Call <__main__>$t19 ()).__init__    -> <__main__>__main__.D1.__init__
-Class(__main__.D2).$r___init__    -> Instance __main__.D2(<__main__>$t36 = Call <__main__>$t35 ()).__init__
-Class(__main__.D2).__init__    -> Class(__main__.D2).$r___init__
-Class(__main__.B2).__init__    -> Class(__main__.D2).$r___init__
-Class(__main__.C2).__init__    -> Class(__main__.D2).$r___init__
-Class(__main__.A2).__init__    -> Class(__main__.D2).$r___init__
-Instance __main__.D2(<__main__>$t36 = Call <__main__>$t35 ()).__init__    -> <__main__>__main__.D2.__init__
-Class(__main__.D3).$r___init__    -> Instance __main__.D3(<__main__>$t57 = Call <__main__>$t56 ()).__init__
-Class(__main__.D3).__init__    -> Class(__main__.D3).$r___init__
-Class(__main__.B3).__init__    -> Class(__main__.D3).$r___init__, Class(__main__.D3).$r___init__
-Class(__main__.C3).__init__    -> Class(__main__.D3).$r___init__, Class(__main__.D3).$r___init__
-Class(__main__.A3).__init__    -> Class(__main__.D3).$r___init__, Class(__main__.D3).$r___init__
-Instance __main__.D3(<__main__>$t57 = Call <__main__>$t56 ()).__init__    -> <__main__>__main__.D3.__init__
-Class(__main__.D3).$r___init__    -> Instance __main__.D3(<__main__>$t57 = Call <__main__>$t56 ()).__init__
-Class(__main__.D3).__init__    -> Class(__main__.D3).$r___init__
-Instance __main__.D3(<__main__>$t57 = Call <__main__>$t56 ()).__init__    -> <__main__>__main__.D3.__init__
-Instance __main__.B0(<__main__>$t4 = Call <__main__>$t3 ()).foo    -> <__main__>$t6
-Class(__main__.B0).foo    -> Class(__main__.B0).$r_foo
-Class(__main__.B0).$r_foo    -> Instance __main__.B0(<__main__>$t4 = Call <__main__>$t3 ()).foo
-Instance __main__.D1(<__main__>$t20 = Call <__main__>$t19 ()).foo    -> <__main__>$t22
-Class(__main__.D1).foo    -> Class(__main__.D1).$r_foo
-Class(__main__.B1).foo    -> Class(__main__.D1).$r_foo
-Class(__main__.C1).foo    -> Class(__main__.D1).$r_foo
-Class(__main__.D1).$r_foo    -> Instance __main__.D1(<__main__>$t20 = Call <__main__>$t19 ()).foo
-Instance __main__.D2(<__main__>$t36 = Call <__main__>$t35 ()).foo    -> <__main__>$t39
-Class(__main__.D2).foo    -> Class(__main__.D2).$r_foo
-Class(__main__.B2).foo    -> Class(__main__.D2).$r_foo
-Class(__main__.C2).foo    -> Class(__main__.D2).$r_foo
-Class(__main__.A2).foo    -> Class(__main__.D2).$r_foo
-Class(__main__.D2).$r_foo    -> Instance __main__.D2(<__main__>$t36 = Call <__main__>$t35 ()).foo
-Instance __main__.D3(<__main__>$t57 = Call <__main__>$t56 ()).foo    -> <__main__>$t59
-Class(__main__.D3).foo    -> Class(__main__.D3).$r_foo
-Class(__main__.B3).foo    -> Class(__main__.D3).$r_foo
-Class(__main__.D3).$r_foo    -> Instance __main__.D3(<__main__>$t57 = Call <__main__>$t56 ()).foo
-Instance __main__.D3(<__main__>$t57 = Call <__main__>$t56 ()).foo    -> <__main__>$t59
-Class(__main__.D3).foo    -> Class(__main__.D3).$r_foo
-Class(__main__.C3).foo    -> Class(__main__.D3).$r_foo
-Class(__main__.D3).$r_foo    -> Instance __main__.D3(<__main__>$t57 = Call <__main__>$t56 ()).foo
-<__main__.B0.foo>$ret    -> <__main__>$t7
-<__main__.C1.foo>$ret    -> <__main__>$t23
-<__main__.C2.foo>$ret    -> <__main__>$t40
-<__main__.A2.foo>$ret    -> <__main__>$t40
-<__main__.B3.foo>$ret    -> <__main__>$t60
-<__main__.C3.foo>$ret    -> <__main__>$t60
+<__main__>$t23    -> Module(__main__).t2
+<__main__>$t36    -> Module(__main__).elt
+<__main__>$t29    -> Module(__main__).e1
+<__main__>$t19    -> Module(__main__).e
+<__main__>$t14    -> Module(__main__).l
+<__main__>$t31    -> Module(__main__).e4
+<__main__>$t6    -> Module(__main__).x
+<__main__>$t8    -> Module(__main__).y
+<__main__>$t5    -> Module(__main__).t
+<__main__>$t7    -> Module(__main__).x
+<__main__>$t9    -> Module(__main__).y
+<__main__>$t10    -> Module(__main__).z
+<__main__>$t11    -> Module(__main__).z
+<__main__>$t27    -> Module(__main__).e0
+<__main__>$t0    -> Module(__main__).reverse
+Module(__main__).reverse    -> <__main__>$t1
+Module(__main__).t2    -> <__main__>$t26, <__main__>$t30, <__main__>$t28, <__main__>$t32
+Module(__main__).l    -> <__main__>$t21
+Module(__main__).e    -> <__main__>$t12
+Module(__main__).t    -> <__main__>$t13
+<__main__>$t12    -> Builtin(<__main__>$t14 = New list).$values
+<__main__>$t15    -> Builtin(<__main__>$t14 = New list).__iter__
+<__main__>$t20    -> Builtin(<__main__>$t23 = New tuple).$0, Builtin(<__main__>$t23 = New tuple).$tupleElements
+<__main__>$t22    -> Builtin(<__main__>$t23 = New tuple).$-1, Builtin(<__main__>$t23 = New tuple).$tupleElements
+<__main__>$t25    -> Builtin(<__main__>$t23 = New tuple).__iter__
+<__main__>$t24    -> Builtin(<__main__>$t23 = New tuple).$values
+<__main__>$t2    -> <__main__.reverse>x
+<__main__>$t3    -> <__main__.reverse>y
+<__main__>$t4    -> <__main__.reverse>z
+<__main__.reverse>$ret    -> <__main__>$t5
+<__main__.reverse>$t0    -> <__main__.reverse>$ret
+Builtin(<__main__>$t14 = New list).$tupleElements    -> <__main__>$t24
+Builtin(<__main__>$t14 = New list).$values    -> <__main__>$t24
+Builtin(<__main__>$t23 = New tuple).$values    -> <__main__>$t27, <__main__.$t23__next__>$ret, <__main__>$t31, <__main__>$t29
+Builtin(<__main__>$t23 = New tuple).$0    -> <__main__>$t27
+Builtin(<__main__>$t23 = New tuple).$tupleElements    -> <__main__.$t23__next__>$ret, <__main__>$t31
+Builtin(<__main__>$t23 = New tuple).$1    -> <__main__>$t29
+Builtin(<__main__>$t23 = New tuple).__iter__    -> <__main__>$t33
+<__main__.reverse>$t1    -> Builtin(<__main__.reverse>$t0 = New tuple).__iter__
+<__main__.reverse>x    -> Builtin(<__main__.reverse>$t0 = New tuple).$tupleElements, Builtin(<__main__.reverse>$t0 = New tuple).$2, Builtin(<__main__.reverse>$t0 = New tuple).$-1
+<__main__.reverse>y    -> Builtin(<__main__.reverse>$t0 = New tuple).$tupleElements, Builtin(<__main__.reverse>$t0 = New tuple).$1, Builtin(<__main__.reverse>$t0 = New tuple).$-2
+<__main__.reverse>z    -> Builtin(<__main__.reverse>$t0 = New tuple).$tupleElements, Builtin(<__main__.reverse>$t0 = New tuple).$-3, Builtin(<__main__.reverse>$t0 = New tuple).$0
+<__main__.$t23__iter__>$ret    -> <__main__>$t34
+<__main__.$t23__iter__>$1    -> Builtin(<__main__.$t23__iter__>$ret = New iterator).__next__
+Builtin(<__main__.reverse>$t0 = New tuple).$1    -> <__main__>$t8
+Builtin(<__main__.reverse>$t0 = New tuple).$2    -> <__main__>$t10
+Builtin(<__main__.reverse>$t0 = New tuple).$values    -> <__main__>$t9, <__main__>$t7, <__main__.reverse.$t0__next__>$ret, <__main__>$t11
+Builtin(<__main__.reverse>$t0 = New tuple).$0    -> <__main__>$t6
+Builtin(<__main__.$t23__iter__>$ret = New iterator).__next__    -> <__main__>$t35
+<__main__.$t23__next__>$ret    -> <__main__>$t36
+Builtin(<__main__.reverse>$t0 = New tuple).__iter__    -> <__main__>$t16
+<__main__.reverse.$t0__iter__>$ret    -> <__main__>$t17
+<__main__.reverse.$t0__iter__>$1    -> Builtin(<__main__.reverse.$t0__iter__>$ret = New iterator).__next__
+Builtin(<__main__.reverse.$t0__iter__>$ret = New iterator).__next__    -> <__main__>$t18
+<__main__.reverse.$t0__next__>$ret    -> <__main__>$t19
+Builtin(<__main__.reverse>$t0 = New tuple).$tupleElements    -> <__main__.reverse.$t0__next__>$ret
 
 <- :
-Module(__main__).C3    <- <__main__>$t48
-Module(__main__).ret1    <- <__main__>$t23
-Module(__main__).C2    <- <__main__>$t31
-Module(__main__).D1    <- <__main__>$t18
-Module(__main__).ins2    <- <__main__>$t36
-Module(__main__).B1    <- <__main__>$t13
-Module(__main__).C1    <- <__main__>$t15
-Module(__main__).D3    <- <__main__>$t55, <__main__>$t52
-Module(__main__).A0    <- <__main__>$t0
-Module(__main__).ret0    <- <__main__>$t7
-Module(__main__).ret2    <- <__main__>$t40
-Module(__main__).D2    <- <__main__>$t34
-Module(__main__).ins1    <- <__main__>$t20
-Module(__main__).B0    <- <__main__>$t2
-Module(__main__).A1    <- <__main__>$t11
-Module(__main__).ins0    <- <__main__>$t4
-Module(__main__).ins3    <- <__main__>$t57
-Module(__main__).B2    <- <__main__>$t29
-Module(__main__).A2    <- <__main__>$t27
-Module(__main__).B3    <- <__main__>$t46
-Module(__main__).A3    <- <__main__>$t44
-Module(__main__).ret3    <- <__main__>$t60
-<__main__>$t14    <- Module(__main__).A1
-<__main__>$t32    <- Module(__main__).B2
-<__main__>$t41    <- Module(__main__).print
-<__main__>$t9    <- Module(__main__).ret0
-<__main__>$t53    <- Module(__main__).C3
-<__main__>$t62    <- Module(__main__).ret3
-<__main__>$t1    <- Module(__main__).A0
-<__main__>$t61    <- Module(__main__).print
-<__main__>$t37    <- Module(__main__).C2
-<__main__>$t16    <- Module(__main__).B1
-<__main__>$t35    <- Module(__main__).D2
-<__main__>$t58    <- Module(__main__).ins3
-<__main__>$t21    <- Module(__main__).ins1
-<__main__>$t19    <- Module(__main__).D1
-<__main__>$t38    <- Module(__main__).ins2
-<__main__>$t33    <- Module(__main__).C2
-<__main__>$t8    <- Module(__main__).print
-<__main__>$t3    <- Module(__main__).B0
-<__main__>$t45    <- Module(__main__).A3
-<__main__>$t28    <- Module(__main__).A2
-<__main__>$t17    <- Module(__main__).C1
-<__main__>$t51    <- Module(__main__).C3
-<__main__>$t25    <- Module(__main__).ret1
-<__main__>$t12    <- Module(__main__).A1
-<__main__>$t24    <- Module(__main__).print
-<__main__>$t30    <- Module(__main__).A2
-<__main__>$t47    <- Module(__main__).A3
-<__main__>$t42    <- Module(__main__).ret2
-<__main__>$t54    <- Module(__main__).B3
-<__main__>$t5    <- Module(__main__).ins0
-<__main__>$t56    <- Module(__main__).D3
-<__main__>$t50    <- Module(__main__).B3
-Class(__main__.A0).foo    <- <__main__.A0>$t0
-Class(__main__.B0).foo    <- <__main__.B0>$t0
-Class(__main__.A1).foo    <- <__main__.A1>$t0
-Class(__main__.C1).foo    <- <__main__.C1>$t0
-Class(__main__.A2).foo    <- <__main__.A2>$t0
-Class(__main__.C2).foo    <- <__main__.C2>$t0
-Class(__main__.A3).foo    <- <__main__.A3>$t0
-Class(__main__.B3).foo    <- <__main__.B3>$t0
-Class(__main__.C3).foo    <- <__main__.C3>$t0
-Instance __main__.B0(<__main__>$t4 = Call <__main__>$t3 ()).__init__    <- Class(__main__.B0).$r___init__
-Class(__main__.B0).$r___init__    <- Class(__main__.B0).__init__, Class(__main__.A0).__init__
-<__main__>__main__.B0.__init__    <- Instance __main__.B0(<__main__>$t4 = Call <__main__>$t3 ()).__init__
-Instance __main__.D1(<__main__>$t20 = Call <__main__>$t19 ()).__init__    <- Class(__main__.D1).$r___init__
-Class(__main__.D1).$r___init__    <- Class(__main__.A1).__init__, Class(__main__.B1).__init__, Class(__main__.C1).__init__, Class(__main__.D1).__init__
-<__main__>__main__.D1.__init__    <- Instance __main__.D1(<__main__>$t20 = Call <__main__>$t19 ()).__init__
-Instance __main__.D2(<__main__>$t36 = Call <__main__>$t35 ()).__init__    <- Class(__main__.D2).$r___init__
-Class(__main__.D2).$r___init__    <- Class(__main__.D2).__init__, Class(__main__.A2).__init__, Class(__main__.C2).__init__, Class(__main__.B2).__init__
-<__main__>__main__.D2.__init__    <- Instance __main__.D2(<__main__>$t36 = Call <__main__>$t35 ()).__init__
-Instance __main__.D3(<__main__>$t57 = Call <__main__>$t56 ()).__init__    <- Class(__main__.D3).$r___init__
-Class(__main__.D3).$r___init__    <- Class(__main__.D3).__init__, Class(__main__.C3).__init__, Class(__main__.B3).__init__, Class(__main__.A3).__init__
-<__main__>__main__.D3.__init__    <- Instance __main__.D3(<__main__>$t57 = Call <__main__>$t56 ()).__init__
-Instance __main__.D3(<__main__>$t57 = Call <__main__>$t56 ()).__init__    <- Class(__main__.D3).$r___init__
-Class(__main__.D3).$r___init__    <- Class(__main__.B3).__init__, Class(__main__.C3).__init__, Class(__main__.A3).__init__, Class(__main__.D3).__init__
-<__main__>__main__.D3.__init__    <- Instance __main__.D3(<__main__>$t57 = Call <__main__>$t56 ()).__init__
-<__main__>$t6    <- Instance __main__.B0(<__main__>$t4 = Call <__main__>$t3 ()).foo
-Class(__main__.B0).$r_foo    <- Class(__main__.B0).foo
-Instance __main__.B0(<__main__>$t4 = Call <__main__>$t3 ()).foo    <- Class(__main__.B0).$r_foo
-<__main__>$t22    <- Instance __main__.D1(<__main__>$t20 = Call <__main__>$t19 ()).foo
-Class(__main__.D1).$r_foo    <- Class(__main__.D1).foo, Class(__main__.C1).foo, Class(__main__.B1).foo
-Instance __main__.D1(<__main__>$t20 = Call <__main__>$t19 ()).foo    <- Class(__main__.D1).$r_foo
-<__main__>$t39    <- Instance __main__.D2(<__main__>$t36 = Call <__main__>$t35 ()).foo
-Class(__main__.D2).$r_foo    <- Class(__main__.B2).foo, Class(__main__.D2).foo, Class(__main__.A2).foo, Class(__main__.C2).foo
-Instance __main__.D2(<__main__>$t36 = Call <__main__>$t35 ()).foo    <- Class(__main__.D2).$r_foo
-<__main__>$t59    <- Instance __main__.D3(<__main__>$t57 = Call <__main__>$t56 ()).foo, Instance __main__.D3(<__main__>$t57 = Call <__main__>$t56 ()).foo
-Class(__main__.D3).$r_foo    <- Class(__main__.D3).foo, Class(__main__.B3).foo
-Instance __main__.D3(<__main__>$t57 = Call <__main__>$t56 ()).foo    <- Class(__main__.D3).$r_foo
-Class(__main__.D3).$r_foo    <- Class(__main__.D3).foo, Class(__main__.C3).foo
-Instance __main__.D3(<__main__>$t57 = Call <__main__>$t56 ()).foo    <- Class(__main__.D3).$r_foo
-<__main__>$t7    <- <__main__.B0.foo>$ret
-<__main__>$t23    <- <__main__.C1.foo>$ret
-<__main__>$t40    <- <__main__.C2.foo>$ret, <__main__.A2.foo>$ret
-<__main__>$t60    <- <__main__.B3.foo>$ret, <__main__.C3.foo>$ret
+Module(__main__).t2    <- <__main__>$t23
+Module(__main__).elt    <- <__main__>$t36
+Module(__main__).e1    <- <__main__>$t29
+Module(__main__).e    <- <__main__>$t19
+Module(__main__).l    <- <__main__>$t14
+Module(__main__).e4    <- <__main__>$t31
+Module(__main__).x    <- <__main__>$t7, <__main__>$t6
+Module(__main__).y    <- <__main__>$t9, <__main__>$t8
+Module(__main__).t    <- <__main__>$t5
+Module(__main__).z    <- <__main__>$t10, <__main__>$t11
+Module(__main__).e0    <- <__main__>$t27
+Module(__main__).reverse    <- <__main__>$t0
+<__main__>$t1    <- Module(__main__).reverse
+<__main__>$t32    <- Module(__main__).t2
+<__main__>$t28    <- Module(__main__).t2
+<__main__>$t30    <- Module(__main__).t2
+<__main__>$t21    <- Module(__main__).l
+<__main__>$t12    <- Module(__main__).e
+<__main__>$t26    <- Module(__main__).t2
+<__main__>$t13    <- Module(__main__).t
+Builtin(<__main__>$t14 = New list).$values    <- <__main__>$t12
+Builtin(<__main__>$t14 = New list).__iter__    <- <__main__>$t15
+Builtin(<__main__>$t23 = New tuple).$tupleElements    <- <__main__>$t22, <__main__>$t20
+Builtin(<__main__>$t23 = New tuple).$-1    <- <__main__>$t22
+Builtin(<__main__>$t23 = New tuple).__iter__    <- <__main__>$t25
+Builtin(<__main__>$t23 = New tuple).$values    <- <__main__>$t24
+Builtin(<__main__>$t23 = New tuple).$0    <- <__main__>$t20
+<__main__.reverse>x    <- <__main__>$t2
+<__main__.reverse>y    <- <__main__>$t3
+<__main__.reverse>z    <- <__main__>$t4
+<__main__>$t5    <- <__main__.reverse>$ret
+<__main__.reverse>$ret    <- <__main__.reverse>$t0
+<__main__>$t24    <- Builtin(<__main__>$t14 = New list).$tupleElements, Builtin(<__main__>$t14 = New list).$values
+<__main__>$t27    <- Builtin(<__main__>$t23 = New tuple).$values, Builtin(<__main__>$t23 = New tuple).$0
+<__main__>$t31    <- Builtin(<__main__>$t23 = New tuple).$values, Builtin(<__main__>$t23 = New tuple).$tupleElements
+<__main__>$t29    <- Builtin(<__main__>$t23 = New tuple).$values, Builtin(<__main__>$t23 = New tuple).$1
+<__main__>$t33    <- Builtin(<__main__>$t23 = New tuple).__iter__
+Builtin(<__main__.reverse>$t0 = New tuple).__iter__    <- <__main__.reverse>$t1
+Builtin(<__main__.reverse>$t0 = New tuple).$2    <- <__main__.reverse>x
+Builtin(<__main__.reverse>$t0 = New tuple).$1    <- <__main__.reverse>y
+Builtin(<__main__.reverse>$t0 = New tuple).$tupleElements    <- <__main__.reverse>y, <__main__.reverse>z, <__main__.reverse>x
+Builtin(<__main__.reverse>$t0 = New tuple).$-1    <- <__main__.reverse>x
+Builtin(<__main__.reverse>$t0 = New tuple).$-2    <- <__main__.reverse>y
+Builtin(<__main__.reverse>$t0 = New tuple).$-3    <- <__main__.reverse>z
+Builtin(<__main__.reverse>$t0 = New tuple).$0    <- <__main__.reverse>z
+<__main__>$t34    <- <__main__.$t23__iter__>$ret
+Builtin(<__main__.$t23__iter__>$ret = New iterator).__next__    <- <__main__.$t23__iter__>$1
+<__main__>$t8    <- Builtin(<__main__.reverse>$t0 = New tuple).$1
+<__main__>$t10    <- Builtin(<__main__.reverse>$t0 = New tuple).$2
+<__main__>$t9    <- Builtin(<__main__.reverse>$t0 = New tuple).$values
+<__main__>$t7    <- Builtin(<__main__.reverse>$t0 = New tuple).$values
+<__main__>$t6    <- Builtin(<__main__.reverse>$t0 = New tuple).$0
+<__main__>$t11    <- Builtin(<__main__.reverse>$t0 = New tuple).$values
+<__main__>$t35    <- Builtin(<__main__.$t23__iter__>$ret = New iterator).__next__
+<__main__>$t36    <- <__main__.$t23__next__>$ret
+<__main__.$t23__next__>$ret    <- Builtin(<__main__>$t23 = New tuple).$values, Builtin(<__main__>$t23 = New tuple).$tupleElements
+<__main__>$t16    <- Builtin(<__main__.reverse>$t0 = New tuple).__iter__
+<__main__>$t17    <- <__main__.reverse.$t0__iter__>$ret
+Builtin(<__main__.reverse.$t0__iter__>$ret = New iterator).__next__    <- <__main__.reverse.$t0__iter__>$1
+<__main__>$t18    <- Builtin(<__main__.reverse.$t0__iter__>$ret = New iterator).__next__
+<__main__>$t19    <- <__main__.reverse.$t0__next__>$ret
+<__main__.reverse.$t0__next__>$ret    <- Builtin(<__main__.reverse>$t0 = New tuple).$tupleElements, Builtin(<__main__.reverse>$t0 = New tuple).$values

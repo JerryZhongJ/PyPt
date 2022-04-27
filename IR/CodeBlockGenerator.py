@@ -258,7 +258,7 @@ class CodeBlockGenerator(ast.NodeTransformer):
             # from the end to the last starred expression
             negIndex = -1
             while(negIndex >= -l and isinstance(node.elts[negIndex], VariableNode)):
-                elt = node.elts[posIndex]
+                elt = node.elts[negIndex]
                 SetAttr(tmp, f"${negIndex}", elt.var, self.codeBlock, srcPos)
                 SetAttr(tmp, f"$tupleElements", elt.var, self.codeBlock, srcPos)
                 negIndex -= 1

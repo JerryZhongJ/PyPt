@@ -89,34 +89,34 @@ class Analysis:
 
     def addStmt(self, stmt: IRStmt):
         if(isinstance(stmt, SetAttr)):
-            print(f"Bind SetAttr: {stmt.target} - {stmt}")
+            # print(f"Bind SetAttr: {stmt.target} - {stmt}")
             varPtr = VarPtr(stmt.target)
-            self.bindingStmts.bind(varPtr, stmt)
+            self.bindingStmts.bindSetAttr(varPtr, stmt)
             self.processSetAttr(stmt, self.pointToSet.get(varPtr))
 
         elif(isinstance(stmt, GetAttr)):
-            print(f"Bind GetAttr: {stmt.source} - {stmt}")
+            # print(f"Bind GetAttr: {stmt.source} - {stmt}")
             varPtr = VarPtr(stmt.source)
-            self.bindingStmts.bind(varPtr, stmt)
+            self.bindingStmts.bindGetAttr(varPtr, stmt)
             self.processGetAttr(stmt, self.pointToSet.get(varPtr))
 
         elif(isinstance(stmt, NewClass)):
             for i in range(len(stmt.bases)):
-                print(f"Bind Base: {stmt.bases[i]} - {stmt} - {i}")
+                # print(f"Bind Base: {stmt.bases[i]} - {stmt} - {i}")
                 varPtr = VarPtr(stmt.bases[i])
-                self.bindingStmts.bind(varPtr, stmt)
+                self.bindingStmts.bindNewClass(varPtr, stmt, i)
                 self.processNewClass(stmt, i, self.pointToSet.get(varPtr))
 
         elif(isinstance(stmt, Call)):
-            print(f"Bind Call: {stmt.callee} - {stmt}")
+            # print(f"Bind Call: {stmt.callee} - {stmt}")
             varPtr = VarPtr(stmt.callee)
-            self.bindingStmts.bind(varPtr, stmt)
+            self.bindingStmts.bindCall(varPtr, stmt)
             self.processCall(stmt, self.pointToSet.get(varPtr))
 
         elif(isinstance(stmt, DelAttr)):
-            print(f"Bind DelAttr: {stmt.var} - {stmt}")
+            # print(f"Bind DelAttr: {stmt.var} - {stmt}")
             varPtr = VarPtr(stmt.var)
-            self.bindingStmts.bind(varPtr, stmt)
+            self.bindingStmts.bindDelAttr(varPtr, stmt)
             self.processDelAttr(stmt, self.pointToSet.get(varPtr))
 
     def analyze(self, entry: ModuleCodeBlock):
@@ -154,7 +154,7 @@ class Analysis:
             
     def addFlow(self, source, target):
         if(self.pointerFlow.put(source, target)):
-            print(f"Add Flow:{source} -> {target}")
+            # print(f"Add Flow:{source} -> {target}")
             objs = self.pointToSet.get(source)
             self.flow(source, target, objs)
 
@@ -173,7 +173,7 @@ class Analysis:
         # Special condition: when source is a class object's attribute 
         # and target is an instance object's attribute
         # and the object is a function
-        print(f"Propagate {pointer} -> {', '.join([str(obj) for obj in objs])}")
+        # print(f"Propagate {pointer} -> {', '.join([str(obj) for obj in objs])}")
         diff = self.pointToSet.putAll(pointer, objs)
         for succ in self.pointerFlow.getSuccessors(pointer):
             self.flow(pointer, succ, diff)
@@ -204,13 +204,13 @@ class Analysis:
                 self.resolveAttribute(classObj, attr, (mro, 0))
 
     def processSetAttr(self, stmt: SetAttr, objs: Set[Object]):
-        print(f"Process SetAttr: {stmt}")
+        # print(f"Process SetAttr: {stmt}")
         for obj in objs:
             attrPtr = AttrPtr(obj, stmt.attr)
             self.addFlow(VarPtr(stmt.source), attrPtr)
 
     def processGetAttr(self, stmt: GetAttr, objs: Set[Object]):
-        print(f"Process GetAttr: {stmt}")
+        # print(f"Process GetAttr: {stmt}")
         for obj in objs:
             varPtr = VarPtr(stmt.target)
             if(isinstance(obj, InstanceObject)):
@@ -233,7 +233,7 @@ class Analysis:
                 self.addFlow(attrPtr, varPtr)
 
     def processNewClass(self, stmt: NewClass, index: int, objs: Set[Object]):
-        print(f"Process NewClass: {stmt}")
+        # print(f"Process NewClass: {stmt}")
         mroChange = set()
         for obj in objs:
             mroChange |= self.classHiearchy.addClassBase(ClassObject(stmt), index, obj)
@@ -245,7 +245,7 @@ class Analysis:
                     self.resolveAttribute(classObj, attr, mro, 0)
 
     def processCall(self, stmt: Call, objs: Set[Object]):
-        print(f"Process Call: {stmt}")
+        # print(f"Process Call: {stmt}")
         varPtr = VarPtr(stmt.target)
         for obj in objs:
             if(isinstance(obj, FunctionObject)):
@@ -319,7 +319,7 @@ class Analysis:
 
 
     def processDelAttr(self, stmt: DelAttr, objs: Set[Object]):
-        print(f"Process DelAttr: {stmt}")
+        # print(f"Process DelAttr: {stmt}")
         attr = stmt.attr
         for obj in objs:
             if(isinstance(obj, ClassObject) and attr in self.persist_attr[obj]):

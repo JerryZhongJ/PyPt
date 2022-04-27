@@ -1,234 +1,103 @@
 __main__:
-<__main__>$global              -> Module(__main__)
-<__main__>$t0                  -> Class(__main__.A0)
-<__main__>$t2                  -> Class(__main__.B0)
-<__main__>$t11                 -> Class(__main__.A1)
-<__main__>$t13                 -> Class(__main__.B1)
-<__main__>$t15                 -> Class(__main__.C1)
-<__main__>$t18                 -> Class(__main__.D1)
-<__main__>$t27                 -> Class(__main__.A2)
-<__main__>$t29                 -> Class(__main__.B2)
-<__main__>$t31                 -> Class(__main__.C2)
-<__main__>$t34                 -> Class(__main__.D2)
-<__main__>$t44                 -> Class(__main__.A3)
-<__main__>$t46                 -> Class(__main__.B3)
-<__main__>$t48                 -> Class(__main__.C3)
-<__main__>$t52                 -> Class(__main__.D3)
-<__main__>$t55                 -> Class(__main__.D3)
-<__main__>$t14                 -> Class(__main__.A1)
-<__main__>$t32                 -> Class(__main__.B2)
-<__main__>$t41                 -> 
-<__main__>$t9                  -> Builtin(<__main__.B0.foo>$ret = New str (B0.foo))
-<__main__>$t53                 -> Class(__main__.C3)
-<__main__>$t62                 -> Builtin(<__main__.B3.foo>$ret = New str (B3.foo)), Builtin(<__main__.C3.foo>$ret = New str (C3.foo))
-<__main__>$t1                  -> Class(__main__.A0)
-<__main__>$t61                 -> 
-<__main__>$t37                 -> Class(__main__.C2)
-<__main__>$t16                 -> Class(__main__.B1)
-<__main__>$t35                 -> Class(__main__.D2)
-<__main__>$t58                 -> Instance __main__.D3(<__main__>$t57 = Call <__main__>$t56 ()), Instance __main__.D3(<__main__>$t57 = Call <__main__>$t56 ())
-<__main__>$t21                 -> Instance __main__.D1(<__main__>$t20 = Call <__main__>$t19 ())
-<__main__>$t19                 -> Class(__main__.D1)
-<__main__>$t38                 -> Instance __main__.D2(<__main__>$t36 = Call <__main__>$t35 ())
-<__main__>$t33                 -> Class(__main__.C2)
-<__main__>$t8                  -> 
-<__main__>$t3                  -> Class(__main__.B0)
-<__main__>$t45                 -> Class(__main__.A3)
-<__main__>$t28                 -> Class(__main__.A2)
-<__main__>$t17                 -> Class(__main__.C1)
-<__main__>$t51                 -> Class(__main__.C3)
-<__main__>$t25                 -> Builtin(<__main__.C1.foo>$ret = New str (C1.foo))
-<__main__>$t12                 -> Class(__main__.A1)
-<__main__>$t24                 -> 
-<__main__>$t30                 -> Class(__main__.A2)
-<__main__>$t47                 -> Class(__main__.A3)
-<__main__>$t42                 -> Builtin(<__main__.A2.foo>$ret = New str (A2.foo)), Builtin(<__main__.C2.foo>$ret = New str (C2.foo))
-<__main__>$t54                 -> Class(__main__.B3)
-<__main__>$t5                  -> Instance __main__.B0(<__main__>$t4 = Call <__main__>$t3 ())
-<__main__>$t56                 -> Class(__main__.D3), Class(__main__.D3)
-<__main__>$t50                 -> Class(__main__.B3)
-<__main__>__main__.B0.__init__ -> 
-<__main__>$t4                  -> Instance __main__.B0(<__main__>$t4 = Call <__main__>$t3 ())
-<__main__>__main__.D1.__init__ -> 
-<__main__>$t20                 -> Instance __main__.D1(<__main__>$t20 = Call <__main__>$t19 ())
-<__main__>__main__.D2.__init__ -> 
-<__main__>$t36                 -> Instance __main__.D2(<__main__>$t36 = Call <__main__>$t35 ())
-<__main__>__main__.D3.__init__ -> 
-<__main__>$t57                 -> Instance __main__.D3(<__main__>$t57 = Call <__main__>$t56 ()), Instance __main__.D3(<__main__>$t57 = Call <__main__>$t56 ())
-<__main__>__main__.D3.__init__ -> 
-<__main__>$t6                  -> Method(self: Instance __main__.B0(<__main__>$t4 = Call <__main__>$t3 ()), Function(__main__.B0.foo))
-<__main__>$t22                 -> Method(self: Instance __main__.D1(<__main__>$t20 = Call <__main__>$t19 ()), Function(__main__.C1.foo))
-<__main__>$t39                 -> Method(self: Instance __main__.D2(<__main__>$t36 = Call <__main__>$t35 ()), Function(__main__.C2.foo)), Method(self: Instance __main__.D2(<__main__>$t36 = Call <__main__>$t35 ()), Function(__main__.A2.foo))
-<__main__>$t59                 -> Method(self: Instance __main__.D3(<__main__>$t57 = Call <__main__>$t56 ()), Function(__main__.B3.foo)), Method(self: Instance __main__.D3(<__main__>$t57 = Call <__main__>$t56 ()), Function(__main__.C3.foo))
-<__main__>$t7                  -> Builtin(<__main__.B0.foo>$ret = New str (B0.foo))
-<__main__>$t23                 -> Builtin(<__main__.C1.foo>$ret = New str (C1.foo))
-<__main__>$t40                 -> Builtin(<__main__.A2.foo>$ret = New str (A2.foo)), Builtin(<__main__.C2.foo>$ret = New str (C2.foo))
-<__main__>$t60                 -> Builtin(<__main__.B3.foo>$ret = New str (B3.foo)), Builtin(<__main__.C3.foo>$ret = New str (C3.foo))
+<__main__>$global -> Module(__main__)
+<__main__>$t0     -> Function(__main__.reverse)
+<__main__>$t2     -> Builtin(<__main__>$t2 = New int (1))
+<__main__>$t3     -> Builtin(<__main__>$t3 = New int (2))
+<__main__>$t4     -> Builtin(<__main__>$t4 = New int (3))
+<__main__>$t14    -> Builtin(<__main__>$t14 = New list)
+<__main__>$t15    -> Function(__main__.$t14__iter__)
+<__main__>$t20    -> Builtin(<__main__>$t20 = New int (0))
+<__main__>$t22    -> Builtin(<__main__>$t22 = New int (4))
+<__main__>$t23    -> Builtin(<__main__>$t23 = New tuple)
+<__main__>$t25    -> Function(__main__.$t23__iter__)
+<__main__>$t1     -> Function(__main__.reverse)
+<__main__>$t32    -> Builtin(<__main__>$t23 = New tuple)
+<__main__>$t28    -> Builtin(<__main__>$t23 = New tuple)
+<__main__>$t30    -> Builtin(<__main__>$t23 = New tuple)
+<__main__>$t21    -> Builtin(<__main__>$t14 = New list)
+<__main__>$t12    -> Builtin(<__main__>$t2 = New int (1)), Builtin(<__main__>$t3 = New int (2)), Builtin(<__main__>$t4 = New int (3))
+<__main__>$t26    -> Builtin(<__main__>$t23 = New tuple)
+<__main__>$t13    -> Builtin(<__main__.reverse>$t0 = New tuple)
+<__main__>$t5     -> Builtin(<__main__.reverse>$t0 = New tuple)
+<__main__>$t24    -> Builtin(<__main__>$t2 = New int (1)), Builtin(<__main__>$t3 = New int (2)), Builtin(<__main__>$t4 = New int (3))
+<__main__>$t27    -> Builtin(<__main__>$t2 = New int (1)), Builtin(<__main__>$t3 = New int (2)), Builtin(<__main__>$t4 = New int (3)), Builtin(<__main__>$t20 = New int (0))
+<__main__>$t31    -> Builtin(<__main__>$t2 = New int (1)), Builtin(<__main__>$t3 = New int (2)), Builtin(<__main__>$t4 = New int (3)), Builtin(<__main__>$t20 = New int (0)), Builtin(<__main__>$t22 = New int (4))
+<__main__>$t29    -> Builtin(<__main__>$t2 = New int (1)), Builtin(<__main__>$t3 = New int (2)), Builtin(<__main__>$t4 = New int (3))
+<__main__>$t33    -> Function(__main__.$t23__iter__)
+<__main__>$t34    -> Builtin(<__main__.$t23__iter__>$ret = New iterator)
+<__main__>$t8     -> Builtin(<__main__>$t3 = New int (2))
+<__main__>$t10    -> Builtin(<__main__>$t2 = New int (1))
+<__main__>$t9     -> 
+<__main__>$t7     -> 
+<__main__>$t6     -> Builtin(<__main__>$t4 = New int (3))
+<__main__>$t11    -> 
+<__main__>$t35    -> Function(__main__.$t23__next__)
+<__main__>$t36    -> Builtin(<__main__>$t2 = New int (1)), Builtin(<__main__>$t3 = New int (2)), Builtin(<__main__>$t4 = New int (3)), Builtin(<__main__>$t20 = New int (0)), Builtin(<__main__>$t22 = New int (4))
+<__main__>$t16    -> Function(__main__.reverse.$t0__iter__)
+<__main__>$t17    -> Builtin(<__main__.reverse.$t0__iter__>$ret = New iterator)
+<__main__>$t18    -> Function(__main__.reverse.$t0__next__)
+<__main__>$t19    -> Builtin(<__main__>$t2 = New int (1)), Builtin(<__main__>$t3 = New int (2)), Builtin(<__main__>$t4 = New int (3))
 
-__main__.A0:
-<__main__.A0>$thisClass -> Class(__main__.A0)
-<__main__.A0>$t0        -> Function(__main__.A0.foo)
+__main__.reverse:
+<__main__.reverse>x    -> Builtin(<__main__>$t2 = New int (1))
+<__main__.reverse>y    -> Builtin(<__main__>$t3 = New int (2))
+<__main__.reverse>z    -> Builtin(<__main__>$t4 = New int (3))
+<__main__.reverse>$t0  -> Builtin(<__main__.reverse>$t0 = New tuple)
+<__main__.reverse>$t1  -> Function(__main__.reverse.$t0__iter__)
+<__main__.reverse>$ret -> Builtin(<__main__.reverse>$t0 = New tuple)
 
-__main__.B0:
-<__main__.B0>$thisClass -> Class(__main__.B0)
-<__main__.B0>$t0        -> Function(__main__.B0.foo)
+__main__.$t23__iter__:
+<__main__.$t23__iter__>$ret -> Builtin(<__main__.$t23__iter__>$ret = New iterator)
+<__main__.$t23__iter__>$1   -> Function(__main__.$t23__next__)
 
-__main__.A1:
-<__main__.A1>$thisClass -> Class(__main__.A1)
-<__main__.A1>$t0        -> Function(__main__.A1.foo)
+__main__.$t23__next__:
+<__main__.$t23__next__>$ret -> Builtin(<__main__>$t2 = New int (1)), Builtin(<__main__>$t3 = New int (2)), Builtin(<__main__>$t4 = New int (3)), Builtin(<__main__>$t20 = New int (0)), Builtin(<__main__>$t22 = New int (4))
 
-__main__.B1:
-<__main__.B1>$thisClass -> Class(__main__.B1)
+__main__.reverse.$t0__iter__:
+<__main__.reverse.$t0__iter__>$ret -> Builtin(<__main__.reverse.$t0__iter__>$ret = New iterator)
+<__main__.reverse.$t0__iter__>$1   -> Function(__main__.reverse.$t0__next__)
 
-__main__.C1:
-<__main__.C1>$thisClass -> Class(__main__.C1)
-<__main__.C1>$t0        -> Function(__main__.C1.foo)
-
-__main__.D1:
-<__main__.D1>$thisClass -> Class(__main__.D1)
-
-__main__.A2:
-<__main__.A2>$thisClass -> Class(__main__.A2)
-<__main__.A2>$t0        -> Function(__main__.A2.foo)
-
-__main__.B2:
-<__main__.B2>$thisClass -> Class(__main__.B2)
-
-__main__.C2:
-<__main__.C2>$thisClass -> Class(__main__.C2)
-<__main__.C2>$t0        -> Function(__main__.C2.foo)
-
-__main__.D2:
-<__main__.D2>$thisClass -> Class(__main__.D2)
-
-__main__.A3:
-<__main__.A3>$thisClass -> Class(__main__.A3)
-<__main__.A3>$t0        -> Function(__main__.A3.foo)
-
-__main__.B3:
-<__main__.B3>$thisClass -> Class(__main__.B3)
-<__main__.B3>$t0        -> Function(__main__.B3.foo)
-
-__main__.C3:
-<__main__.C3>$thisClass -> Class(__main__.C3)
-<__main__.C3>$t0        -> Function(__main__.C3.foo)
-
-__main__.D3:
-<__main__.D3>$thisClass -> Class(__main__.D3)
-
-__main__.D3:
-<__main__.D3>$thisClass -> Class(__main__.D3)
-
-__main__.B0.foo:
-<__main__.B0.foo>self -> Instance __main__.B0(<__main__>$t4 = Call <__main__>$t3 ())
-<__main__.B0.foo>$ret -> Builtin(<__main__.B0.foo>$ret = New str (B0.foo))
-
-__main__.C1.foo:
-<__main__.C1.foo>self -> Instance __main__.D1(<__main__>$t20 = Call <__main__>$t19 ())
-<__main__.C1.foo>$ret -> Builtin(<__main__.C1.foo>$ret = New str (C1.foo))
-
-__main__.C2.foo:
-<__main__.C2.foo>self -> Instance __main__.D2(<__main__>$t36 = Call <__main__>$t35 ())
-<__main__.C2.foo>$ret -> Builtin(<__main__.C2.foo>$ret = New str (C2.foo))
-
-__main__.A2.foo:
-<__main__.A2.foo>self -> Instance __main__.D2(<__main__>$t36 = Call <__main__>$t35 ())
-<__main__.A2.foo>$ret -> Builtin(<__main__.A2.foo>$ret = New str (A2.foo))
-
-__main__.B3.foo:
-<__main__.B3.foo>self -> Instance __main__.D3(<__main__>$t57 = Call <__main__>$t56 ())
-<__main__.B3.foo>$ret -> Builtin(<__main__.B3.foo>$ret = New str (B3.foo))
-
-__main__.C3.foo:
-<__main__.C3.foo>self -> Instance __main__.D3(<__main__>$t57 = Call <__main__>$t56 ())
-<__main__.C3.foo>$ret -> Builtin(<__main__.C3.foo>$ret = New str (C3.foo))
+__main__.reverse.$t0__next__:
+<__main__.reverse.$t0__next__>$ret -> Builtin(<__main__>$t2 = New int (1)), Builtin(<__main__>$t3 = New int (2)), Builtin(<__main__>$t4 = New int (3))
 
 Module(__main__): 
-.C3   -> Class(__main__.C3)
-.ret1 -> Builtin(<__main__.C1.foo>$ret = New str (C1.foo))
-.C2   -> Class(__main__.C2)
-.D1   -> Class(__main__.D1)
-.ins2 -> Instance __main__.D2(<__main__>$t36 = Call <__main__>$t35 ())
-.B1   -> Class(__main__.B1)
-.C1   -> Class(__main__.C1)
-.D3   -> Class(__main__.D3), Class(__main__.D3)
-.A0   -> Class(__main__.A0)
-.ret0 -> Builtin(<__main__.B0.foo>$ret = New str (B0.foo))
-.ret2 -> Builtin(<__main__.A2.foo>$ret = New str (A2.foo)), Builtin(<__main__.C2.foo>$ret = New str (C2.foo))
-.D2   -> Class(__main__.D2)
-.ins1 -> Instance __main__.D1(<__main__>$t20 = Call <__main__>$t19 ())
-.B0   -> Class(__main__.B0)
-.A1   -> Class(__main__.A1)
-.ins0 -> Instance __main__.B0(<__main__>$t4 = Call <__main__>$t3 ())
-.ins3 -> Instance __main__.D3(<__main__>$t57 = Call <__main__>$t56 ()), Instance __main__.D3(<__main__>$t57 = Call <__main__>$t56 ())
-.B2   -> Class(__main__.B2)
-.A2   -> Class(__main__.A2)
-.B3   -> Class(__main__.B3)
-.A3   -> Class(__main__.A3)
-.ret3 -> Builtin(<__main__.B3.foo>$ret = New str (B3.foo)), Builtin(<__main__.C3.foo>$ret = New str (C3.foo))
+.t2      -> Builtin(<__main__>$t23 = New tuple)
+.elt     -> Builtin(<__main__>$t2 = New int (1)), Builtin(<__main__>$t3 = New int (2)), Builtin(<__main__>$t4 = New int (3)), Builtin(<__main__>$t20 = New int (0)), Builtin(<__main__>$t22 = New int (4))
+.e1      -> Builtin(<__main__>$t2 = New int (1)), Builtin(<__main__>$t3 = New int (2)), Builtin(<__main__>$t4 = New int (3))
+.e       -> Builtin(<__main__>$t2 = New int (1)), Builtin(<__main__>$t3 = New int (2)), Builtin(<__main__>$t4 = New int (3))
+.l       -> Builtin(<__main__>$t14 = New list)
+.e4      -> Builtin(<__main__>$t2 = New int (1)), Builtin(<__main__>$t3 = New int (2)), Builtin(<__main__>$t4 = New int (3)), Builtin(<__main__>$t20 = New int (0)), Builtin(<__main__>$t22 = New int (4))
+.x       -> Builtin(<__main__>$t4 = New int (3))
+.y       -> Builtin(<__main__>$t3 = New int (2))
+.t       -> Builtin(<__main__.reverse>$t0 = New tuple)
+.z       -> Builtin(<__main__>$t2 = New int (1))
+.e0      -> Builtin(<__main__>$t2 = New int (1)), Builtin(<__main__>$t3 = New int (2)), Builtin(<__main__>$t4 = New int (3)), Builtin(<__main__>$t20 = New int (0))
+.reverse -> Function(__main__.reverse)
 
-Class(__main__.A0): 
-.foo -> Function(__main__.A0.foo)
+Builtin(<__main__>$t14 = New list): 
+.$values  -> Builtin(<__main__>$t2 = New int (1)), Builtin(<__main__>$t3 = New int (2)), Builtin(<__main__>$t4 = New int (3))
+.__iter__ -> Function(__main__.$t14__iter__)
 
-Class(__main__.B0): 
-.foo         -> Function(__main__.B0.foo)
-.$r___init__ -> 
-.$r_foo      -> Function(__main__.B0.foo)
+Builtin(<__main__>$t23 = New tuple): 
+.$tupleElements -> Builtin(<__main__>$t22 = New int (4)), Builtin(<__main__>$t20 = New int (0))
+.$-1            -> Builtin(<__main__>$t22 = New int (4))
+.__iter__       -> Function(__main__.$t23__iter__)
+.$values        -> Builtin(<__main__>$t2 = New int (1)), Builtin(<__main__>$t3 = New int (2)), Builtin(<__main__>$t4 = New int (3))
+.$0             -> Builtin(<__main__>$t20 = New int (0))
 
-Class(__main__.A1): 
-.foo -> Function(__main__.A1.foo)
+Builtin(<__main__.reverse>$t0 = New tuple): 
+.__iter__       -> Function(__main__.reverse.$t0__iter__)
+.$2             -> Builtin(<__main__>$t2 = New int (1))
+.$1             -> Builtin(<__main__>$t3 = New int (2))
+.$tupleElements -> Builtin(<__main__>$t2 = New int (1)), Builtin(<__main__>$t3 = New int (2)), Builtin(<__main__>$t4 = New int (3))
+.$-1            -> Builtin(<__main__>$t2 = New int (1))
+.$-2            -> Builtin(<__main__>$t3 = New int (2))
+.$-3            -> Builtin(<__main__>$t4 = New int (3))
+.$0             -> Builtin(<__main__>$t4 = New int (3))
 
-Class(__main__.C1): 
-.foo -> Function(__main__.C1.foo)
+Builtin(<__main__.$t23__iter__>$ret = New iterator): 
+.__next__ -> Function(__main__.$t23__next__)
 
-Class(__main__.A2): 
-.foo -> Function(__main__.A2.foo)
-
-Class(__main__.C2): 
-.foo -> Function(__main__.C2.foo)
-
-Class(__main__.A3): 
-.foo -> Function(__main__.A3.foo)
-
-Class(__main__.B3): 
-.foo -> Function(__main__.B3.foo)
-
-Class(__main__.C3): 
-.foo -> Function(__main__.C3.foo)
-
-Instance __main__.B0(<__main__>$t4 = Call <__main__>$t3 ()): 
-.__init__ -> 
-.foo      -> Method(self: Instance __main__.B0(<__main__>$t4 = Call <__main__>$t3 ()), Function(__main__.B0.foo))
-
-Instance __main__.D1(<__main__>$t20 = Call <__main__>$t19 ()): 
-.__init__ -> 
-.foo      -> Method(self: Instance __main__.D1(<__main__>$t20 = Call <__main__>$t19 ()), Function(__main__.C1.foo))
-
-Class(__main__.D1): 
-.$r___init__ -> 
-.$r_foo      -> Function(__main__.C1.foo)
-
-Instance __main__.D2(<__main__>$t36 = Call <__main__>$t35 ()): 
-.__init__ -> 
-.foo      -> Method(self: Instance __main__.D2(<__main__>$t36 = Call <__main__>$t35 ()), Function(__main__.C2.foo)), Method(self: Instance __main__.D2(<__main__>$t36 = Call <__main__>$t35 ()), Function(__main__.A2.foo))
-
-Class(__main__.D2): 
-.$r___init__ -> 
-.$r_foo      -> Function(__main__.A2.foo), Function(__main__.C2.foo)
-
-Instance __main__.D3(<__main__>$t57 = Call <__main__>$t56 ()): 
-.__init__ -> 
-.foo      -> Method(self: Instance __main__.D3(<__main__>$t57 = Call <__main__>$t56 ()), Function(__main__.B3.foo))
-
-Class(__main__.D3): 
-.$r___init__ -> 
-.$r_foo      -> Function(__main__.B3.foo)
-
-Instance __main__.D3(<__main__>$t57 = Call <__main__>$t56 ()): 
-.__init__ -> 
-.foo      -> Method(self: Instance __main__.D3(<__main__>$t57 = Call <__main__>$t56 ()), Function(__main__.C3.foo))
-
-Class(__main__.D3): 
-.$r___init__ -> 
-.$r_foo      -> Function(__main__.C3.foo)
+Builtin(<__main__.reverse.$t0__iter__>$ret = New iterator): 
+.__next__ -> Function(__main__.reverse.$t0__next__)
 

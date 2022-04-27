@@ -16,22 +16,31 @@ class BindingStmts:
     def __init__(self):
         self.bindings = {}
 
-    def bind(self, varPtr, stmt):
+
+    def bindSetAttr(self, varPtr: VarPtr, stmt: SetAttr):
         if(varPtr not in self.bindings):
             self.bindings[varPtr] = (set(), set(), set(), set(), set())
-        
-        if(isinstance(stmt, SetAttr) and stmt.target == varPtr.var):
-            self.bindings[varPtr][SETATTR].add(stmt)
-        elif(isinstance(stmt, GetAttr) and stmt.source == varPtr.var):
-            self.bindings[varPtr][GETATTR].add(stmt)
-        elif(isinstance(stmt, NewClass)):
-            for i in range(len(stmt.bases)):
-                if(stmt.bases[i] == varPtr.var):
-                    self.bindings[varPtr][NEWCLASS].add((stmt, i))
-        elif(isinstance(stmt, Call) and stmt.callee == varPtr.var):
-            self.bindings[varPtr][CALL].add(stmt)
-        elif(isinstance(stmt, DelAttr)):
-            self.bindings[varPtr][DELATTR].add(stmt)
+        self.bindings[varPtr][SETATTR].add(stmt)
+
+    def bindGetAttr(self, varPtr, stmt):
+        if(varPtr not in self.bindings):
+            self.bindings[varPtr] = (set(), set(), set(), set(), set())
+        self.bindings[varPtr][GETATTR].add(stmt)
+    
+    def bindNewClass(self, varPtr, stmt, index: int):
+        if(varPtr not in self.bindings):
+            self.bindings[varPtr] = (set(), set(), set(), set(), set())
+        self.bindings[varPtr][NEWCLASS].add((stmt, index))
+    
+    def bindCall(self, varPtr, stmt):
+        if(varPtr not in self.bindings):
+            self.bindings[varPtr] = (set(), set(), set(), set(), set())
+        self.bindings[varPtr][CALL].add(stmt)
+    
+    def bindDelAttr(self, varPtr, stmt):
+        if(varPtr not in self.bindings):
+            self.bindings[varPtr] = (set(), set(), set(), set(), set())
+        self.bindings[varPtr][DELATTR].add(stmt)
 
 
     def getSetAttr(self, varPtr) -> Set[SetAttr]:

@@ -7,7 +7,7 @@ from .Pointers import VarPtr
 from .Objects import ClassObject
 
 # Here MRO mean an order in which methods are resolved, a tuple consists of class objects
-MRO = Tuple[ClassObject]
+MRO = Tuple[ClassObject, ...]
 SubclassInfo = Tuple[ClassObject, int]
 class ClassHiearchy:
     mros: Dict[ClassObject, Set[MRO]]
