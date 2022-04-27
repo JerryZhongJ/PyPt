@@ -6,7 +6,7 @@ from ..IR.CodeBlock import CodeBlock
 
 from ..IR.Stmts import Variable
 
-from .Objects import BuiltinObject, ClassObject, FunctionObject, InstanceObject, ModuleObject, Object
+from .Objects import Object
 
 from .Pointers import AttrPtr, Pointer, VarPtr
 
@@ -65,7 +65,7 @@ class PointToSet:
             self.attrPtrSet[o][f] |= objs
             return diff
 
-    def get(self, pointer: Pointer) -> Set:
+    def get(self, pointer: Pointer) -> Set[Object]:
         if(isinstance(pointer, VarPtr)):
             var = pointer
             if(var not in self.varPtrSet):
@@ -97,28 +97,28 @@ class PointToSet:
         
         for codeBlock, map in pointToSet.items():
             print(codeBlock.qualified_name + ":", file=fp)
-            colwidth = 0
-            for var in map:
-                w = len(str(var))
-                colwidth = w if colwidth < w else colwidth
+            
+            
             for var, objs in map.items():
-                print(f"{str(var):<{colwidth}} -> {', '.join([str(obj) for obj in objs])}", file=fp)
+                head = f"{var} -> "
+                w = len(head)
+                print(head, file=fp, end="")
+                for obj in objs:
+                    print(f"{' ' * w}{obj}", file=fp)
+                
             print("", file=fp)
 
         for obj, map in self.attrPtrSet.items():
             
             if(map):
                 print(str(obj) + ": ", file=fp)
-                lines = []
-                colwidth = 0
+            
                 for attr, objs in map.items():
-                    head = f".{attr}"
+                    head = f".{attr} -> "
                     w = len(head)
-                    colwidth = w if w > colwidth else colwidth
-                    obj_str = [str(obj) for obj in objs]
-                    lines.append((head, obj_str))
-                for head, obj_str in lines:
-                    print(f"{head:<{colwidth}} -> {', '.join(obj_str)}", file=fp)
+                    print(head, file=fp, end="")
+                    for obj in objs:
+                        print(f"{' '*w}{obj}", file=fp)
                 print("", file=fp)
                 
                 

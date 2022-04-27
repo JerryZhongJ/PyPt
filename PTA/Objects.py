@@ -1,6 +1,6 @@
 from typing import Any, List, Set
 
-from .Pointers import VarPtr
+from .Pointers import CIVarPtr, VarPtr
 
 from ..IR.Stmts import IRStmt, Call, NewBuiltin, NewClass, NewFunction
 from ..IR.CodeBlock import ClassCodeBlock, CodeBlock, FunctionCodeBlock, ModuleCodeBlock
@@ -39,73 +39,29 @@ class ModuleObject(Object):
 #     def __repr__(self):
 #         return self.__str__()
 
-class AllocationSiteObject(Object):
-    alloc_site: IRStmt
-    def __eq__(self, other):
-        return isinstance(other, AllocationSiteObject) and self.alloc_site == other.alloc_site
-    def __hash__(self):
-        return hash(self.alloc_site)
-    def __init__(self, alloc_site):
-        self.alloc_site = alloc_site
-    
 
-class FunctionObject(AllocationSiteObject):
-    alloc_site: NewFunction
-    def getCodeBlock(self) -> FunctionCodeBlock:
-        return self.alloc_site.codeBlock
-    def __str__(self):
-        return f"Function({self.getCodeBlock().qualified_name})"
-    def __repr__(self):
-        return self.__str__()
-
-class ClassObject(AllocationSiteObject):
-    alloc_site: NewClass
+class ClassObject(Object):
     def getCodeBlock(self) -> ClassCodeBlock:
-        return self.alloc_site.codeBlock
+        pass
     def getBases(self) -> List[VarPtr]:
-        return [VarPtr(base) for base in self.alloc_site.bases]
-
+        pass
     def getAttributes(self) -> Set[str]:
-        return self.getCodeBlock().attributes
+        pass
 
-    def __str__(self):
-        return f"Class({self.getCodeBlock().qualified_name})"
-    def __repr__(self):
-        return self.__str__()
+class FunctionObject(Object):
+    def getCodeBlock(self) -> FunctionCodeBlock:
+        pass
 
-
-class InstanceObject(AllocationSiteObject):
-    alloc_site: Call
+class InstanceObject(Object):
     type: ClassObject
-    
-    def __hash__(self):
-        return hash((self.alloc_site, self.type))
-    
     def __eq__(self, other):
-        return isinstance(other, InstanceObject) and self.alloc_site == other.alloc_site and self.type == other.type
+        return isinstance(other, InstanceObject) and self.type == other.type
+    def __hash__(self):
+        return hash(self.type)
 
-    def __init__(self, alloc_site, type):
-        self.alloc_site = alloc_site
-        self.type = type
-
-    def __str__(self):
-        return f"Instance {self.type.getCodeBlock().qualified_name}({self.alloc_site})"
-    def __repr__(self):
-        return self.__str__()
-    
-
-class BuiltinObject(AllocationSiteObject):
-    alloc_site: NewBuiltin
-
-    def getType(self):
-        return self.alloc_site.type
-
-    def __str__(self):
-        return f"Builtin({self.alloc_site})"
-    def __repr__(self):
-        return self.__str__()
-    
-    
+class BuiltinObject(Object):
+    def getType(self) -> str:
+        pass
 
 class MethodObject(Object):
     selfObj: InstanceObject
@@ -121,3 +77,70 @@ class MethodObject(Object):
         return f"Method(self: {self.selfObj}, {self.func})"
     def __repr__(self):
         return self.__str__()
+
+class CIObject(Object):
+    alloc_site: IRStmt
+    def __eq__(self, other):
+        return isinstance(other, CIObject) and self.alloc_site == other.alloc_site
+    def __hash__(self):
+        return hash(self.alloc_site)
+    def __init__(self, alloc_site):
+        self.alloc_site = alloc_site
+
+class CIFunctionObject(CIObject, FunctionObject):
+    alloc_site: NewFunction
+    def getCodeBlock(self) -> FunctionCodeBlock:
+        return self.alloc_site.codeBlock
+    def __str__(self):
+        return f"Function({self.getCodeBlock().qualified_name})"
+    def __repr__(self):
+        return self.__str__()
+
+class CIClassObject(CIObject, ClassObject):
+    alloc_site: NewClass
+    def getCodeBlock(self) -> ClassCodeBlock:
+        return self.alloc_site.codeBlock
+    def getBases(self) -> List[CIVarPtr]:
+        return [CIVarPtr(base) for base in self.alloc_site.bases]
+
+    def getAttributes(self) -> Set[str]:
+        return self.getCodeBlock().attributes
+
+    def __str__(self):
+        return f"Class({self.getCodeBlock().qualified_name})"
+    def __repr__(self):
+        return self.__str__()
+
+
+class CIInstanceObject(CIObject, InstanceObject):
+    alloc_site: Call
+    type: ClassObject
+    
+    def __hash__(self):
+        return CIObject.__hash__(self) ^ InstanceObject.__hash__(self)
+    
+    def __eq__(self, other):
+        return CIObject.__eq__(self, other) and InstanceObject.__eq__(self, other)
+
+    def __init__(self, alloc_site, type):
+        self.alloc_site = alloc_site
+        self.type = type
+
+    def __str__(self):
+        return f"Instance {self.type.getCodeBlock().qualified_name}({self.alloc_site})"
+    def __repr__(self):
+        return self.__str__()
+    
+
+class CIBuiltinObject(CIObject, BuiltinObject):
+    alloc_site: NewBuiltin
+
+    def getType(self):
+        return self.alloc_site.type
+
+    def __str__(self):
+        return f"Builtin({self.alloc_site})"
+    def __repr__(self):
+        return self.__str__()
+    
+    

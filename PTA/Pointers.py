@@ -1,13 +1,18 @@
 import typing
+
+
 if typing.TYPE_CHECKING:
     from .Objects import Object
 from ..IR.Stmts import Variable
 
-
 class Pointer:
     pass
+
 class VarPtr(Pointer):
     var: Variable
+
+class CIVarPtr(VarPtr):
+    
     def __eq__(self, other):
         return isinstance(other, VarPtr) and self.var == other.var
 
@@ -41,3 +46,4 @@ class AttrPtr(Pointer):
     
     def __repr__(self):
         return f"AttrPtr: {str(self)}"
+

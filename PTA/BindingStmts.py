@@ -12,7 +12,7 @@ CALL = 3
 DELATTR = 4
 
 class BindingStmts:
-    bindings: Dict[VarPtr, Tuple]
+    bindings: Dict[VarPtr, Tuple[Set, ...]]
     def __init__(self):
         self.bindings = {}
 

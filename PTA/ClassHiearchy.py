@@ -19,6 +19,7 @@ class ClassHiearchy:
         self.subClasses = {}
 
     def addClass(self, classObj: ClassObject) -> Set[MRO]:
+        assert(classObj, ClassObject)
         if(classObj in self.mros):
             return
         self.mros[classObj] = set()

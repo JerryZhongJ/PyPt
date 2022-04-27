@@ -1,6 +1,6 @@
 
 from ctypes import pointer
-from ...PTA.Analysis import Analysis
+from ...CSPTA.Analysis import Analysis
 from ...ModuleManager import ModuleManager
 
 import shutil

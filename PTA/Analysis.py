@@ -2,10 +2,10 @@ from typing import Dict, List, Set, Tuple, Union
 from ..IR.CodeBlock import CodeBlock, FunctionCodeBlock, ModuleCodeBlock
 from ..IR.Stmts import Assign, Call, DelAttr, GetAttr, IRStmt, NewBuiltin, NewClass, NewFunction, NewModule, SetAttr, Variable
 from .ClassHiearchy import MRO, ClassHiearchy
-from .Objects import BuiltinObject, ClassObject, FunctionObject, InstanceObject, MethodObject, ModuleObject, Object
+from .Objects import BuiltinObject, CIBuiltinObject, CIClassObject, CIFunctionObject, CIInstanceObject, ClassObject, FunctionObject, InstanceObject, MethodObject, ModuleObject, Object
 from .BindingStmts import BindingStmts
 from .PointerFlow import PointerFlow
-from .Pointers import AttrPtr, Pointer, VarPtr
+from .Pointers import AttrPtr, Pointer, CIVarPtr
 from .CallGraph import CallGraph
 from .PointToSet import PointToSet
 
@@ -46,28 +46,28 @@ class Analysis:
 
         for stmt in codeBlock.stmts:
             if(isinstance(stmt, Assign)):
-                sourcePtr = VarPtr(stmt.source)
-                targetPtr = VarPtr(stmt.target)
+                sourcePtr = CIVarPtr(stmt.source)
+                targetPtr = CIVarPtr(stmt.target)
                 self.addFlow(sourcePtr, targetPtr)
 
             elif(isinstance(stmt, NewModule)):
                 obj = ModuleObject(stmt.codeBlock)
-                targetPtr = VarPtr(stmt.target)
-                globalPtr = VarPtr(stmt.codeBlock.globalVariable)
+                targetPtr = CIVarPtr(stmt.target)
+                globalPtr = CIVarPtr(stmt.codeBlock.globalVariable)
                 self.workList.append((targetPtr, {obj}))
                 self.workList.append((globalPtr, {obj}))
                 self.addReachable(stmt.codeBlock)
                 self.callgraph.put(stmt, stmt.codeBlock)
                 
             elif(isinstance(stmt, NewFunction)):
-                obj = FunctionObject(stmt)
-                targetPtr = VarPtr(stmt.target)
+                obj = CIFunctionObject(stmt)
+                targetPtr = CIVarPtr(stmt.target)
                 self.workList.append((targetPtr, {obj}))
 
             elif(isinstance(stmt, NewClass)):
-                obj = ClassObject(stmt)
-                targetPtr = VarPtr(stmt.target)
-                thisPtr = VarPtr(stmt.codeBlock.thisClassVariable)
+                obj = CIClassObject(stmt)
+                targetPtr = CIVarPtr(stmt.target)
+                thisPtr = CIVarPtr(stmt.codeBlock.thisClassVariable)
                 self.workList.append((targetPtr, {obj}))
                 self.workList.append((thisPtr, {obj}))
                 
@@ -80,48 +80,48 @@ class Analysis:
                     self.persist_attr[obj][attr] = set()
 
             elif(isinstance(stmt, NewBuiltin)):
-                targetPtr = VarPtr(stmt.target)
+                targetPtr = CIVarPtr(stmt.target)
                 # if(stmt.value is not None or stmt.type == "NoneType"):
                 #     obj = ConstObject(stmt.value)
                 # else:
-                obj = BuiltinObject(stmt)
+                obj = CIBuiltinObject(stmt)
                 self.workList.append((targetPtr, {obj}))
 
     def addStmt(self, stmt: IRStmt):
         if(isinstance(stmt, SetAttr)):
             # print(f"Bind SetAttr: {stmt.target} - {stmt}")
-            varPtr = VarPtr(stmt.target)
+            varPtr = CIVarPtr(stmt.target)
             self.bindingStmts.bindSetAttr(varPtr, stmt)
             self.processSetAttr(stmt, self.pointToSet.get(varPtr))
 
         elif(isinstance(stmt, GetAttr)):
             # print(f"Bind GetAttr: {stmt.source} - {stmt}")
-            varPtr = VarPtr(stmt.source)
+            varPtr = CIVarPtr(stmt.source)
             self.bindingStmts.bindGetAttr(varPtr, stmt)
             self.processGetAttr(stmt, self.pointToSet.get(varPtr))
 
         elif(isinstance(stmt, NewClass)):
             for i in range(len(stmt.bases)):
                 # print(f"Bind Base: {stmt.bases[i]} - {stmt} - {i}")
-                varPtr = VarPtr(stmt.bases[i])
+                varPtr = CIVarPtr(stmt.bases[i])
                 self.bindingStmts.bindNewClass(varPtr, stmt, i)
                 self.processNewClass(stmt, i, self.pointToSet.get(varPtr))
 
         elif(isinstance(stmt, Call)):
             # print(f"Bind Call: {stmt.callee} - {stmt}")
-            varPtr = VarPtr(stmt.callee)
+            varPtr = CIVarPtr(stmt.callee)
             self.bindingStmts.bindCall(varPtr, stmt)
             self.processCall(stmt, self.pointToSet.get(varPtr))
 
         elif(isinstance(stmt, DelAttr)):
             # print(f"Bind DelAttr: {stmt.var} - {stmt}")
-            varPtr = VarPtr(stmt.var)
+            varPtr = CIVarPtr(stmt.var)
             self.bindingStmts.bindDelAttr(varPtr, stmt)
             self.processDelAttr(stmt, self.pointToSet.get(varPtr))
 
     def analyze(self, entry: ModuleCodeBlock):
         entryModule = ModuleObject(entry)
-        self.workList.append((VarPtr(entry.globalVariable), {entryModule}))
+        self.workList.append((CIVarPtr(entry.globalVariable), {entryModule}))
 
         self.addReachable(entry)
 
@@ -134,7 +134,7 @@ class Analysis:
 
             self.propagate(ptr, objs)
 
-            if(not isinstance(ptr, VarPtr)):
+            if(not isinstance(ptr, CIVarPtr)):
                 continue
 
             for stmt in self.bindingStmts.getSetAttr(ptr):
@@ -152,7 +152,7 @@ class Analysis:
             for stmt in self.bindingStmts.getDelAttr(ptr):
                 self.processDelAttr(stmt, objs)
             
-    def addFlow(self, source, target):
+    def addFlow(self, source: Pointer, target: Pointer):
         if(self.pointerFlow.put(source, target)):
             # print(f"Add Flow:{source} -> {target}")
             objs = self.pointToSet.get(source)
@@ -169,7 +169,7 @@ class Analysis:
             newObjs = {MethodObject(ins, obj) if isinstance(obj, FunctionObject) else obj for obj in objs}
         self.workList.append((target, newObjs))
 
-    def propagate(self, pointer: Pointer, objs: Set) -> Set:
+    def propagate(self, pointer: Pointer, objs: Set[Object]) -> Set:
         # Special condition: when source is a class object's attribute 
         # and target is an instance object's attribute
         # and the object is a function
@@ -205,14 +205,16 @@ class Analysis:
 
     def processSetAttr(self, stmt: SetAttr, objs: Set[Object]):
         # print(f"Process SetAttr: {stmt}")
+        assert(stmt, SetAttr)
         for obj in objs:
             attrPtr = AttrPtr(obj, stmt.attr)
-            self.addFlow(VarPtr(stmt.source), attrPtr)
+            self.addFlow(CIVarPtr(stmt.source), attrPtr)
 
     def processGetAttr(self, stmt: GetAttr, objs: Set[Object]):
         # print(f"Process GetAttr: {stmt}")
+        assert(stmt, GetAttr)
         for obj in objs:
-            varPtr = VarPtr(stmt.target)
+            varPtr = CIVarPtr(stmt.target)
             if(isinstance(obj, InstanceObject)):
                 # target <- instance.attr
                 insAttr = AttrPtr(obj, stmt.attr)
@@ -234,9 +236,10 @@ class Analysis:
 
     def processNewClass(self, stmt: NewClass, index: int, objs: Set[Object]):
         # print(f"Process NewClass: {stmt}")
+        assert(stmt, NewClass)
         mroChange = set()
         for obj in objs:
-            mroChange |= self.classHiearchy.addClassBase(ClassObject(stmt), index, obj)
+            mroChange |= self.classHiearchy.addClassBase(CIClassObject(stmt), index, obj)
         for mro in mroChange:
             classObj = mro[0]
             for attr in self.pointToSet.getAllAttr(classObj):
@@ -246,44 +249,45 @@ class Analysis:
 
     def processCall(self, stmt: Call, objs: Set[Object]):
         # print(f"Process Call: {stmt}")
-        varPtr = VarPtr(stmt.target)
+        assert(stmt, Call)
+        varPtr = CIVarPtr(stmt.target)
         for obj in objs:
             if(isinstance(obj, FunctionObject)):
                 func = obj.getCodeBlock()
-                self.matchArgParam(posArgs=         [VarPtr(posArg) for posArg in stmt.posargs],
-                                    kwArgs=         {kw:VarPtr(kwarg) for kw, kwarg in stmt.kwargs.items()},
-                                    posParams=      [VarPtr(param) for param in func.posargs],
-                                    kwParams=       {kw:VarPtr(kwOnlyParam) for kw, kwOnlyParam in func.kwargs.items()},
-                                    varParam=       VarPtr(func.vararg) if func.vararg else None,
-                                    kwParam=        VarPtr(func.kwarg) if func.kwarg else None)
-                retVar = VarPtr(func.returnVariable)
-                resVar = VarPtr(stmt.target)
+                self.matchArgParam(posArgs=         [CIVarPtr(posArg) for posArg in stmt.posargs],
+                                    kwArgs=         {kw:CIVarPtr(kwarg) for kw, kwarg in stmt.kwargs.items()},
+                                    posParams=      [CIVarPtr(param) for param in func.posargs],
+                                    kwParams=       {kw:CIVarPtr(kwOnlyParam) for kw, kwOnlyParam in func.kwargs.items()},
+                                    varParam=       CIVarPtr(func.vararg) if func.vararg else None,
+                                    kwParam=        CIVarPtr(func.kwarg) if func.kwarg else None)
+                retVar = CIVarPtr(func.returnVariable)
+                resVar = CIVarPtr(stmt.target)
                 self.addFlow(retVar, resVar)
                 self.addReachable(func)
                 self.callgraph.put(stmt, func)
-                self.addReachable(func)
+                
                 
             elif(isinstance(obj, MethodObject)):
                 func = obj.func.getCodeBlock()
-                posParams = [VarPtr(param) for param in func.posargs]
+                posParams = [CIVarPtr(param) for param in func.posargs]
                 
                 self.workList.append((posParams[0], {obj.selfObj}))
                 del posParams[0]
-                self.matchArgParam(posArgs=         [VarPtr(posArg) for posArg in stmt.posargs],
-                                    kwArgs=         {kw:VarPtr(kwarg) for kw, kwarg in stmt.kwargs.items()},
+                self.matchArgParam(posArgs=         [CIVarPtr(posArg) for posArg in stmt.posargs],
+                                    kwArgs=         {kw:CIVarPtr(kwarg) for kw, kwarg in stmt.kwargs.items()},
                                     posParams=      posParams,
-                                    kwParams=       {kw:VarPtr(kwOnlyParam) for kw, kwOnlyParam in func.kwargs.items()},
-                                    varParam=       VarPtr(func.vararg) if func.vararg else None,
-                                    kwParam=        VarPtr(func.kwarg) if func.kwarg else None)
-                retVar = VarPtr(func.returnVariable)
-                resVar = VarPtr(stmt.target)
+                                    kwParams=       {kw:CIVarPtr(kwOnlyParam) for kw, kwOnlyParam in func.kwargs.items()},
+                                    varParam=       CIVarPtr(func.vararg) if func.vararg else None,
+                                    kwParam=        CIVarPtr(func.kwarg) if func.kwarg else None)
+                retVar = CIVarPtr(func.returnVariable)
+                resVar = CIVarPtr(stmt.target)
                 self.addFlow(retVar, resVar)
                 self.callgraph.put(stmt, func)
                 self.addReachable(func)
            
             elif(isinstance(obj, ClassObject)):
-                insObj = InstanceObject(stmt, obj)
-                varPtr = VarPtr(stmt.target)
+                insObj = CIInstanceObject(stmt, obj)
+                varPtr = CIVarPtr(stmt.target)
                 # target <- instance.attr
                 insAttr = AttrPtr(insObj, "__init__")
                 classAttr = AttrPtr(obj, FAKE_PREFIX + "__init__")
@@ -291,17 +295,17 @@ class Analysis:
                 self.resolveAttrIfNot(obj, "__init__")
 
                 init = Variable(f"{obj.getCodeBlock().qualified_name}.__init__", stmt.belongsTo)
-                initPtr = VarPtr(init)
+                initPtr = CIVarPtr(init)
                 self.addFlow(insAttr, initPtr)
                 self.addStmt(Call(Variable("", stmt.belongsTo), init, stmt.posargs, stmt.kwargs, stmt.belongsTo))
                 
                 self.workList.append((varPtr, {insObj}))
                 
-    def matchArgParam(self, / , posArgs: List[VarPtr], 
-                                kwArgs: Dict[str, VarPtr], 
-                                posParams: List[VarPtr], 
-                                kwParams: Dict[str, VarPtr],
-                                varParam: VarPtr, kwParam: VarPtr):
+    def matchArgParam(self, / , posArgs: List[CIVarPtr], 
+                                kwArgs: Dict[str, CIVarPtr], 
+                                posParams: List[CIVarPtr], 
+                                kwParams: Dict[str, CIVarPtr],
+                                varParam: CIVarPtr, kwParam: CIVarPtr):
     
         posCount = len(posParams)
         for i in range(len(posArgs)):
@@ -320,6 +324,7 @@ class Analysis:
 
     def processDelAttr(self, stmt: DelAttr, objs: Set[Object]):
         # print(f"Process DelAttr: {stmt}")
+        assert(stmt, DelAttr)
         attr = stmt.attr
         for obj in objs:
             if(isinstance(obj, ClassObject) and attr in self.persist_attr[obj]):

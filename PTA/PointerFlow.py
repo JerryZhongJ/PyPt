@@ -22,7 +22,7 @@ class PointerFlow:
         else:
             return False
 
-    def getSuccessors(self, source) -> set:
+    def getSuccessors(self, source) -> Set[Pointer]:
         if(source not in self.forward):
             return set()
         else:
@@ -32,13 +32,20 @@ class PointerFlow:
         print("-> :", file=fp)
         
         for ptr, allSucc in self.forward.items():
-            succ_str = [str(succ) for succ in allSucc]
-            print(f"{ptr}    -> {', '.join(succ_str)}", file=fp)
+            head = f"{ptr} -> "
+            w = len(head)
+            print(head, file=fp, end="")
+            for succ in allSucc:
+                print(" "*w + str(succ), file=fp)
+            
             
 
         print("", file=fp)
         print("<- :", file=fp)
         
-        for ptr, allProc in self.backward.items():
-            pred_str = [str(pred) for pred in allProc]
-            print(f"{ptr}    <- {', '.join(pred_str)}", file=fp)
+        for ptr, allPred in self.backward.items():
+            head = f"{ptr} <- "
+            w = len(head)
+            print(head, file=fp, end="")
+            for pred in allPred:
+                print(" "*w + str(pred), file=fp)

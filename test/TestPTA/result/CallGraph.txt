@@ -1,7 +1,0 @@
-__main__:
-<__main__>$t5 = Call <__main__>$t1 (<__main__>$t2, <__main__>$t3, <__main__>$t4) -> __main__.reverse
-<__main__>$t34 = Call <__main__>$t33 ()                                          -> __main__.$t23__iter__
-<__main__>$t36 = Call <__main__>$t35 ()                                          -> __main__.$t23__next__
-<__main__>$t17 = Call <__main__>$t16 ()                                          -> __main__.reverse.$t0__iter__
-<__main__>$t19 = Call <__main__>$t18 ()                                          -> __main__.reverse.$t0__next__
-
