@@ -9,7 +9,7 @@ class C:
         return self.f
 
 def func():
-    nl = 0          # 0, ins
+    nl = 0          # 0, ins, 2
     def func2(arg):
         nonlocal nl
         global g

@@ -118,32 +118,32 @@ class Analysis:
     def addStmt(self, csStmt: 'CSStmt'):
         ctx, stmt = csStmt
         if(isinstance(stmt, SetAttr)):
-            # print(f"Bind SetAttr: {stmt.target} - {stmt}")
+            print(f"Bind SetAttr: {stmt.target} - {csStmt}")
             varPtr = CSVarPtr(ctx, stmt.target)
             self.bindingStmts.bindSetAttr(varPtr, csStmt)
             self.processSetAttr(csStmt, self.pointToSet.get(varPtr))
 
         elif(isinstance(stmt, GetAttr)):
-            # print(f"Bind GetAttr: {stmt.source} - {stmt}")
+            print(f"Bind GetAttr: {stmt.source} - {csStmt}")
             varPtr = CSVarPtr(ctx, stmt.source)
             self.bindingStmts.bindGetAttr(varPtr, csStmt)
             self.processGetAttr(csStmt, self.pointToSet.get(varPtr))
 
         elif(isinstance(stmt, NewClass)):
             for i in range(len(stmt.bases)):
-                # print(f"Bind Base: {stmt.bases[i]} - {stmt} - {i}")
+                print(f"Bind Base: {stmt.bases[i]} - {csStmt} - {i}")
                 varPtr = CSVarPtr(ctx, stmt.bases[i])
                 self.bindingStmts.bindNewClass(varPtr, csStmt, i)
                 self.processNewClass(csStmt, i, self.pointToSet.get(varPtr))
 
         elif(isinstance(stmt, Call)):
-            # print(f"Bind Call: {stmt.callee} - {stmt}")
+            print(f"Bind Call: {stmt.callee} - {csStmt}")
             varPtr = CSVarPtr(ctx, stmt.callee)
             self.bindingStmts.bindCall(varPtr, csStmt)
             self.processCall(csStmt, self.pointToSet.get(varPtr))
 
         elif(isinstance(stmt, DelAttr)):
-            # print(f"Bind DelAttr: {stmt.var} - {stmt}")
+            print(f"Bind DelAttr: {stmt.var} - {csStmt}")
             varPtr = CSVarPtr(ctx, stmt.var)
             self.bindingStmts.bindDelAttr(varPtr, csStmt)
             self.processDelAttr(csStmt, self.pointToSet.get(varPtr))
@@ -158,32 +158,32 @@ class Analysis:
             ptr, objs = self.workList[0]
             del self.workList[0]
 
-            # if(len(objs) == 0):
-            #     continue
+            if(len(objs) == 0):
+                continue
 
             self.propagate(ptr, objs)
 
             if(not isinstance(ptr, CSVarPtr)):
                 continue
 
-            for stmt in self.bindingStmts.getSetAttr(ptr):
-                self.processSetAttr(stmt, objs)
+            for csStmt in self.bindingStmts.getSetAttr(ptr):
+                self.processSetAttr(csStmt, objs)
 
-            for stmt in self.bindingStmts.getGetAttr(ptr):
-               self.processGetAttr(stmt, objs)
+            for csStmt in self.bindingStmts.getGetAttr(ptr):
+               self.processGetAttr(csStmt, objs)
 
-            for stmt, index in self.bindingStmts.getNewClass(ptr):
-                self.processNewClass(stmt, index, objs)
+            for csStmt, index in self.bindingStmts.getNewClass(ptr):
+                self.processNewClass(csStmt, index, objs)
 
-            for stmt in self.bindingStmts.getCall(ptr):
-                self.processCall(stmt, objs)
+            for csStmt in self.bindingStmts.getCall(ptr):
+                self.processCall(csStmt, objs)
 
-            for stmt in self.bindingStmts.getDelAttr(ptr):
-                self.processDelAttr(stmt, objs)
+            for csStmt in self.bindingStmts.getDelAttr(ptr):
+                self.processDelAttr(csStmt, objs)
             
     def addFlow(self, source: Pointer, target: Pointer):
         if(self.pointerFlow.put(source, target)):
-            # print(f"Add Flow:{source} -> {target}")
+            print(f"Add Flow:{source} -> {target}")
             objs = self.pointToSet.get(source)
             self.flow(source, target, objs)
 
@@ -202,7 +202,7 @@ class Analysis:
         # Special condition: when source is a class object's attribute 
         # and target is an instance object's attribute
         # and the object is a function
-        # print(f"Propagate {pointer} -> {', '.join([str(obj) for obj in objs])}")
+        print(f"Propagate {pointer} -> {', '.join([str(obj) for obj in objs])}")
         diff = self.pointToSet.putAll(pointer, objs)
         for succ in self.pointerFlow.getSuccessors(pointer):
             self.flow(pointer, succ, diff)
@@ -233,7 +233,7 @@ class Analysis:
                 self.resolveAttribute(classObj, attr, (mro, 0))
 
     def processSetAttr(self, csStmt: 'CS_SetAttr', objs: Set[CSObject]):
-        # print(f"Process SetAttr: {stmt}")
+        print(f"Process SetAttr: {csStmt}")
         assert(csStmt[1], SetAttr)
         ctx, stmt = csStmt
         for obj in objs:
@@ -241,7 +241,7 @@ class Analysis:
             self.addFlow(CSVarPtr(ctx, stmt.source), attrPtr)
 
     def processGetAttr(self, csStmt: 'CS_GetAttr', objs: Set[Object]):
-        # print(f"Process GetAttr: {stmt}")
+        print(f"Process GetAttr: {csStmt}")
         assert(csStmt[1], GetAttr)
         ctx, stmt = csStmt
         for obj in objs:
@@ -265,13 +265,13 @@ class Analysis:
                 attrPtr = AttrPtr(obj, stmt.attr)
                 self.addFlow(attrPtr, varPtr)
 
-    def processNewClass(self, csStmt: 'CS_NewClass', objs: Set[Object], index: int):
-        # print(f"Process NewClass: {stmt}")
+    def processNewClass(self, csStmt: 'CS_NewClass', index:int, objs: Set[Object]):
+        print(f"Process NewClass: {csStmt}")
         assert(csStmt[1], NewClass)
         ctx, stmt = csStmt
         mroChange = set()
         for obj in objs:
-            mroChange |= self.classHiearchy.addClassBase(CSClassObject(ctx, stmt), index, obj)
+            mroChange |= self.classHiearchy.addClassBase(CSClassObject(csStmt), index, obj)
         for mro in mroChange:
             classObj = mro[0]
             for attr in self.pointToSet.getAllAttr(classObj):
@@ -280,7 +280,7 @@ class Analysis:
                     self.resolveAttribute(classObj, attr, mro, 0)
 
     def processCall(self, csStmt: 'CS_Call', objs: Set[Object]):
-        # print(f"Process Call: {stmt}")
+        print(f"Process Call: {csStmt}")
         assert(csStmt[1], Call)
         ctx, stmt = csStmt
         varPtr = CSVarPtr(ctx, stmt.target)
@@ -365,7 +365,7 @@ class Analysis:
 
 
     def processDelAttr(self, csStmt: 'CS_DelAttr', objs: Set[CSObject]):
-        # print(f"Process DelAttr: {stmt}")
+        print(f"Process DelAttr: {csStmt}")
         assert(csStmt[1], DelAttr)
         ctx, stmt = csStmt
         attr = stmt.attr

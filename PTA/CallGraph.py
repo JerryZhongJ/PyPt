@@ -48,9 +48,10 @@ class CallGraph:
                 for stmt, callees in map.items():
                     head = f"{stmt} -> "
                     w = len(head)
-                    print(head, file=fp)
+                    
                     for callee in callees:
-                        print(f"{' '*w}{callee.qualified_name}", file=fp)
+                        print(f"{head:<{w}}{callee.qualified_name}", file=fp)
+                        head = ""
                     
                 print("", file=fp)
         else:
@@ -64,11 +65,12 @@ class CallGraph:
                 for stmt, callees in map.items():
                     head = f"{stmt} -> "
                     w = len(head)
-                    print(head, file=fp)
+                    
                     for callee in callees:
                         s = ""
                         for ctx in callee[0]:
                             s += ", ".join([str(e) for e in ctx]) + "#"
-                        print(f"{' '*w}{s}{callee[1].qualified_name}", file=fp)
+                        print(f"{head:<{w}}{s}{callee[1].qualified_name}", file=fp)
+                        head = ""
                 print("", file=fp)
     

@@ -102,9 +102,10 @@ class PointToSet:
             for var, objs in map.items():
                 head = f"{var} -> "
                 w = len(head)
-                print(head, file=fp, end="")
+                
                 for obj in objs:
-                    print(f"{' ' * w}{obj}", file=fp)
+                    print(f"{head:<{w}}{obj}", file=fp)
+                    head = ""
                 
             print("", file=fp)
 
@@ -116,9 +117,10 @@ class PointToSet:
                 for attr, objs in map.items():
                     head = f".{attr} -> "
                     w = len(head)
-                    print(head, file=fp, end="")
+                    
                     for obj in objs:
-                        print(f"{' '*w}{obj}", file=fp)
+                        print(f"{head:<{w}}{obj}", file=fp)
+                        head = ""
                 print("", file=fp)
                 
                 

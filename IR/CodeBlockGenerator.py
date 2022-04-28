@@ -502,8 +502,8 @@ class CodeBlockGenerator(ast.NodeTransformer):
             #    sended = value
             send = FunctionCodeBlock(f"<{tmp.name}>send", self.codeBlock)
             value = Variable("value", send)
-            send.posargs[0] = value
-            send.posargs["value"] = value
+            send.posargs.append(value)
+            send.kwargs["value"] = value
             Assign(sended, value, send, srcPos)
 
             # tmp.send = new function

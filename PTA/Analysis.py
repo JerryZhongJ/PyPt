@@ -129,8 +129,8 @@ class Analysis:
             ptr, objs = self.workList[0]
             del self.workList[0]
 
-            # if(len(objs) == 0):
-            #     continue
+            if(len(objs) == 0):
+                continue
 
             self.propagate(ptr, objs)
 

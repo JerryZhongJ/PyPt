@@ -31,8 +31,8 @@ def test(moduleName):
     with open(os.path.join(result, "Pointer Flow.txt"), "w") as f:
         pointerFlow.dump(f)
 
-test("Basic")
+# test("Basic")
 # test("ArgMatch")
 # test("MRO")
 # test("Container")
-    
+test("Sensitive")

@@ -7,21 +7,26 @@ if typing.TYPE_CHECKING:
 
 from ..IR.Stmts import IRStmt
 
-CTX_LENGTH = 2
+CTX_LENGTH = 1
 
 # 2-callsite
 class ContextElement:
-    feature: IRStmt
+    key: IRStmt
     def __init__(self, feature):
-        self.feature = feature
+        self.key = feature
     def __eq__(self, other):
-        return isinstance(other, ContextElement) and self.feature == other.feature
+        return isinstance(other, ContextElement) and self.key == other.key
     def __hash__(self):
-        return hash(self.feature)
+        return hash(self.key)
     def __str__(self):
-        return f"{self.feature.belongsTo.name}-{self.feature.belongsTo.stmts.index(self.feature)}"
+        return f"{self.key.belongsTo.qualified_name}-{self.key.belongsTo.stmts.index(self.key)}"
 
+# Context consists of ContextElement, the newest are placed at the end, the first which is ctx[0] is the oldest
+# when context is full, the first element is dropped
 Context = Tuple[ContextElement, ...]
+
+# Context Chains consist of contexts, whose numbers are the same as codeblocks' scopeLevel, and therefore are not fixed.
+# The first context is the outermost function's, 
 ContextChain = Tuple[Context, ...]
 
 

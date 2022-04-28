@@ -19,7 +19,6 @@ class CSVarPtr(VarPtr):
     def __hash__(self):
         return hash((self.ctxChain, self.var))
     def __str__(self):
-        s = ""
-        for ctx in self.ctxChain:
-            s += ", ".join([str(e) for e in ctx]) + "#"
-        return f"{s}#{self.var}"
+        ctxChain_str = ", ".join(["#".join([str(e) for e in ctx if e]) for ctx in self.ctxChain])
+        
+        return f"({ctxChain_str}){self.var}"

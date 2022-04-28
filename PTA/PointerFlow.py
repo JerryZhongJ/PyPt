@@ -34,9 +34,10 @@ class PointerFlow:
         for ptr, allSucc in self.forward.items():
             head = f"{ptr} -> "
             w = len(head)
-            print(head, file=fp, end="")
+            
             for succ in allSucc:
-                print(" "*w + str(succ), file=fp)
+                print(f"{head:<{w}}{succ}", file=fp)
+                head = ""
             
             
 
@@ -46,6 +47,7 @@ class PointerFlow:
         for ptr, allPred in self.backward.items():
             head = f"{ptr} <- "
             w = len(head)
-            print(head, file=fp, end="")
+            
             for pred in allPred:
-                print(" "*w + str(pred), file=fp)
+                print(f"{head:<{w}}{pred}", file=fp)
+                head = ""

@@ -20,7 +20,7 @@ for v in b:
 for v in c:
     pass
 gen1().send("A")
-for v in gen1():
+for v in gen1():   
     pass
 
 for v in gen2():
