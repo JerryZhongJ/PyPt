@@ -1,23 +1,30 @@
 # nested function: local, global, nonlocal
 # class attribute, method call
-
+def getF(obj):
+    return obj.f
+def getG(obj):
+    return obj.g
 class C:
-    def __init__(self, v):
-        self.f = v
+    def __init__(self, f, g):
+        self.f = f
+        self.g = g
 
-    def method(self):
-        return self.f
+    def method(self, func):
+        return func(self)
 
-def func():
-    nl = 0          # 0, ins, 2
-    def func2(arg):
+def func(arg):
+    nl = 0          # nl should be 0, ins
+    def func2(getter):
+        return nl.method(getter)  # g should be "g"
+    def assign():
         nonlocal nl
-        global g
         nl = arg
-        g = arg.method()
+    assign()
     return func2
 
-g = C(2)            # instance, 2
-func()(g)
+lower = C("f", "g")            # instance
+upper = C("F", "G")            # instance
+f = func(lower)(getF)
+G = func(upper)(getG)
 
     

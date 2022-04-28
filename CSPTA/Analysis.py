@@ -118,32 +118,32 @@ class Analysis:
     def addStmt(self, csStmt: 'CSStmt'):
         ctx, stmt = csStmt
         if(isinstance(stmt, SetAttr)):
-            print(f"Bind SetAttr: {stmt.target} - {csStmt}")
+            # print(f"Bind SetAttr: {stmt.target} - {csStmt}")
             varPtr = CSVarPtr(ctx, stmt.target)
             self.bindingStmts.bindSetAttr(varPtr, csStmt)
             self.processSetAttr(csStmt, self.pointToSet.get(varPtr))
 
         elif(isinstance(stmt, GetAttr)):
-            print(f"Bind GetAttr: {stmt.source} - {csStmt}")
+            # print(f"Bind GetAttr: {stmt.source} - {csStmt}")
             varPtr = CSVarPtr(ctx, stmt.source)
             self.bindingStmts.bindGetAttr(varPtr, csStmt)
             self.processGetAttr(csStmt, self.pointToSet.get(varPtr))
 
         elif(isinstance(stmt, NewClass)):
             for i in range(len(stmt.bases)):
-                print(f"Bind Base: {stmt.bases[i]} - {csStmt} - {i}")
+                # print(f"Bind Base: {stmt.bases[i]} - {csStmt} - {i}")
                 varPtr = CSVarPtr(ctx, stmt.bases[i])
                 self.bindingStmts.bindNewClass(varPtr, csStmt, i)
                 self.processNewClass(csStmt, i, self.pointToSet.get(varPtr))
 
         elif(isinstance(stmt, Call)):
-            print(f"Bind Call: {stmt.callee} - {csStmt}")
+            # print(f"Bind Call: {stmt.callee} - {csStmt}")
             varPtr = CSVarPtr(ctx, stmt.callee)
             self.bindingStmts.bindCall(varPtr, csStmt)
             self.processCall(csStmt, self.pointToSet.get(varPtr))
 
         elif(isinstance(stmt, DelAttr)):
-            print(f"Bind DelAttr: {stmt.var} - {csStmt}")
+            # print(f"Bind DelAttr: {stmt.var} - {csStmt}")
             varPtr = CSVarPtr(ctx, stmt.var)
             self.bindingStmts.bindDelAttr(varPtr, csStmt)
             self.processDelAttr(csStmt, self.pointToSet.get(varPtr))
@@ -183,7 +183,7 @@ class Analysis:
             
     def addFlow(self, source: Pointer, target: Pointer):
         if(self.pointerFlow.put(source, target)):
-            print(f"Add Flow:{source} -> {target}")
+            # print(f"Add Flow:{source} -> {target}")
             objs = self.pointToSet.get(source)
             self.flow(source, target, objs)
 
@@ -202,7 +202,7 @@ class Analysis:
         # Special condition: when source is a class object's attribute 
         # and target is an instance object's attribute
         # and the object is a function
-        print(f"Propagate {pointer} -> {', '.join([str(obj) for obj in objs])}")
+        # print(f"Propagate {pointer} -> {', '.join([str(obj) for obj in objs])}")
         diff = self.pointToSet.putAll(pointer, objs)
         for succ in self.pointerFlow.getSuccessors(pointer):
             self.flow(pointer, succ, diff)
@@ -233,16 +233,16 @@ class Analysis:
                 self.resolveAttribute(classObj, attr, (mro, 0))
 
     def processSetAttr(self, csStmt: 'CS_SetAttr', objs: Set[CSObject]):
-        print(f"Process SetAttr: {csStmt}")
-        assert(csStmt[1], SetAttr)
+        # print(f"Process SetAttr: {csStmt}")
+        assert(isinstance(csStmt[1], SetAttr))
         ctx, stmt = csStmt
         for obj in objs:
             attrPtr = AttrPtr(obj, stmt.attr)
             self.addFlow(CSVarPtr(ctx, stmt.source), attrPtr)
 
     def processGetAttr(self, csStmt: 'CS_GetAttr', objs: Set[Object]):
-        print(f"Process GetAttr: {csStmt}")
-        assert(csStmt[1], GetAttr)
+        # print(f"Process GetAttr: {csStmt}")
+        assert(isinstance(csStmt[1], GetAttr))
         ctx, stmt = csStmt
         for obj in objs:
             varPtr = CSVarPtr(ctx, stmt.target)
@@ -266,12 +266,13 @@ class Analysis:
                 self.addFlow(attrPtr, varPtr)
 
     def processNewClass(self, csStmt: 'CS_NewClass', index:int, objs: Set[Object]):
-        print(f"Process NewClass: {csStmt}")
-        assert(csStmt[1], NewClass)
+        # print(f"Process NewClass: {csStmt}")
+        assert(isinstance(csStmt[1], NewClass))
         ctx, stmt = csStmt
         mroChange = set()
         for obj in objs:
-            mroChange |= self.classHiearchy.addClassBase(CSClassObject(csStmt), index, obj)
+            if(isinstance(obj, ClassObject)):
+                mroChange |= self.classHiearchy.addClassBase(CSClassObject(csStmt), index, obj)
         for mro in mroChange:
             classObj = mro[0]
             for attr in self.pointToSet.getAllAttr(classObj):
@@ -280,8 +281,8 @@ class Analysis:
                     self.resolveAttribute(classObj, attr, mro, 0)
 
     def processCall(self, csStmt: 'CS_Call', objs: Set[Object]):
-        print(f"Process Call: {csStmt}")
-        assert(csStmt[1], Call)
+        # print(f"Process Call: {csStmt}")
+        assert(isinstance(csStmt[1], Call))
         ctx, stmt = csStmt
         varPtr = CSVarPtr(ctx, stmt.target)
         for obj in objs:
@@ -352,21 +353,23 @@ class Analysis:
             if(i < posCount):
                 self.addFlow(posArgs[i], posParams[i])
             elif(varParam):
-                csStmt = varParam.ctxChain, SetAttr(varParam.var, "$values", posArgs[i].var, varParam.var.belongsTo)
-                self.addStmt(csStmt)
+                self.addFlow(posArgs[i], varParam)
+                # csStmt = varParam.ctxChain, SetAttr(varParam.var, "$values", posArgs[i].var, varParam.var.belongsTo)
+                # self.addStmt(csStmt)
                 
         
         for kw, varPtr in kwArgs.items():
             if(kw in kwParams):
                 self.addFlow(varPtr, kwParams[kw])
             elif(kwParam):
-                csStmt = kwParam.ctxChain, SetAttr(kwParam.var, "$values", varPtr.var, kwParam.var.belongsTo)
-                self.addStmt(csStmt) 
+                self.addFlow(kwArgs[kw], kwParam)
+                # csStmt = kwParam.ctxChain, SetAttr(kwParam.var, "$values", varPtr.var, kwParam.var.belongsTo)
+                # self.addStmt(csStmt) 
 
 
     def processDelAttr(self, csStmt: 'CS_DelAttr', objs: Set[CSObject]):
-        print(f"Process DelAttr: {csStmt}")
-        assert(csStmt[1], DelAttr)
+        # print(f"Process DelAttr: {csStmt}")
+        assert(isinstance(csStmt[1], DelAttr))
         ctx, stmt = csStmt
         attr = stmt.attr
         for obj in objs:

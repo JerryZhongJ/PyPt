@@ -126,6 +126,7 @@ class Analysis:
         self.addReachable(entry)
 
         while(len(self.workList) > 0):
+            print(f"\rPTA worklist remains {len(self.workList)} to process.            ", end="")
             ptr, objs = self.workList[0]
             del self.workList[0]
 
@@ -205,14 +206,14 @@ class Analysis:
 
     def processSetAttr(self, stmt: SetAttr, objs: Set[Object]):
         # print(f"Process SetAttr: {stmt}")
-        assert(stmt, SetAttr)
+        assert(isinstance(stmt, SetAttr))
         for obj in objs:
             attrPtr = AttrPtr(obj, stmt.attr)
             self.addFlow(CIVarPtr(stmt.source), attrPtr)
 
     def processGetAttr(self, stmt: GetAttr, objs: Set[Object]):
         # print(f"Process GetAttr: {stmt}")
-        assert(stmt, GetAttr)
+        assert(isinstance(stmt, GetAttr))
         for obj in objs:
             varPtr = CIVarPtr(stmt.target)
             if(isinstance(obj, InstanceObject)):
@@ -236,10 +237,11 @@ class Analysis:
 
     def processNewClass(self, stmt: NewClass, index: int, objs: Set[Object]):
         # print(f"Process NewClass: {stmt}")
-        assert(stmt, NewClass)
+        assert(isinstance(stmt, NewClass))
         mroChange = set()
         for obj in objs:
-            mroChange |= self.classHiearchy.addClassBase(CIClassObject(stmt), index, obj)
+            if(isinstance(obj, ClassObject)):
+                mroChange |= self.classHiearchy.addClassBase(CIClassObject(stmt), index, obj)
         for mro in mroChange:
             classObj = mro[0]
             for attr in self.pointToSet.getAllAttr(classObj):
@@ -249,7 +251,7 @@ class Analysis:
 
     def processCall(self, stmt: Call, objs: Set[Object]):
         # print(f"Process Call: {stmt}")
-        assert(stmt, Call)
+        assert(isinstance(stmt, Call))
         varPtr = CIVarPtr(stmt.target)
         for obj in objs:
             if(isinstance(obj, FunctionObject)):
@@ -312,19 +314,21 @@ class Analysis:
             if(i < posCount):
                 self.addFlow(posArgs[i], posParams[i])
             elif(varParam):
-                self.addStmt(SetAttr(varParam.var, "$values", posArgs[i].var, varParam.var.belongsTo))
+                self.addFlow(posArgs[i], varParam)
+                # self.addStmt(SetAttr(varParam.var, "$values", posArgs[i].var, varParam.var.belongsTo))
                 
         
         for kw, varPtr in kwArgs.items():
             if(kw in kwParams):
                 self.addFlow(varPtr, kwParams[kw])
             elif(kwParam):
-                self.addStmt(SetAttr(kwParam.var, "$values", varPtr.var, kwParam.var.belongsTo)) 
+                self.addFlow(kwArgs[kw], kwParam)
+                # self.addStmt(SetAttr(kwParam.var, "$values", varPtr.var, kwParam.var.belongsTo)) 
 
 
     def processDelAttr(self, stmt: DelAttr, objs: Set[Object]):
         # print(f"Process DelAttr: {stmt}")
-        assert(stmt, DelAttr)
+        assert(isinstance(stmt, DelAttr))
         attr = stmt.attr
         for obj in objs:
             if(isinstance(obj, ClassObject) and attr in self.persist_attr[obj]):

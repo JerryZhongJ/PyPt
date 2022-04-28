@@ -1,5 +1,4 @@
 
-from ctypes import pointer
 from ...PTA.Analysis import Analysis
 from ...ModuleManager import ModuleManager
 
@@ -16,12 +15,17 @@ def test(moduleName):
     if(os.path.exists(result)):
         shutil.rmtree(result)
     os.mkdir(result)
+    
     entry = moduleManager.getCodeBlock("__main__")
+    entry.dump(result)
+    print("")
+    print("IR generation finish, start PTA...")
+
     analysis = Analysis()
     analysis.analyze(entry)
     pointToSet, callgraph, pointerFlow = analysis.getResult()
 
-    entry.dump(result)
+    
     with open(os.path.join(result, "Point-To Set.txt"), "w") as f:
         pointToSet.dump(f)
 
@@ -30,9 +34,12 @@ def test(moduleName):
 
     with open(os.path.join(result, "Pointer Flow.txt"), "w") as f:
         pointerFlow.dump(f)
+    print("")
+    print("Done")
 
-test("Basic")
+# test("Basic")
 # test("ArgMatch")
 # test("MRO")
 # test("Container")
 # test("Sensitive")
+# test("Numpy")

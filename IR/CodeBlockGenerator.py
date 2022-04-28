@@ -853,17 +853,21 @@ class FunctionCodeBlockGenerator(CodeBlockGenerator):
             # varargs are passed into this list (referenced by tmp)
             # then v points to this list, remember v can point other object
             # this approach can avoid varargs to spread to other object
-            tmp = self._makeList(srcPos)
-            Assign(v, tmp, codeBlock, srcPos)
+            vararg = self._makeList(srcPos)
+            tmp = self.newTmpVariable()
+            SetAttr(vararg, "$values", tmp, codeBlock, srcPos)
+            Assign(v, vararg, codeBlock, srcPos)
             codeBlock.vararg = tmp
             codeBlock.localVariables[args.vararg.arg] = v
             
 
         if(args.kwarg):
             v = Variable(args.kwarg.arg, codeBlock)
-            tmp = self._makeDict(srcPos)
+            kwarg = self._makeDict(srcPos)
+            tmp = self.newTmpVariable()
             codeBlock.kwarg = tmp
-            Assign(v, tmp, codeBlock, srcPos)
+            SetAttr(kwarg, "$values", tmp, codeBlock, srcPos)
+            Assign(v, vararg, codeBlock, srcPos)
             codeBlock.localVariables[args.kwarg.arg] = v
         
         # return None

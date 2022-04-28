@@ -8,9 +8,9 @@ n2 = identity(2)            # 2
 # print(n2)
 
 def newGenerator(l):
-    def next():
+    def gen():
         yield from l
-    return next
+    return gen
 
 gen1 = newGenerator([1, 2, 3])
 gen2 = newGenerator([4, 5, 6])

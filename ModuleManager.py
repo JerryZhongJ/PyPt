@@ -183,10 +183,11 @@ class ModuleManager:
             fqname = parent.__name__
         else:
             fqname = name
-        try:
+
+        if(fqname in self.modules):
             return self.modules[fqname].__codeBlock__
-        except(KeyError):
-            return None
+        else:
+            return ModuleCodeBlock(fqname)
         
 
 
@@ -352,6 +353,7 @@ class ModuleManager:
     # import = find + load, import specific module
     def import_module(self, partname, fqname, parent):
         self.msgin(3, "import_module", partname, fqname, parent)
+        print(f"\rImporting {fqname}                    ", end="")
         try:
             m = self.modules[fqname]
         except KeyError:

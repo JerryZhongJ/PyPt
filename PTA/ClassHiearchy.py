@@ -19,7 +19,7 @@ class ClassHiearchy:
         self.subClasses = {}
 
     def addClass(self, classObj: ClassObject) -> Set[MRO]:
-        assert(classObj, ClassObject)
+        assert(isinstance(classObj, ClassObject))
         if(classObj in self.mros):
             return
         self.mros[classObj] = set()
@@ -28,7 +28,7 @@ class ClassHiearchy:
         
         for i in range(len(bases)):
             for baseObj in self.pointToSet.get(bases[i]):
-                self.subClasses[baseObj].add(classObj)
+                self.subClasses[baseObj].add((classObj, i))
 
         add = self.addBaseMRO(classObj, -1, {})
 
@@ -36,10 +36,12 @@ class ClassHiearchy:
 
         
     def addClassBase(self, classObj: ClassObject, index: int, baseObj: ClassObject) -> Set[MRO]:
-        self.subClasses[baseObj].add(classObj)
+        assert(isinstance(classObj, ClassObject))
+        self.subClasses[baseObj].add((classObj, index))
         return self.addBaseMRO(classObj, index, self.mros[baseObj])
 
     def addBaseMRO(self, classObj: ClassObject, index: int, mroList: Set[MRO]) -> Set[MRO]:
+        assert(isinstance(classObj, ClassObject))
         bases = classObj.getBases()
         # yield mros
         def select(start: int) -> Generator[List[MRO], None, None]:
@@ -63,10 +65,15 @@ class ClassHiearchy:
             order = [classObj] + [mro[0] for mro in mros]
             mros.append(order)
             res = self._c3(mros)
-            assert(res[0] == classObj)
-            if(res and res not in self.mros[classObj]):
+            
+            if(res is not None and res not in self.mros[classObj]):
+                assert(res[0] == classObj)
                 add.add(res)
                 self.mros[classObj].add(res)
+                
+        if(len(add) == 0):
+            return set()
+
         allAdd = add.copy()
         for subclass, index in self.subClasses[classObj]:
             allAdd |= self.addBaseMRO(subclass, index, add)
