@@ -1,5 +1,6 @@
 from typing import Dict, List, Set, Union
 
+
 from .Stmts import IRStmt, New, NewClass, NewFunction, Variable
 import os
 
@@ -15,8 +16,9 @@ class CodeBlock:
 
     globalVariable: Variable                    # $global, all code blocks in a module share a single $global variable 
     scopeLevel: int                             # indicate that how many context is needed for this codeblock
+    fake: bool                                  # this mean if this codeblock really exist in the source code, or it's just made up
 
-    def __init__(self, name: str, enclosing: 'CodeBlock'):
+    def __init__(self, name: str, enclosing: 'CodeBlock', fake=False):
         self.name = name
         self.stmts = []
         if(enclosing is not None):
@@ -26,6 +28,7 @@ class CodeBlock:
             self.enclosing = enclosing.enclosing
         else:
             self.enclosing = enclosing
+        self.fake = fake
 
     def addIR(self, ir:IRStmt):
         self.stmts.append(ir)
@@ -66,8 +69,8 @@ class ModuleCodeBlock(CodeBlock):
     moduleName: str
     # done: bool
     globalNames: Set[str]
-    def __init__(self, moduleName:str):
-        super().__init__("", None)
+    def __init__(self, moduleName:str, fake=False):
+        super().__init__("", None, fake)
         self.moduleName = moduleName
         self.qualified_name = moduleName
         self.globalVariable = Variable("$global", self)
@@ -89,8 +92,8 @@ class FunctionCodeBlock(CodeBlock):
     kwarg: Variable
     declaredGlobal: Set[str]                            # a list of names declared global
     returnVariable: Variable
-    def __init__(self, name: str, enclosing:'CodeBlock'):
-        super().__init__(name, enclosing)
+    def __init__(self, name: str, enclosing:'CodeBlock', fake=False):
+        super().__init__(name, enclosing, fake)
         self.qualified_name = f"{enclosing.qualified_name}.{name}"
         self.globalVariable = enclosing.globalVariable
         self.localVariables = {}
@@ -112,8 +115,8 @@ class ClassCodeBlock(CodeBlock):
     thisClassVariable: Variable                         # refer to $thisClass
     declaredGlobal: Set[str]                            # a list of names declared global
     attributes: Set[str]
-    def __init__(self, name:str, enclosing:'CodeBlock'):
-        super().__init__(name, enclosing)
+    def __init__(self, name:str, enclosing:'CodeBlock', fake=False):
+        super().__init__(name, enclosing, fake=False)
         self.qualified_name = f"{enclosing.qualified_name}.{name}"
         self.globalVariable = enclosing.globalVariable
         self.thisClassVariable = Variable("$thisClass", self)

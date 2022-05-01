@@ -1,5 +1,6 @@
 import os
-from typing import Dict, Set
+from subprocess import call
+from typing import Dict, List, Set, Union
 
 from ..CSPTA import CSCodeBlock, CSStmt
 
@@ -9,12 +10,12 @@ from ..IR.Stmts import Call, NewClass, NewModule, IRStmt
 
 
 class CallGraph:
-    callgraph: Dict[IRStmt, Set[CodeBlock]]          # three kinds: NewClass, NewModule, Call
+    
     # reachable: Set[CodeBlock]
-    def __init__(self, cs=False):
+    def __init__(self):
         self.callgraph = {}
         self.reachable = set()
-        self.cs = cs
+        
     def put(self, stmt: IRStmt, codeBlock:CodeBlock) -> bool:
         # assert(isinstance(stmt, NewModule) and isinstance(codeBlock, ModuleCodeBlock) or
         #        isinstance(stmt, NewClass) and isinstance(codeBlock, ClassCodeBlock) or
@@ -31,46 +32,60 @@ class CallGraph:
         if(stmt not in self.callgraph):
             return set()
         else:
-            return self.callgraph[stmt].copy()
+            return self.callgraph[stmt]
 
-    # def isReachable(self, codeBlock: CodeBlock):
-    #     return codeBlock in self.reachable
+    def foldToStmt(self) -> Dict[CodeBlock, Dict[IRStmt, Set[CodeBlock]]]:
+        pass
 
-    def dump(self, fp):
-        if(not self.cs):
-            callgraph:Dict[CodeBlock, Dict[IRStmt, Set[CodeBlock]]] = {stmt.belongsTo:{} for stmt in self.callgraph}
-            for stmt, callees in self.callgraph.items():
-                callgraph[stmt.belongsTo][stmt] = callees
-            for caller, map in callgraph.items():
+    def foldToCodeBlock(self) -> Dict[CodeBlock, Set[CodeBlock]]:
+        pass
 
-                print(caller.qualified_name + ":", file=fp)    
+    def dump(self, fp) -> Dict[CodeBlock, Dict[IRStmt, Set[CodeBlock]]]:
+        callgraph = self.foldToStmt()
+        for caller, map in callgraph.items():
+
+            print(caller.qualified_name + ":", file=fp)    
+            for stmt, callees in map.items():
+                head = f"{stmt} -> "
+                w = len(head)
+                
+                for callee in callees:
+                    print(f"{head:<{w}}{callee.qualified_name}", file=fp)
+                    head = ""
+                
+            print("", file=fp)
+
+        # return a dict of callgraph, formed with str
+    def export(self) -> Dict[str, List[str]]:
+        callgraph = self.foldToCodeBlock()
+        for callerName, callees in callgraph.items():    
+            callgraph[callerName] = list(callgraph[callerName])
+        
+        return callgraph
+        
+                
+
+class CICallGraph(CallGraph):
+    callgraph: Dict[IRStmt, Set[CodeBlock]]          # three kinds: NewClass, NewModule, Call
+
+    def foldToStmt(self) -> Dict[CodeBlock, Dict[IRStmt, Set[CodeBlock]]]:
+        callgraph = {}
+        for stmt, callees in self.callgraph.items():
+            caller = stmt.belongsTo
+            if(caller not in callgraph):
+                callgraph[caller] = {}
+            callgraph[caller][stmt] = callees
+        return callgraph
+
+    def foldToCodeBlock(self) -> Dict[CodeBlock, Set[CodeBlock]]:
+        callgraph = {}
+        for stmt, callees in self.callgraph.items():
+            caller = stmt.belongsTo
+            if(caller not in callgraph):
+                callgraph[caller] = set()
+            callgraph[caller] |= callees
+        return callgraph
+
+
+                
             
-                for stmt, callees in map.items():
-                    head = f"{stmt} -> "
-                    w = len(head)
-                    
-                    for callee in callees:
-                        print(f"{head:<{w}}{callee.qualified_name}", file=fp)
-                        head = ""
-                    
-                print("", file=fp)
-        else:
-            callgraph:Dict[CodeBlock, Dict[CSStmt, Set[CSCodeBlock]]] = {stmt[1].belongsTo:{} for stmt in self.callgraph}
-            for stmt, callees in self.callgraph.items():
-                callgraph[stmt[1].belongsTo][stmt] = callees
-            for caller, map in callgraph.items():
-
-                print(caller.qualified_name + ":", file=fp)    
-            
-                for stmt, callees in map.items():
-                    head = f"{stmt} -> "
-                    w = len(head)
-                    
-                    for callee in callees:
-                        s = ""
-                        for ctx in callee[0]:
-                            s += ", ".join([str(e) for e in ctx]) + "#"
-                        print(f"{head:<{w}}{s}{callee[1].qualified_name}", file=fp)
-                        head = ""
-                print("", file=fp)
-    

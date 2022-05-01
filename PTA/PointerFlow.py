@@ -26,7 +26,13 @@ class PointerFlow:
         if(source not in self.forward):
             return set()
         else:
-            return self.forward[source].copy()
+            return self.forward[source]
+            
+    def getPrecedents(self, target) -> Set[Pointer]:
+        if(target not in self.backward):
+            return set()
+        else:
+            return self.backward[target]
 
     def dump(self, fp):
         print("-> :", file=fp)

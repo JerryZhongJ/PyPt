@@ -54,16 +54,26 @@ class ClassHiearchy:
                         tail.insert(0, mro)
                         yield tail
             else:
-                for obj in self.pointToSet.get(bases[start]):
-                    for mro in self.mros[obj]:
-                        for tail in select(start + 1):
-                            tail.insert(0, mro)
-                            yield tail
+                # for obj in self.pointToSet.get(bases[start]):
+                #     for mro in self.mros[obj]:
+                #         for tail in select(start + 1):
+                #             tail.insert(0, mro)
+                #             yield tail
+                # TODO: ugly!
+                objs = self.pointToSet.get(bases[start])
+                if(len(objs) == 0):
+                    yield [(None,)]
+                else:
+                    for obj in objs:
+                        for mro in self.mros[obj]:
+                            for tail in select(start + 1):
+                                tail.insert(0, mro)
+                                yield tail
 
         add = set()
         for mros in select(0):
             order = [classObj] + [mro[0] for mro in mros]
-            mros.append(order)
+            mros.insert(0, order)
             res = self._c3(mros)
             
             if(res is not None and res not in self.mros[classObj]):
@@ -80,44 +90,59 @@ class ClassHiearchy:
         return allAdd
 
     # return None if it is illegal
-    def _c3(self, mros) -> MRO:
-        nexts = {}
-        inDegrees = {}
-        for mro in mros:
-            for i in range(len(mro)):
-                if(mro[i] not in nexts):
-                    nexts[mro[i]] = set()
-                    inDegrees[mro[i]] = 0
-        
-        for mro in mros:
-            for i in range(len(mro) - 1):
-                nexts[mro[i]].add(mro[i + 1])
-                inDegrees[mro[i + 1]] += 1
+    def _c3(self, mros: List) -> MRO:
+        for i in range(len(mros)):
+            mros[i] = list(mros[i])
+        res = []
+        while(len(mros) != 0):
+            for mro in mros:
+                candidate = mro[0]
+                if(candidate is None):
+                    return *res, None
 
-        mro = []
-        while(len(inDegrees) != 0):
-            selected = None
-            for obj, degree in inDegrees.items():
-                if(degree == 0):
-                    if(selected != None):
-                        # illegal
-                        return 
-                    selected = obj
-            if(selected == None):
-                return 
-            mro.append(selected)
-            for next in nexts[selected]:
-                inDegrees[next] -= 1
-
-            del nexts[selected]
-            del inDegrees[selected]
-        return *mro,
+                for another in mros:
+                    if(candidate in  another[1:]):
+                        break
+                else:
+                    res.append(candidate)
+                    for another in mros:
+                        if(another[0] == candidate):
+                            del another[0]
+                    mros = [mro for mro in mros if len(mro) != 0]
+                    break
+            else:
+                # illegal mro
+                return None
+            
+        return *res,
 
     def getMROs(self, classObj: ClassObject) -> Set[MRO]:
         if(classObj in self.mros):
             return self.mros[classObj].copy()
         else:
             return set()
+
+    def dump(self, fp):
+        
+        for classObj, mros in self.mros.items():
+            head = f"{classObj}: "
+            w = len(head)
+            
+            for mro in mros:
+                print(f"{head:<{w}}{', '.join([str(parent) for parent in mro])}", file=fp)
+                head = ""
+            
+            
+
+        print("", file=fp)
+        
+        for classObj, subInfos in self.subClasses.items():
+            head = f"{classObj} -> "
+            w = len(head)
+            
+            for subInfo in subInfos:
+                print(f"{head:<{w}}{subInfo[0]} : {subInfo[1]}", file=fp)
+                head = ""
 
 
 

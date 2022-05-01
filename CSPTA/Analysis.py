@@ -1,10 +1,12 @@
-from typing import Dict, List, Set, Tuple, Union
+from typing import Dict, List, Set, Tuple
 import typing
+
+from .CSCallGraph import CSCallGraph
 if typing.TYPE_CHECKING:
     from . import CS_Call, CS_DelAttr, CS_GetAttr, CS_NewClass, CS_SetAttr, CSCodeBlock, CSStmt
 
 from ..PTA.Objects import ClassObject, FunctionObject, InstanceObject, MethodObject, ModuleObject, Object
-from ..CSPTA.CSPointers import CSVarPtr
+from .CSPointers import CSVarPtr
 
 from .Context import emptyContextChain, selectContext
 
@@ -44,7 +46,7 @@ class Analysis:
     workList: List[Tuple[Pointer, Set[Object]]]
     def __init__(self):
         self.pointToSet = PointToSet()
-        self.callgraph = CallGraph(cs=True)
+        self.callgraph = CSCallGraph()
         self.pointerFlow = PointerFlow()
         self.bindingStmts = BindingStmts()
         self.defined = set()
@@ -83,7 +85,7 @@ class Analysis:
 
                 csCodeBlock = (emptyContextChain(), stmt.codeBlock)
                 self.addReachable(csCodeBlock)
-                self.callgraph.put(stmt, stmt.codeBlock)
+                # self.callgraph.put(csStmt, csCodeBlock)
                 
             elif(isinstance(stmt, NewFunction)):
                 obj = CSFunctionObject(csStmt)
@@ -100,7 +102,7 @@ class Analysis:
                 
                 csCodeBlock = (ctx, stmt.codeBlock)
                 self.addReachable(csCodeBlock)
-                self.callgraph.put(csStmt, csCodeBlock)
+                # self.callgraph.put(csStmt, csCodeBlock)
                 
                 self.classHiearchy.addClass(obj)
                 self.persist_attr[obj] = {}
@@ -155,6 +157,7 @@ class Analysis:
         self.addReachable((emptyContextChain(), entry))
 
         while(len(self.workList) > 0):
+            print(f"\rPTA worklist remains {len(self.workList)} to process.            ", end="")
             ptr, objs = self.workList[0]
             del self.workList[0]
 
@@ -221,6 +224,8 @@ class Analysis:
         childAttr = AttrPtr(classObj, FAKE_PREFIX + attr)
         for i in range(start, len(mro)):
             parent = mro[i]
+            if(parent is None):
+                break
             parentAttr = AttrPtr(parent, attr)
             self.addFlow(parentAttr, childAttr)
             if(attr in self.persist_attr[parent]):
@@ -278,7 +283,7 @@ class Analysis:
             for attr in self.pointToSet.getAllAttr(classObj):
                 if(isFakeAttr(attr)):
                     attr = attr[len(FAKE_PREFIX):]
-                    self.resolveAttribute(classObj, attr, mro, 0)
+                    self.resolveAttribute(classObj, attr, (mro, 0))
 
     def processCall(self, csStmt: 'CS_Call', objs: Set[Object]):
         # print(f"Process Call: {csStmt}")
@@ -380,3 +385,26 @@ class Analysis:
 
     def getResult(self) -> Tuple[PointToSet, CallGraph, PointerFlow]:
         return self.pointToSet, self.callgraph, self.pointerFlow
+
+    def getFormattedCallGraph(self) -> Dict[str, List[str]]:
+        callgraph = self.callgraph.foldToCodeBlock()
+
+        callgraph = {caller.qualified_name:{callee.qualified_name for callee in callees if not callee.fake} for caller, callees in callgraph.items()}
+
+        # add builtins
+        # for ctx, cb in self.reachable:
+        #     for stmt in cb.stmts:
+        #         if(not isinstance(stmt, Call)):
+        #             continue
+        #         callee = CSVarPtr(ctx, stmt.callee)
+        #         if(self.pointToSet.get(callee)):
+        #             continue
+        #         # callee can not be found
+        #         for prec in self.pointerFlow.getPrecedents(callee):
+        #             if(isinstance(prec, AttrPtr) and isinstance(prec.obj, ModuleObject)):
+        #                 # add this callee come from a global name, of course this global name points to nothing
+        #                 # then we assume that, this is a builtin function
+        #                 callgraph[cb.qualified_name].add(f"<builtin>." + prec.attr)
+        for caller, callees in callgraph.items():
+            callgraph[caller] = list(callees)
+        return callgraph

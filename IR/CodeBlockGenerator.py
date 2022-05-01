@@ -205,7 +205,10 @@ class CodeBlockGenerator(ast.NodeTransformer):
         self.generic_visit(node)
         if(isinstance(node.value, ast.Attribute)):
             tmp = self.newTmpVariable()
-            GetAttr(tmp, node.value.value.var, node.value.attr, self.codeBlock, srcPos)   
+            if(isLoad(node)):
+                GetAttr(tmp, node.value.value.var, node.value.attr, self.codeBlock, srcPos)
+            elif(isStore(node)):
+                SetAttr(node.value.value.var, node.value.attr, tmp, self.codeBlock, srcPos)  
             node.value = VariableNode(tmp)
         return node
 
@@ -500,7 +503,7 @@ class CodeBlockGenerator(ast.NodeTransformer):
         if(sended):
             # def send(value):
             #    sended = value
-            send = FunctionCodeBlock(f"<{tmp.name}>send", self.codeBlock)
+            send = FunctionCodeBlock(f"<{tmp.name}>send", self.codeBlock, fake=True)
             value = Variable("value", send)
             send.posargs.append(value)
             send.kwargs["value"] = value
@@ -693,6 +696,7 @@ class CodeBlockGenerator(ast.NodeTransformer):
             tmp = self.newTmpVariable()
             NewClass(tmp, base, generator.codeBlock, self.codeBlock, srcPos)
             SetAttr(resolved.value.var, resolved.attr, tmp, self.codeBlock, srcPos)
+            
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> Any:
         return self.visit_FunctionDef(node)
 
@@ -739,7 +743,6 @@ class CodeBlockGenerator(ast.NodeTransformer):
                     # value might be a tuple
                     tmp = self.newTmpVariable()
                     GetAttr(tmp, value.var, f"${i}", self.codeBlock, srcPos)
-                    i += 1
                     self._handleAssign(elt, VariableNode(tmp), srcPos)
 
                     # value might be a list
@@ -756,8 +759,8 @@ class CodeBlockGenerator(ast.NodeTransformer):
 
     # set up __iter__() for a variable 
     def _makeIterator(self, v:Variable, elts:Set[Union[Variable, ast.Attribute]], srcPos):
-        iter = FunctionCodeBlock(f"{v.name}__iter__", self.codeBlock)
-        next = FunctionCodeBlock(f"{v.name}__next__", self.codeBlock)
+        iter = FunctionCodeBlock(f"{v.name}__iter__", self.codeBlock, fake=True)
+        next = FunctionCodeBlock(f"{v.name}__next__", self.codeBlock, fake=True)
         
 
         # v.__iter__ = new function
@@ -867,7 +870,7 @@ class FunctionCodeBlockGenerator(CodeBlockGenerator):
             tmp = self.newTmpVariable()
             codeBlock.kwarg = tmp
             SetAttr(kwarg, "$values", tmp, codeBlock, srcPos)
-            Assign(v, vararg, codeBlock, srcPos)
+            Assign(v, kwarg, codeBlock, srcPos)
             codeBlock.localVariables[args.kwarg.arg] = v
         
         # return None

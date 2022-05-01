@@ -71,13 +71,13 @@ class PointToSet:
             if(var not in self.varPtrSet):
                 return set()
             else:
-                return self.varPtrSet[var].copy()
+                return self.varPtrSet[var]
 
         elif(isinstance(pointer, AttrPtr)):
             o = pointer.obj
             f = pointer.attr
             try:
-                return self.attrPtrSet[o][f].copy()
+                return self.attrPtrSet[o][f]
             except(KeyError):
                 return set()
 

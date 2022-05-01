@@ -127,7 +127,8 @@ class CIInstanceObject(CIObject, InstanceObject):
         self.type = type
 
     def __str__(self):
-        return f"Instance {self.type.getCodeBlock().qualified_name}({self.alloc_site})"
+        cb = self.alloc_site.belongsTo
+        return f"Instance {self.type.getCodeBlock().qualified_name}({cb.qualified_name}-{cb.stmts.index(self.alloc_site)})"
     def __repr__(self):
         return self.__str__()
     
@@ -137,9 +138,14 @@ class CIBuiltinObject(CIObject, BuiltinObject):
 
     def getType(self):
         return self.alloc_site.type
-
+    def getValue(self):
+        return self.alloc_site.value
     def __str__(self):
-        return f"Builtin({self.alloc_site})"
+        v = self.getValue() 
+        if(v is not None):
+            return f"Builtin({v})"
+        cb = self.alloc_site.belongsTo
+        return f"Builtin {self.getType()}({cb.qualified_name}-{cb.stmts.index(self.alloc_site)})"
     def __repr__(self):
         return self.__str__()
     

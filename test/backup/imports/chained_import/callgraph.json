@@ -1,0 +1,1 @@
+{"__main__": ["from_import.func2"], "from_import.func2": ["chained_import.func1"]}

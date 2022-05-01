@@ -1,12 +1,12 @@
 from typing import Dict, List, Set, Tuple, Union
-from ..IR.CodeBlock import CodeBlock, FunctionCodeBlock, ModuleCodeBlock
+from ..IR.CodeBlock import ClassCodeBlock, CodeBlock, ModuleCodeBlock
 from ..IR.Stmts import Assign, Call, DelAttr, GetAttr, IRStmt, NewBuiltin, NewClass, NewFunction, NewModule, SetAttr, Variable
 from .ClassHiearchy import MRO, ClassHiearchy
-from .Objects import BuiltinObject, CIBuiltinObject, CIClassObject, CIFunctionObject, CIInstanceObject, ClassObject, FunctionObject, InstanceObject, MethodObject, ModuleObject, Object
+from .Objects import  CIBuiltinObject, CIClassObject, CIFunctionObject, CIInstanceObject, ClassObject, FunctionObject, InstanceObject, MethodObject, ModuleObject, Object
 from .BindingStmts import BindingStmts
 from .PointerFlow import PointerFlow
 from .Pointers import AttrPtr, Pointer, CIVarPtr
-from .CallGraph import CallGraph
+from .CallGraph import CICallGraph, CallGraph
 from .PointToSet import PointToSet
 
 FAKE_PREFIX = "$r_"
@@ -24,9 +24,9 @@ class Analysis:
     classHiearchy: ClassHiearchy
     persist_attr: Dict[ClassObject, Dict[str, Set[ResolveInfo]]]
     workList: List[Tuple[Pointer, Set[Object]]]
-    def __init__(self):
+    def __init__(self, verbose=False):
         self.pointToSet = PointToSet()
-        self.callgraph = CallGraph()
+        self.callgraph = CICallGraph()
         self.pointerFlow = PointerFlow()
         self.bindingStmts = BindingStmts()
         self.defined = set()
@@ -34,7 +34,7 @@ class Analysis:
         self.classHiearchy = ClassHiearchy(self.pointToSet)
         self.persist_attr = {}
         self.workList = []
-
+        self.verbose = verbose
     def addReachable(self, codeBlock: CodeBlock):
         if(codeBlock in self.reachable):
             return
@@ -57,7 +57,7 @@ class Analysis:
                 self.workList.append((targetPtr, {obj}))
                 self.workList.append((globalPtr, {obj}))
                 self.addReachable(stmt.codeBlock)
-                self.callgraph.put(stmt, stmt.codeBlock)
+                # self.callgraph.put(stmt, stmt.codeBlock)
                 
             elif(isinstance(stmt, NewFunction)):
                 obj = CIFunctionObject(stmt)
@@ -72,7 +72,7 @@ class Analysis:
                 self.workList.append((thisPtr, {obj}))
                 
                 self.addReachable(stmt.codeBlock)
-                self.callgraph.put(stmt, stmt.codeBlock)
+                # self.callgraph.put(stmt, stmt.codeBlock)
                 
                 self.classHiearchy.addClass(obj)
                 self.persist_attr[obj] = {}
@@ -126,7 +126,9 @@ class Analysis:
         self.addReachable(entry)
 
         while(len(self.workList) > 0):
-            print(f"\rPTA worklist remains {len(self.workList)} to process.            ", end="")
+            if(self.verbose):
+                print(f"\rPTA worklist remains {len(self.workList)} to process.            ", end="")
+
             ptr, objs = self.workList[0]
             del self.workList[0]
 
@@ -193,6 +195,8 @@ class Analysis:
         childAttr = AttrPtr(classObj, FAKE_PREFIX + attr)
         for i in range(start, len(mro)):
             parent = mro[i]
+            if(parent is None):
+                break
             parentAttr = AttrPtr(parent, attr)
             self.addFlow(parentAttr, childAttr)
             if(attr in self.persist_attr[parent]):
@@ -247,7 +251,7 @@ class Analysis:
             for attr in self.pointToSet.getAllAttr(classObj):
                 if(isFakeAttr(attr)):
                     attr = attr[len(FAKE_PREFIX):]
-                    self.resolveAttribute(classObj, attr, mro, 0)
+                    self.resolveAttribute(classObj, attr, (mro, 0))
 
     def processCall(self, stmt: Call, objs: Set[Object]):
         # print(f"Process Call: {stmt}")
@@ -336,5 +340,27 @@ class Analysis:
                     self.resolveAttribute(mro[0], attr, (mro, index + 1))
                 del self.persist_attr[obj][attr]
 
-    def getResult(self) -> Tuple[PointToSet, CallGraph, PointerFlow]:
-        return self.pointToSet, self.callgraph, self.pointerFlow
+    def getFormattedCallGraph(self) -> Dict[str, List[str]]:
+        callgraph = self.callgraph.foldToCodeBlock()
+        
+        callgraph = {caller.qualified_name:{callee.qualified_name for callee in callees if not callee.fake} for caller, callees in callgraph.items()}
+        # add builtins
+        # for cb in self.reachable:
+        #     for stmt in cb.stmts:
+        #         if(not isinstance(stmt, Call)):
+        #             continue
+        #         callee = CIVarPtr(stmt.callee)
+        #         if(self.pointToSet.get(callee)):
+        #             continue
+        #         for prec in self.pointerFlow.getPrecedents(callee):
+        #             if(isinstance(prec, AttrPtr) and isinstance(prec.obj, ModuleObject)):
+        #                 # add this callee come from a global name, of course this global name points to nothing
+        #                 # then we assume that, this is a builtin function
+        #                 callgraph[cb.qualified_name].add(f"<builtin>." + prec.attr)
+        for caller, callees in callgraph.items():
+            callgraph[caller] = list(callees)
+
+        return callgraph
+
+
+    
