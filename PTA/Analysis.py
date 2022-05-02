@@ -348,6 +348,7 @@ class Analysis:
         # print(f"Process Call: {stmt}")
         assert(isinstance(stmt, Call))
         varPtr = CIVarPtr(stmt.target)
+        newObjs = set()
         for obj in objs:
             if(isinstance(obj, FunctionObject)):
                 func = obj.getCodeBlock()
@@ -416,7 +417,7 @@ class Analysis:
            
             elif(isinstance(obj, ClassObject)):
                 insObj = CIInstanceObject(stmt, obj)
-                varPtr = CIVarPtr(stmt.target)
+                
                 # target <- instance.attr
                 insAttr = AttrPtr(insObj, FAKE_PREFIX + "__init__")
                 classAttr = AttrPtr(obj, FAKE_PREFIX + "__init__")
@@ -427,8 +428,8 @@ class Analysis:
                 initPtr = CIVarPtr(init)
                 self.addFlow(insAttr, initPtr)
                 self.addStmt(Call(Variable("", stmt.belongsTo), init, stmt.posargs, stmt.kwargs, stmt.belongsTo))
-                
-                self.workList.append((varPtr, {insObj}))
+                newObjs.add(insObj)
+        self.workList.append((varPtr, newObjs))
                 
     def matchArgParam(self, / , posArgs: List[CIVarPtr], 
                                 kwArgs: Dict[str, CIVarPtr], 
@@ -508,8 +509,6 @@ class Analysis:
                 
         self.workList.append((target, newObjs))
 
-                
-        self.workList.append((target, newObjs))
 
     def getFormattedCallGraph(self) -> Dict[str, List[str]]:
         callgraph = self.callgraph.foldToCodeBlock()

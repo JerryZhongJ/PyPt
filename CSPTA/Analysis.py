@@ -1,11 +1,11 @@
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Set, Tuple, Union
 import typing
 
 from .CSCallGraph import CSCallGraph
 if typing.TYPE_CHECKING:
-    from . import CS_Call, CS_DelAttr, CS_GetAttr, CS_NewClass, CS_SetAttr, CSCodeBlock, CSStmt, CS_NewClassMethod, CS_NewStaticMethod
+    from . import CS_Call, CS_DelAttr, CS_GetAttr, CS_NewClass, CS_SetAttr, CSCodeBlock, CSStmt, CS_NewClassMethod, CS_NewStaticMethod, CS_NewSuper
 
-from ..PTA.Objects import ClassMethodObject, ClassObject, FunctionObject, InstanceObject, InstanceMethodObject, ModuleObject, Object, StaticMethodObject
+from ..PTA.Objects import ClassMethodObject, ClassObject, FunctionObject, InstanceObject, InstanceMethodObject, ModuleObject, Object, StaticMethodObject, SuperObject
 from .CSPointers import CSVarPtr
 
 from .Context import emptyContextChain, selectContext
@@ -23,7 +23,7 @@ from ..PTA.PointToSet import PointToSet
 
 from ..PTA.ClassHiearchy import MRO, ClassHiearchy
 from ..IR.CodeBlock import ClassCodeBlock, CodeBlock, FunctionCodeBlock, ModuleCodeBlock
-from ..IR.Stmts import Assign, Call, DelAttr, GetAttr, IRStmt, NewBuiltin, NewClass, NewClassMethod, NewFunction, NewModule, NewStaticMethod, SetAttr, Variable
+from ..IR.Stmts import Assign, Call, DelAttr, GetAttr, IRStmt, NewBuiltin, NewClass, NewClassMethod, NewFunction, NewModule, NewStaticMethod, NewSuper, SetAttr, Variable
 
 
 FAKE_PREFIX = "$r_"
@@ -32,7 +32,10 @@ builtin_functions = ["abs", "aiter", "all", "any", "anext", "ascii", "bin", "boo
 
 def isFakeAttr(attr: str):
     return attr.startswith(FAKE_PREFIX)
-ResolveInfo = Tuple[MRO, int]
+
+
+Resolver = Union[ClassObject, SuperObject]
+ResolveInfo = Tuple[Resolver, MRO, int]
 
 class Analysis:
     pointToSet: PointToSet
@@ -161,6 +164,16 @@ class Analysis:
             self.bindingStmts.bindNewStaticMethod(varPtr, csStmt)
             self.processNewStaticMethod(csStmt, self.pointToSet.get(varPtr))
 
+        elif(isinstance(stmt, NewSuper)):
+            
+            varPtr = CSVarPtr(ctx, stmt.type)
+            self.bindingStmts.bindNewSuper_type(varPtr, csStmt)
+            self.processNewSuper_type(csStmt, self.pointToSet.get(varPtr))
+
+            varPtr = CSVarPtr(ctx, stmt.bound)
+            self.bindingStmts.bindNewSuper_bound(varPtr, csStmt)
+            self.processNewSuper_bound(csStmt, self.pointToSet.get(varPtr))
+
     def analyze(self, entry: ModuleCodeBlock):
         entryModule = ModuleObject(entry)
         self.workList.append((CSVarPtr(emptyContextChain(), entry.globalVariable), {entryModule}))
@@ -201,6 +214,12 @@ class Analysis:
 
             for csStmt in self.bindingStmts.getNewStaticMethod(ptr):
                 self.processNewStaticMethod(csStmt, objs)
+
+            for csStmt in self.bindingStmts.getNewSuper_type(ptr):
+                self.processNewSuper_type(csStmt, objs)
+
+            for csStmt in self.bindingStmts.getNewSuper_bound(ptr):
+                self.processNewSuper_bound(csStmt, objs)
             
     def addFlow(self, source: Pointer, target: Pointer):
         if(self.pointerFlow.put(source, target)):
@@ -213,29 +232,42 @@ class Analysis:
     def flow(self, source: Pointer, target: Pointer, objs: Set[Object]):
         # do some transform
         newObjs = objs
-        if(isinstance(source, AttrPtr) and isinstance(source.obj, ClassObject) 
-            and isinstance(target, AttrPtr) and isinstance(target.obj, InstanceObject)):
-            ins = target.obj
-            newObjs = set()
-            for obj in objs:
-                if(isinstance(obj, FunctionObject)):
-                    newObjs.add(InstanceMethodObject(ins, obj))
-                elif(isinstance(obj, ClassMethodObject)):
-                    func = obj.func
-                    newObjs.add(ClassMethodObject(ins.type, func))
+        if(isinstance(target, AttrPtr) and isFakeAttr(target.attr)):
+
+            if(isinstance(target.obj, InstanceObject)):
+                newObjs = self.transformObj_Instance(target.obj, objs)
+                
+            elif(isinstance(target.obj, ClassObject)):
+                newObjs = self.transformObj_Class(target.obj, objs)
+            elif(isinstance(target.obj, SuperObject)):
+                if(isinstance(target.obj.bound, InstanceObject)):
+                    newObjs = self.transformObj_Instance(target.obj.bound, objs)
                 else:
-                    newObjs.add(obj)
-        elif(isinstance(source, AttrPtr) and isinstance(source.obj, ClassObject) 
-            and isinstance(target, AttrPtr) and isinstance(target.obj, ClassObject)):
-            cls = target.obj
-            newObjs = set()
-            for obj in objs:
-                if(isinstance(obj, ClassMethodObject)):
-                    func = obj.func
-                    newObjs.add(ClassMethodObject(cls, func))
-                else:
-                    newObjs.add(obj)
+                    newObjs = self.transformObj_Class(target.obj.bound, objs)
+
         self.workList.append((target, newObjs))
+
+    def transformObj_Instance(self, insObj: InstanceObject, objs) -> Set[Object]:
+        newObjs = set()
+        for obj in objs:
+            if(isinstance(obj, FunctionObject)):
+                newObjs.add(InstanceMethodObject(insObj, obj))
+            elif(isinstance(obj, ClassMethodObject)):
+                func = obj.func
+                newObjs.add(ClassMethodObject(insObj.type, func))
+            else:
+                newObjs.add(obj)
+        return newObjs
+
+    def transformObj_Class(self, classObj: ClassObject, objs) -> Set[Object]:
+        newObjs = set()
+        for obj in objs:
+            if(isinstance(obj, ClassMethodObject)):
+                func = obj.func
+                newObjs.add(ClassMethodObject(classObj, func))
+            else:
+                newObjs.add(obj)
+        return newObjs
 
     def propagate(self, pointer: Pointer, objs: Set[Object]) -> Set:
         # Special condition: when source is a class object's attribute 
@@ -248,7 +280,7 @@ class Analysis:
         
     # classObj.$r_attr <- parent.attr
     # where parent is the first class that has this attr as its persistent attributes along MRO
-    def resolveAttribute(self, classObj: ClassObject, attr: str, resolveInfo: ResolveInfo):
+    def resolveAttribute(self, obj: Resolver, attr: str, resolveInfo: Tuple[MRO, int]):
         # if(not resolveInfo):
         #     if((FAKE_PREFIX + attr) in self.pointToSet.getAllAttr(classObj)):
                 
@@ -257,7 +289,7 @@ class Analysis:
         #         self.resolveAttribute(classObj, attr, (mro, 0))
         # else:
         mro, start = resolveInfo
-        childAttr = AttrPtr(classObj, FAKE_PREFIX + attr)
+        childAttr = AttrPtr(obj, FAKE_PREFIX + attr)
         for i in range(start, len(mro)):
             parent = mro[i]
             if(parent is None):
@@ -268,10 +300,27 @@ class Analysis:
                 self.persist_attr[parent][attr].add((mro, i))
                 break
 
-    def resolveAttrIfNot(self, classObj: ClassObject, attr: str):
-        if(FAKE_PREFIX + attr not in self.pointToSet.getAllAttr(classObj)):
+    def resolveAttrIfNot(self, obj: Resolver, attr: str):
+
+        if(FAKE_PREFIX + attr not in self.pointToSet.getAllAttr(obj)):
+            if(isinstance(obj, ClassObject)):
+                classObj = obj
+            elif(isinstance(obj, SuperObject)):
+                if(isinstance(obj.bound, InstanceObject)):
+                    classObj = obj.bound.type
+                else:
+                    classObj = obj.bound
+
             for mro in self.classHiearchy.getMROs(classObj):
-                self.resolveAttribute(classObj, attr, (mro, 0))
+                if(isinstance(obj, ClassObject)):
+                    start = 0
+                elif(isinstance(obj, SuperObject)):
+                    for start in range(len(mro)):
+                        if(mro[start] == obj.type):
+                            # start from the one right after type
+                            start += 1
+                            break
+                self.resolveAttribute(obj, attr, (mro, start))
 
     def processSetAttr(self, csStmt: 'CS_SetAttr', objs: Set[CSObject]):
         # print(f"Process SetAttr: {csStmt}")
@@ -290,18 +339,27 @@ class Analysis:
             if(isinstance(obj, InstanceObject)):
                 # target <- instance.attr
                 insAttr = AttrPtr(obj, stmt.attr)
+                insResAttr = AttrPtr(obj, FAKE_PREFIX + stmt.attr)
                 self.addFlow(insAttr, varPtr)
+                self.addFlow(insResAttr, varPtr)
                 classObj = obj.type
                 self.resolveAttrIfNot(classObj, stmt.attr)
                 # instance.attr <- class.$r_attr
                 classAttr = AttrPtr(classObj, FAKE_PREFIX + stmt.attr)
-                self.addFlow(classAttr, insAttr)
+                self.addFlow(classAttr, insResAttr)
 
             elif(isinstance(obj, ClassObject)):
                 self.resolveAttrIfNot(obj, stmt.attr)
                 # instance.attr <- class.$r_attr
                 classAttr = AttrPtr(obj, FAKE_PREFIX + stmt.attr)
                 self.addFlow(classAttr, varPtr)
+
+            elif(isinstance(obj, SuperObject)):
+                self.resolveAttrIfNot(obj, stmt.attr)
+                # instance.attr <- class.$r_attr
+                superAttr = AttrPtr(obj, FAKE_PREFIX + stmt.attr)
+                self.addFlow(superAttr, varPtr)
+
             else:
                 attrPtr = AttrPtr(obj, stmt.attr)
                 self.addFlow(attrPtr, varPtr)
@@ -326,6 +384,7 @@ class Analysis:
         assert(isinstance(csStmt[1], Call))
         ctx, stmt = csStmt
         varPtr = CSVarPtr(ctx, stmt.target)
+        newObjs = set()
         for obj in objs:
             if(isinstance(obj, CSFunctionObject)):
                 func = obj.getCodeBlock()
@@ -405,19 +464,19 @@ class Analysis:
 
             elif(isinstance(obj, ClassObject)):
                 insObj = CSInstanceObject(csStmt, obj)
-                varPtr = CSVarPtr(ctx, stmt.target)
                 # target <- instance.attr
-                insAttr = AttrPtr(insObj, "__init__")
+                insAttr = AttrPtr(insObj, FAKE_PREFIX + "__init__")
                 classAttr = AttrPtr(obj, FAKE_PREFIX + "__init__")
                 self.addFlow(classAttr, insAttr)
                 self.resolveAttrIfNot(obj, "__init__")
 
-                init = Variable(f"{obj.getCodeBlock().qualified_name}.__init__", stmt.belongsTo)
+                init = Variable(f"${obj.getCodeBlock().qualified_name}.__init__", stmt.belongsTo)
                 initPtr = CSVarPtr(ctx, init)
                 self.addFlow(insAttr, initPtr)
                 self.addStmt((ctx, Call(Variable("", stmt.belongsTo), init, stmt.posargs, stmt.kwargs, stmt.belongsTo)))
+                newObjs.add(insObj)
                 
-                self.workList.append((varPtr, {insObj}))
+        self.workList.append((varPtr, newObjs))
                 
     def matchArgParam(self, / , posArgs: List[CSVarPtr], 
                                 kwArgs: Dict[str, CSVarPtr], 
@@ -458,27 +517,49 @@ class Analysis:
     def processNewClassMethod(self, csStmt: 'CS_NewClassMethod', objs: Set[Object]):
         assert(isinstance(csStmt[1], NewClassMethod))
         ctx, stmt = csStmt
+        target = CSVarPtr(ctx, stmt.target)
+        newObjs = set()
         for obj in objs:
             if(isinstance(obj, FunctionObject) and isinstance(stmt.belongsTo, ClassCodeBlock)):
-                target = CSVarPtr(ctx, stmt.target)
-                newObjs = set()
                 for classObj in self.pointToSet.get(CSVarPtr(ctx, stmt.belongsTo.thisClassVariable)):
                     if(isinstance(classObj, ClassObject)):
                         classMethod = ClassMethodObject(classObj, obj)
                         newObjs.add(classMethod)
-                self.workList.append((target, newObjs))
+        self.workList.append((target, newObjs))
 
     def processNewStaticMethod(self, csStmt: 'CS_NewStaticMethod', objs: Set[Object]):
         assert(isinstance(csStmt[1], NewStaticMethod))
         ctx, stmt = csStmt
+        newObjs = set()
+        target = CSVarPtr(ctx, stmt.target)
         for obj in objs:
             if(isinstance(obj, FunctionObject) and isinstance(stmt.belongsTo, ClassCodeBlock)):
-                target = CSVarPtr(ctx, stmt.target)
                 staticMethod = StaticMethodObject(obj)
-                self.workList.append((target, {staticMethod}))
+                newObjs.add(staticMethod)
+        self.workList.append((target, newObjs))
 
-    def getResult(self) -> Tuple[PointToSet, CallGraph, PointerFlow]:
-        return self.pointToSet, self.callgraph, self.pointerFlow
+    def processNewSuper_type(self, csStmt: 'CS_NewSuper', objs: Set[Object]):
+        assert(isinstance(csStmt[1], NewSuper))
+        ctx, stmt = csStmt
+        newObjs = set()
+        target = CSVarPtr(ctx, stmt.target)
+        for obj in objs:
+            if(isinstance(obj, ClassObject)):
+                for boundObj in self.pointToSet.get(CSVarPtr(ctx, stmt.bound)):
+                    newObjs.add(SuperObject(obj, boundObj))
+        self.workList.append((target, newObjs))
+
+    def processNewSuper_bound(self, csStmt: 'CS_NewSuper', objs: Set[Object]):
+        assert(isinstance(csStmt[1], NewSuper))
+        ctx, stmt = csStmt
+        newObjs = set()
+        target = CSVarPtr(ctx, stmt.target)
+        for obj in objs:
+            if(isinstance(obj, ClassObject) or isinstance(obj, InstanceObject)):
+                for typeObj in self.pointToSet.get(CSVarPtr(ctx, stmt.type)):
+                    newObjs.add(SuperObject(typeObj, obj))
+                
+        self.workList.append((target, newObjs))
 
     def getFormattedCallGraph(self) -> Dict[str, List[str]]:
         callgraph = self.callgraph.foldToCodeBlock()
