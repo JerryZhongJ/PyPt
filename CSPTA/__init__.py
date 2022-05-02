@@ -2,7 +2,7 @@ from typing import Tuple, Union
 
 from ..IR.CodeBlock import CodeBlock
 
-from ..IR.Stmts import Assign, Call, DelAttr, GetAttr, IRStmt, NewBuiltin, NewClass, NewFunction, NewModule, SetAttr
+from ..IR.Stmts import Assign, Call, DelAttr, GetAttr, IRStmt, NewBuiltin, NewClass, NewClassMethod, NewFunction, NewModule, NewStaticMethod, SetAttr
 
 from .Context import ContextChain
 
@@ -19,3 +19,5 @@ CS_NewClass = Tuple[ContextChain, NewClass]
 CS_NewFunction = Tuple[ContextChain, NewFunction]
 CS_NewBuiltin = Tuple[ContextChain, NewBuiltin]
 CS_Call = Tuple[ContextChain, Call]
+CS_NewClassMethod = Tuple[ContextChain, NewClassMethod]
+CS_NewStaticMethod = Tuple[ContextChain, NewStaticMethod]

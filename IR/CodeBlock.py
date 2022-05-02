@@ -45,19 +45,10 @@ class CodeBlock:
         filename = self.qualified_name[len(self.moduleName):] + ".ir"
         path = os.path.join(path, filename)
         with open(path, "w") as f:
-            lines = [(str(stmt), f"{stmt.srcPos[0]},{stmt.srcPos[1]}", f"{stmt.srcPos[2]},{stmt.srcPos[3]}") for stmt in self.stmts]
-            colwidth0 = 0
-            colwidth1 = 0
-            for line in lines:
-                w0 = len(line[0])
-                w1 = len(line[1])
-                colwidth0 = w0 if w0 > colwidth0 else colwidth0
-                colwidth1 = w1 if w1 > colwidth1 else colwidth1
-            for line in lines:
-                print(f"{line[0]:<{colwidth0}}    {line[1]:<{colwidth1}} - {line[2]}", file=f)
-            for ir in self.stmts:
-                if(isinstance(ir, NewClass) or isinstance(ir, NewFunction)):
-                    ir.codeBlock.dump(rootDirectory)
+            for stmt in self.stmts:
+                print(str(stmt), file=f)
+                if(isinstance(stmt, NewClass) or isinstance(stmt, NewFunction)):
+                    stmt.codeBlock.dump(rootDirectory)
                 
     def __hash__(self):
         return hash(self.qualified_name)

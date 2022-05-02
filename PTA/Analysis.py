@@ -1,8 +1,8 @@
 from typing import Dict, List, Set, Tuple, Union
 from ..IR.CodeBlock import ClassCodeBlock, CodeBlock, ModuleCodeBlock
-from ..IR.Stmts import Assign, Call, DelAttr, GetAttr, IRStmt, NewBuiltin, NewClass, NewFunction, NewModule, SetAttr, Variable
+from ..IR.Stmts import Assign, Call, DelAttr, GetAttr, IRStmt, NewBuiltin, NewClass, NewClassMethod, NewFunction, NewModule, NewStaticMethod, SetAttr, Variable
 from .ClassHiearchy import MRO, ClassHiearchy
-from .Objects import  CIBuiltinObject, CIClassObject, CIFunctionObject, CIInstanceObject, ClassObject, FunctionObject, InstanceObject, MethodObject, ModuleObject, Object
+from .Objects import  CIBuiltinObject, CIClassObject, CIFunctionObject, CIInstanceObject, ClassMethodObject, ClassObject, FunctionObject, InstanceObject, InstanceMethodObject, ModuleObject, Object, StaticMethodObject
 from .BindingStmts import BindingStmts
 from .PointerFlow import PointerFlow
 from .Pointers import AttrPtr, Pointer, CIVarPtr
@@ -10,6 +10,7 @@ from .CallGraph import CICallGraph, CallGraph
 from .PointToSet import PointToSet
 
 FAKE_PREFIX = "$r_"
+builtin_functions = ["abs", "aiter", "all", "any", "anext", "ascii", "bin", "bool", "breakpoint", "bytearray", "bytes", "callable", "chr", "classmethod", "compile", "complex", "delattr", "dict", "dir", "divmod", "enumerate", "eval", "exec", "filter", "float", "format", "frozenset", "getattr", "globals", "hasattr", "hash", "help", "hex", "id", "input", "int", "isinstance", "issubclass", "iter", "len", "list", "locals", "map", "max", "memoryview", "min", "next", "object", "oct", "open", "ord", "pow", "print", "property", "range", "repr", "reversed", "round", "set", "setattr", "slice", "sorted", "staticmethod", "str", "sum", "super", "tuple", "type", "vars", "zip", "__import__"]
 
 def isFakeAttr(attr: str):
     return attr.startswith(FAKE_PREFIX)
@@ -118,6 +119,17 @@ class Analysis:
             varPtr = CIVarPtr(stmt.var)
             self.bindingStmts.bindDelAttr(varPtr, stmt)
             self.processDelAttr(stmt, self.pointToSet.get(varPtr))
+        
+        elif(isinstance(stmt, NewClassMethod)):
+            varPtr = CIVarPtr(stmt.func)
+            self.bindingStmts.bindNewClassMethod(varPtr, stmt)
+            self.processNewClassMethod(stmt, self.pointToSet.get(varPtr))
+
+        elif(isinstance(stmt, NewStaticMethod)):
+            varPtr = CIVarPtr(stmt.func)
+            self.bindingStmts.bindNewStaticMethod(varPtr, stmt)
+            self.processNewStaticMethod(stmt, self.pointToSet.get(varPtr))
+
 
     def analyze(self, entry: ModuleCodeBlock):
         entryModule = ModuleObject(entry)
@@ -154,6 +166,12 @@ class Analysis:
 
             for stmt in self.bindingStmts.getDelAttr(ptr):
                 self.processDelAttr(stmt, objs)
+
+            for stmt in self.bindingStmts.getNewClassMethod(ptr):
+                self.processNewClassMethod(stmt, objs)
+
+            for stmt in self.bindingStmts.getNewStaticMethod(ptr):
+                self.processNewStaticMethod(stmt, objs)
             
     def addFlow(self, source: Pointer, target: Pointer):
         if(self.pointerFlow.put(source, target)):
@@ -169,7 +187,25 @@ class Analysis:
         if(isinstance(source, AttrPtr) and isinstance(source.obj, ClassObject) 
             and isinstance(target, AttrPtr) and isinstance(target.obj, InstanceObject)):
             ins = target.obj
-            newObjs = {MethodObject(ins, obj) if isinstance(obj, FunctionObject) else obj for obj in objs}
+            newObjs = set()
+            for obj in objs:
+                if(isinstance(obj, FunctionObject)):
+                    newObjs.add(InstanceMethodObject(ins, obj))
+                elif(isinstance(obj, ClassMethodObject)):
+                    func = obj.func
+                    newObjs.add(ClassMethodObject(ins.type, func))
+                else:
+                    newObjs.add(obj)
+        elif(isinstance(source, AttrPtr) and isinstance(source.obj, ClassObject) 
+            and isinstance(target, AttrPtr) and isinstance(target.obj, ClassObject)):
+            cls = target.obj
+            newObjs = set()
+            for obj in objs:
+                if(isinstance(obj, ClassMethodObject)):
+                    func = obj.func
+                    newObjs.add(ClassMethodObject(cls, func))
+                else:
+                    newObjs.add(obj)
         self.workList.append((target, newObjs))
 
     def propagate(self, pointer: Pointer, objs: Set[Object]) -> Set:
@@ -273,7 +309,7 @@ class Analysis:
                 self.callgraph.put(stmt, func)
                 
                 
-            elif(isinstance(obj, MethodObject)):
+            elif(isinstance(obj, InstanceMethodObject)):
                 func = obj.func.getCodeBlock()
                 posParams = [CIVarPtr(param) for param in func.posargs]
                 
@@ -290,6 +326,38 @@ class Analysis:
                 self.addFlow(retVar, resVar)
                 self.callgraph.put(stmt, func)
                 self.addReachable(func)
+
+            elif(isinstance(obj, ClassMethodObject)):
+                func = obj.func.getCodeBlock()
+                posParams = [CIVarPtr(param) for param in func.posargs]
+                
+                self.workList.append((posParams[0], {obj.classObj}))
+                del posParams[0]
+                self.matchArgParam(posArgs=         [CIVarPtr(posArg) for posArg in stmt.posargs],
+                                    kwArgs=         {kw:CIVarPtr(kwarg) for kw, kwarg in stmt.kwargs.items()},
+                                    posParams=      posParams,
+                                    kwParams=       {kw:CIVarPtr(kwOnlyParam) for kw, kwOnlyParam in func.kwargs.items()},
+                                    varParam=       CIVarPtr(func.vararg) if func.vararg else None,
+                                    kwParam=        CIVarPtr(func.kwarg) if func.kwarg else None)
+                retVar = CIVarPtr(func.returnVariable)
+                resVar = CIVarPtr(stmt.target)
+                self.addFlow(retVar, resVar)
+                self.callgraph.put(stmt, func)
+                self.addReachable(func)
+
+            elif(isinstance(obj, StaticMethodObject)):
+                func = obj.func.getCodeBlock()
+                self.matchArgParam(posArgs=         [CIVarPtr(posArg) for posArg in stmt.posargs],
+                                    kwArgs=         {kw:CIVarPtr(kwarg) for kw, kwarg in stmt.kwargs.items()},
+                                    posParams=      [CIVarPtr(param) for param in func.posargs],
+                                    kwParams=       {kw:CIVarPtr(kwOnlyParam) for kw, kwOnlyParam in func.kwargs.items()},
+                                    varParam=       CIVarPtr(func.vararg) if func.vararg else None,
+                                    kwParam=        CIVarPtr(func.kwarg) if func.kwarg else None)
+                retVar = CIVarPtr(func.returnVariable)
+                resVar = CIVarPtr(stmt.target)
+                self.addFlow(retVar, resVar)
+                self.addReachable(func)
+                self.callgraph.put(stmt, func) 
            
             elif(isinstance(obj, ClassObject)):
                 insObj = CIInstanceObject(stmt, obj)
@@ -340,23 +408,47 @@ class Analysis:
                     self.resolveAttribute(mro[0], attr, (mro, index + 1))
                 del self.persist_attr[obj][attr]
 
+    def processNewClassMethod(self, stmt: NewClassMethod, objs: Set[Object]):
+        assert(isinstance(stmt, NewClassMethod))
+        for obj in objs:
+            if(isinstance(obj, FunctionObject) and isinstance(stmt.belongsTo, ClassCodeBlock)):
+                target = CIVarPtr(stmt.target)
+                newObjs = set()
+                for classObj in self.pointToSet.get(CIVarPtr(stmt.belongsTo.thisClassVariable)):
+                    if(isinstance(classObj, ClassObject)):
+                        classMethod = ClassMethodObject(classObj, obj)
+                        newObjs.add(classMethod)
+                self.workList.append((target, newObjs))
+
+    def processNewStaticMethod(self, stmt: NewStaticMethod, objs: Set[Object]):
+        assert(isinstance(stmt, NewStaticMethod))
+        for obj in objs:
+            if(isinstance(obj, FunctionObject) and isinstance(stmt.belongsTo, ClassCodeBlock)):
+                target = CIVarPtr(stmt.target)
+                staticMethod = StaticMethodObject(obj)
+                self.workList.append((target, {staticMethod}))
+
     def getFormattedCallGraph(self) -> Dict[str, List[str]]:
         callgraph = self.callgraph.foldToCodeBlock()
         
         callgraph = {caller.qualified_name:{callee.qualified_name for callee in callees if not callee.fake} for caller, callees in callgraph.items()}
         # add builtins
-        # for cb in self.reachable:
-        #     for stmt in cb.stmts:
-        #         if(not isinstance(stmt, Call)):
-        #             continue
-        #         callee = CIVarPtr(stmt.callee)
-        #         if(self.pointToSet.get(callee)):
-        #             continue
-        #         for prec in self.pointerFlow.getPrecedents(callee):
-        #             if(isinstance(prec, AttrPtr) and isinstance(prec.obj, ModuleObject)):
-        #                 # add this callee come from a global name, of course this global name points to nothing
-        #                 # then we assume that, this is a builtin function
-        #                 callgraph[cb.qualified_name].add(f"<builtin>." + prec.attr)
+        for cb in self.reachable:
+            for stmt in cb.stmts:
+                if(not isinstance(stmt, Call)):
+                    continue
+                callee = CIVarPtr(stmt.callee)
+                if(self.pointToSet.get(callee)):
+                    continue
+                for prec in self.pointerFlow.getPrecedents(callee):
+                    if(isinstance(prec, AttrPtr) and isinstance(prec.obj, ModuleObject) and prec.attr in builtin_functions):
+                        # add this callee come from a global name, of course this global name points to nothing
+                        # then we assume that, this is a builtin function
+                        if(cb.qualified_name not in callgraph):
+                            callgraph[cb.qualified_name] = set()
+                        
+                        callgraph[cb.qualified_name].add(f"<builtin>." + prec.attr)
+
         for caller, callees in callgraph.items():
             callgraph[caller] = list(callees)
 

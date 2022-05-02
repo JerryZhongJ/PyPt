@@ -20,15 +20,7 @@ class ContextElement:
         return hash(self.key)
     def __str__(self):
         return f""
-class CallSiteContextElement(ContextElement):
-    key: IRStmt
-    def __str__(self):
-        return f"{self.key.belongsTo.qualified_name}-{self.key.belongsTo.stmts.index(self.key)}"
 
-class ObjectContextElement(ContextElement):
-    key: Tuple[IRStmt, IRStmt]
-    def __str__(self):
-        return f""
 
 # Context consists of ContextElement, the newest are placed at the end, the first which is ctx[0] is the oldest
 # when context is full, the first element is dropped
@@ -44,7 +36,7 @@ def emptyContextChain():
 
 # callsite
 def selectContext(csCallSite: 'CSStmt', selfObj: 'CSObject') -> Context:
-    return selectObjectContext(csCallSite, selfObj)
+    return selectMixedContext(csCallSite, selfObj)
 
 def selectCallSiteContext(csCallSite: 'CSStmt', selfObj: 'CSObject') -> Context:
     ctx, callsite = csCallSite
@@ -72,3 +64,9 @@ def selectObjectContext(csCallSite: 'CSStmt', selfObj: 'CSObject') -> Context:
         else:
             tail = ctx[-1]
         return *tail[1:], ContextElement(alloc_site)
+
+def selectMixedContext(csCallSite: 'CSStmt', selfObj: 'CSObject') -> Context:
+    if(selfObj):
+        return selectObjectContext(csCallSite, selfObj)
+    else:
+        return selectCallSiteContext(csCallSite, selfObj)

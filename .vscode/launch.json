@@ -5,6 +5,7 @@
     "version": "0.2.0",
     "configurations": [
 
+
         {
             "name": "Python: Current File",
             "type": "python",
@@ -30,10 +31,10 @@
             "justMyCode": true
         },
         {
-            "name": "Test Import",
+            "name": "Single Test",
             "type": "python",
             "request": "launch",
-            "module": "Python-PTA.test.TestImport",
+            "module": "Python-PTA.test.SingleTest",
             "cwd": "${workspaceFolder}/..",
             "justMyCode": true
         },

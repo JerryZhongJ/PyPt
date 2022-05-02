@@ -27,6 +27,7 @@ class CSCallGraph(CallGraph):
         for csStmt, csCallees in self.callgraph.items():
             stmt = csStmt[1]
             caller = stmt.belongsTo
-            
+            if(caller not in callgraph):
+                callgraph[caller] = set()
             callgraph[caller] |= {callee for ctx, callee in csCallees}
         return callgraph

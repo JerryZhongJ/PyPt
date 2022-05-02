@@ -38,10 +38,12 @@ class TestPTA(unittest.TestCase):
         
         self.assertEqual(output, expected)
 
-def getTemplate(path):
-    return lambda self: self._test(os.path.join(path, "main.py"))
-    
+
 if __name__ == "__main__":
+    def getTemplate(path):
+        return lambda self: self._test(os.path.join(path, "main.py"))
+
+    exclude = [("builtins", "types"), ("builtins", "map"), ("mro", "super_call"), ("generators", "iterable"), ("decorators", "assigned")]
     resourcePath = os.path.join(os.path.dirname(__file__), "resources")
     for item in os.listdir(resourcePath):
         itemPath = os.path.join(resourcePath, item)
@@ -50,6 +52,8 @@ if __name__ == "__main__":
         for subitem in os.listdir(itemPath):
             subitemPath = os.path.join(itemPath, subitem)
             if(not os.path.isdir(subitemPath)):
+                continue
+            if((item, subitem) in exclude):
                 continue
             
             setattr(TestPTA, f"test_{item}_{subitem}", getTemplate(subitemPath))

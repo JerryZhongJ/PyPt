@@ -1,5 +1,5 @@
 
-from ...ModuleManager import ModuleManager
+from ..ModuleManager import ModuleManager
 
 import shutil
 import os

@@ -54,7 +54,7 @@ def test(moduleManager: ModuleManager):
     print("")
     print("Done")
 
-testScript("generators/yield/main.py")
+testScript("decorators/nested_decorators/main.py")
 # test("ArgMatch")
 # testScript("MRO")
 # test("Container")

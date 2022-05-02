@@ -63,18 +63,47 @@ class BuiltinObject(Object):
     def getType(self) -> str:
         pass
 
-class MethodObject(Object):
+class InstanceMethodObject(Object):
     selfObj: InstanceObject
     func: FunctionObject
     def __eq__(self, other):
-        return isinstance(other, MethodObject) and self.selfObj == other.selfObj and self.func == other.func
+        return isinstance(other, InstanceMethodObject) and self.selfObj == other.selfObj and self.func == other.func
     def __hash__(self):
         return hash((self.selfObj, self.func))
     def __init__(self, selfObj, func):
         self.selfObj = selfObj
         self.func = func
     def __str__(self):
-        return f"Method(self: {self.selfObj}, {self.func})"
+        return f"InstanceMethod(self: {self.selfObj}, {self.func})"
+    def __repr__(self):
+        return self.__str__()
+
+class ClassMethodObject(Object):
+    classObj: InstanceObject
+    func: FunctionObject
+    def __eq__(self, other):
+        return isinstance(other, ClassMethodObject) and self.classObj == other.classObj and self.func == other.func
+    def __hash__(self):
+        return hash((self.classObj, self.func))
+    def __init__(self, classObj, func):
+        self.classObj = classObj
+        self.func = func
+    def __str__(self):
+        return f"ClassMethod(cls: {self.classObj}, {self.func})"
+    def __repr__(self):
+        return self.__str__()
+
+class StaticMethodObject(Object):
+    
+    func: FunctionObject
+    def __eq__(self, other):
+        return isinstance(other, ClassMethodObject) and self.func == other.func
+    def __hash__(self):
+        return hash(self.func)
+    def __init__(self, func):
+        self.func = func
+    def __str__(self):
+        return f"StaticMethod({self.func})"
     def __repr__(self):
         return self.__str__()
 
