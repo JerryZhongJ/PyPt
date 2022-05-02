@@ -313,14 +313,25 @@ class CodeBlockGenerator(ast.NodeTransformer):
         return VariableNode(tmp)
 
     def visit_Call(self, node: ast.Call) -> Any:
-        
+        # special case: super()
+        # TODO: too ugly! model builtin functions in the future
+        tmp = self.newTmpVariable()
+        if(isinstance(node.func, ast.Name) and node.func.id == "super"):
+            type = None
+            bound = None
+            if(len(node.args) > 0):
+                type = self.visit(node.args[0]).var
+            if(len(node.args) > 1):
+                bound = self.visit(node.args[1]).var
+            
+            NewSuper(tmp, type, bound, self.codeBlock)
+            
         self.generic_visit(node)
-
         assert(isinstance(node.func, VariableNode))
         # Starred is not supported so far
         args = [v.var for v in node.args if isinstance(v, VariableNode)]
         keywords = {kw.arg:kw.value.var for kw in node.keywords}
-        tmp = self.newTmpVariable()
+        
         Call(tmp, node.func.var, args, keywords, self.codeBlock)
         return VariableNode(tmp)
 

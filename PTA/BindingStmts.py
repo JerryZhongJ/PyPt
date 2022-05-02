@@ -1,6 +1,6 @@
 from typing import Dict, Set, Tuple
 
-from ..IR.Stmts import Assign, Call, DelAttr, GetAttr, NewClass, NewClassMethod, NewStaticMethod, SetAttr
+from ..IR.Stmts import Assign, Call, DelAttr, GetAttr, NewClass, NewClassMethod, NewStaticMethod, NewSuper, SetAttr
 
 from .Pointers import VarPtr
 
@@ -12,10 +12,17 @@ CALL = 3
 DELATTR = 4
 NEWSTATICMETHOD = 5
 NEWCLASSMETHOD = 6
+NEWSUPER_TYPE = 7
+NEWSUPER_BOUND = 8
+STMT_NUM = 9
+
 class BindingStmts:
     bindings: Tuple[Dict[VarPtr, Set], ...]
     def __init__(self):
-        self.bindings = {}, {}, {}, {}, {}, {}, {}
+        l = []
+        for i in range(STMT_NUM):
+            l.append({})
+        self.bindings = *l,
 
 
     def bindSetAttr(self, varPtr: VarPtr, stmt: SetAttr):
@@ -53,6 +60,17 @@ class BindingStmts:
             self.bindings[NEWCLASSMETHOD][varPtr] = set()
         self.bindings[NEWCLASSMETHOD][varPtr].add(stmt)
 
+    def bindNewSuper_type(self, varPtr, stmt):
+        if(varPtr not in self.bindings[NEWSUPER_TYPE]):
+            self.bindings[NEWSUPER_TYPE][varPtr] = set()
+        self.bindings[NEWSUPER_TYPE][varPtr].add(stmt)
+
+    
+    def bindNewSuper_bound(self, varPtr, stmt):
+        if(varPtr not in self.bindings[NEWSUPER_BOUND]):
+            self.bindings[NEWSUPER_BOUND][varPtr] = set()
+        self.bindings[NEWSUPER_BOUND][varPtr].add(stmt)
+
     def getSetAttr(self, varPtr) -> Set[SetAttr]:
         if(varPtr not in self.bindings[SETATTR]):
             return set()
@@ -71,17 +89,29 @@ class BindingStmts:
         else:
             return self.bindings[NEWCLASS][varPtr]
 
-    def getNewClassMethod(self, varPtr) -> Set[Tuple[NewClassMethod, int]]:
+    def getNewClassMethod(self, varPtr) -> Set[NewClassMethod]:
         if(varPtr not in self.bindings[NEWCLASSMETHOD]):
             return set()
         else:
             return self.bindings[NEWCLASSMETHOD][varPtr]
 
-    def getNewStaticMethod(self, varPtr) -> Set[Tuple[NewStaticMethod, int]]:
+    def getNewStaticMethod(self, varPtr) -> Set[NewStaticMethod]:
         if(varPtr not in self.bindings[NEWSTATICMETHOD]):
             return set()
         else:
             return self.bindings[NEWSTATICMETHOD][varPtr]
+
+    def getNewSuper_type(self, varPtr) -> Set[NewSuper]:
+        if(varPtr not in self.bindings[NEWSUPER_TYPE]):
+            return set()
+        else:
+            return self.bindings[NEWSUPER_TYPE][varPtr]
+
+    def getNewSuper_bound(self, varPtr) -> Set[NewSuper]:
+        if(varPtr not in self.bindings[NEWSUPER_BOUND]):
+            return set()
+        else:
+            return self.bindings[NEWSUPER_BOUND][varPtr]
 
     def getCall(self, varPtr) -> Set[Call]:
         if(varPtr not in self.bindings[CALL]):
@@ -90,10 +120,10 @@ class BindingStmts:
             return self.bindings[CALL][varPtr]
 
     def getDelAttr(self, varPtr) -> Set[DelAttr]:
-        if(varPtr not in self.bindings):
+        if(varPtr not in self.bindings[DELATTR]):
             return set()
         else:
-            return self.bindings[varPtr][DELATTR]
+            return self.bindings[DELATTR][varPtr]
 
     
 

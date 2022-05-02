@@ -43,7 +43,7 @@ if __name__ == "__main__":
     def getTemplate(path):
         return lambda self: self._test(os.path.join(path, "main.py"))
 
-    exclude = [("builtins", "types"), ("builtins", "map"), ("mro", "super_call"), ("generators", "iterable"), ("decorators", "assigned")]
+    exclude = [("builtins", "types"), ("builtins", "map"), ("generators", "iterable"), ("decorators", "assigned")]
     resourcePath = os.path.join(os.path.dirname(__file__), "resources")
     for item in os.listdir(resourcePath):
         itemPath = os.path.join(resourcePath, item)

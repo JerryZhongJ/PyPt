@@ -1,4 +1,4 @@
-from typing import Any, List, Set
+from typing import Any, List, Set, Union
 
 from .Pointers import CIVarPtr, VarPtr
 
@@ -104,6 +104,21 @@ class StaticMethodObject(Object):
         self.func = func
     def __str__(self):
         return f"StaticMethod({self.func})"
+    def __repr__(self):
+        return self.__str__()
+
+class SuperObject(Object):
+    type: ClassObject
+    bound: Union[ClassObject, InstanceObject]
+    def __eq__(self, other):
+        return isinstance(other, SuperObject) and self.type == other.type and self.bound == other.bound
+    def __hash__(self):
+        return hash((self.type, self.bound))
+    def __init__(self, type, bound):
+        self.type = type
+        self.bound = bound
+    def __str__(self):
+        return f"Super({self.type}, {self.bound})"
     def __repr__(self):
         return self.__str__()
 

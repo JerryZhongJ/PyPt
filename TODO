@@ -2,3 +2,4 @@ more complicated mro, delete class attribute
 class method, call by subclass, call by subclass's instance
 class attribute
 static method
+complicated super

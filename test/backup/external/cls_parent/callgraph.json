@@ -1,1 +1,0 @@
-{"__main__": ["__main__.A.fn", "ext.parent.__init__"], "__main__.A.fn": ["ext.parent.parent_fn"]}

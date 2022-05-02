@@ -1,5 +1,5 @@
 
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Union
 import typing
 
 if typing.TYPE_CHECKING:
@@ -163,6 +163,17 @@ class NewClassMethod(New):
         self.func = func
     def __str__(self):
          return f"{self.target} = New Class Method({self.func})"
+
+# type, bound can both be None!
+class NewSuper(New):
+    type: Union[Variable, None]                 # Important: None-able!
+    bound: Union[Variable, None]                # Important: None-able!
+    def __init__(self, target: Variable, type: Union[Variable, None], bound: Union[Variable, None],belongsTo: 'CodeBlock'):
+        super().__init__(target, 'classmethod', belongsTo)
+        self.type = type
+        self.bound = bound
+    def __str__(self):
+         return f"{self.target} = New Super({self.type if self.type else ''}{f', {self.bound}' if self.bound else ''})"
 
 # Important: calling a class object equarls to creating an instance! 
 # adding a function/module code block should add all class code block inside!
