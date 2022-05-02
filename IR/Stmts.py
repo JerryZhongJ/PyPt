@@ -70,8 +70,8 @@ class SetAttr(IRStmt):
         self.source = source
         self.attr = attr
         # $global.attr = v
-        if(target == belongsTo.globalVariable):
-            target.belongsTo.globalNames.add(attr)
+        if(target == belongsTo.module.globalVariable):
+            target.belongsTo.module.globalNames.add(attr)
 
     def __str__(self):
         return  f"{self.target}.{self.attr} = {self.source}"
@@ -110,7 +110,7 @@ class NewModule(New):
         self.codeBlock = codeBlock
 
     def __str__(self):
-        return f"{self.target} = NewModule {self.codeBlock.moduleName if self.codeBlock else ''}"
+        return f"{self.target} = NewModule {self.codeBlock.name if self.codeBlock else ''}"
 
 class NewFunction(New):
     codeBlock: 'FunctionCodeBlock'
@@ -164,10 +164,10 @@ class NewClassMethod(New):
     def __str__(self):
          return f"{self.target} = New Class Method({self.func})"
 
-# type, bound can both be None!
+
 class NewSuper(New):
-    type: Union[Variable, None]                 # Important: None-able!
-    bound: Union[Variable, None]                # Important: None-able!
+    type: Variable
+    bound: Variable
     def __init__(self, target: Variable, type: Union[Variable, None], bound: Union[Variable, None],belongsTo: 'CodeBlock'):
         super().__init__(target, 'classmethod', belongsTo)
         self.type = type

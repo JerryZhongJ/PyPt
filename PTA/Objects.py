@@ -15,13 +15,13 @@ class ModuleObject(Object):
     def __eq__(self, other):
         return isinstance(other, ModuleObject) and other.codeBlock == self.codeBlock
     def __hash__(self):
-        return hash(self.codeBlock.moduleName)
+        return hash(self.codeBlock.name)
     def __init__(self, codeBlock: ModuleCodeBlock):
         self.codeBlock = codeBlock
     def getModuleName(self):
-        return self.codeBlock.moduleName
+        return self.codeBlock.name
     def __str__(self):
-        return f"Module({self.codeBlock.moduleName})"
+        return f"Module({self.codeBlock.name})"
     def __repr__(self):
         return self.__str__()
 

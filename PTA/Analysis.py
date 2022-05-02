@@ -135,23 +135,16 @@ class Analysis:
             self.processNewStaticMethod(stmt, self.pointToSet.get(varPtr))
 
         elif(isinstance(stmt, NewSuper)):
-            if(stmt.type and stmt.bound):
-                varPtr = CIVarPtr(stmt.type)
-                self.bindingStmts.bindNewSuper_type(varPtr, stmt)
-                self.processNewSuper_type(stmt, self.pointToSet.get(varPtr))
+            
+            varPtr = CIVarPtr(stmt.type)
+            self.bindingStmts.bindNewSuper_type(varPtr, stmt)
+            self.processNewSuper_type(stmt, self.pointToSet.get(varPtr))
 
-                varPtr = CIVarPtr(stmt.bound)
-                self.bindingStmts.bindNewSuper_bound(varPtr, stmt)
-                self.processNewSuper_bound(stmt, self.pointToSet.get(varPtr))
+            varPtr = CIVarPtr(stmt.bound)
+            self.bindingStmts.bindNewSuper_bound(varPtr, stmt)
+            self.processNewSuper_bound(stmt, self.pointToSet.get(varPtr))
 
-            if(not stmt.type and not stmt.bound
-                and isinstance(stmt.belongsTo, FunctionCodeBlock) and len(stmt.belongsTo.posargs) > 0):
-                # super() == super(self.__class, self)
-                # self should be the first param of this function
-                bound = stmt.belongsTo.posargs[0]
-                varPtr = CIVarPtr(bound)
-                self.bindingStmts.bindNewSuper_bound(varPtr, stmt)
-                self.processNewSuper_bound(stmt, self.pointToSet.get(varPtr))
+           
 
 
 
@@ -500,7 +493,6 @@ class Analysis:
         target = CIVarPtr(stmt.target)
         for obj in objs:
             if(isinstance(obj, ClassObject)):
-                
                 for boundObj in self.pointToSet.get(CIVarPtr(stmt.bound)):
                     newObjs.add(SuperObject(obj, boundObj))
         self.workList.append((target, newObjs))
@@ -511,17 +503,9 @@ class Analysis:
         target = CIVarPtr(stmt.target)
         for obj in objs:
             if(isinstance(obj, ClassObject) or isinstance(obj, InstanceObject)):
-                if(stmt.type):
-                    # super(C, obj)
-                    for boundObj in self.pointToSet.get(CIVarPtr(stmt.bound)):
-                        newObjs.add(SuperObject(obj, boundObj))
-                else:
-                    # super()
-                    if(isinstance(obj, InstanceObject)):
-                        typeObj = obj.type
-                    else:
-                        typeObj = obj
+                for typeObj in self.pointToSet.get(CIVarPtr(stmt.type)):
                     newObjs.add(SuperObject(typeObj, obj))
+                
         self.workList.append((target, newObjs))
 
                 

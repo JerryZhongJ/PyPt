@@ -35,12 +35,10 @@ def isDel(node: ast.AST) -> bool:
 # codeBlock can be any, but remember that its enclosing and enclosing's enclosing must be function
 def resolveName(codeBlock: CodeBlock, name: str) -> Union[VariableNode, ast.Attribute]:
     
-    if(isinstance(codeBlock, ModuleCodeBlock)):
-        return makeAttribute(codeBlock.globalVariable, name)
 
     if(isinstance(codeBlock, ClassCodeBlock)):
         if(name in codeBlock.declaredGlobal):
-            return makeAttribute(codeBlock.globalVariable, name)
+            return makeAttribute(codeBlock.module.globalVariable, name)
         elif(name in codeBlock.attributes):
             return makeAttribute(codeBlock.thisClassVariable, name)
         else:
@@ -48,18 +46,19 @@ def resolveName(codeBlock: CodeBlock, name: str) -> Union[VariableNode, ast.Attr
     else:
         currCodeBlock = codeBlock
     
-    # currCodeBlock is function codeblock
-    while(currCodeBlock is not None):
-        # check if it is global
-        if(name in currCodeBlock.declaredGlobal):
-            break
-
-        if(name in currCodeBlock.localVariables):
-            return VariableNode(currCodeBlock.localVariables[name])
+    
+    while(not isinstance(currCodeBlock, ModuleCodeBlock)):
+        if(isinstance(currCodeBlock, FunctionCodeBlock)):
+            # check if it is global
+            if(name in currCodeBlock.declaredGlobal):
+                # jump to outer most codeBlock
+                return makeAttribute(currCodeBlock.module.globalVariable, name)
+            if(name in currCodeBlock.localVariables):
+                return VariableNode(currCodeBlock.localVariables[name])
 
         currCodeBlock = currCodeBlock.enclosing
 
-    return makeAttribute(codeBlock.globalVariable, name)
+    return makeAttribute(currCodeBlock.globalVariable, name)
     
 
 
@@ -321,10 +320,21 @@ class CodeBlockGenerator(ast.NodeTransformer):
             bound = None
             if(len(node.args) > 0):
                 type = self.visit(node.args[0]).var
+            else:
+                cb = self.codeBlock
+                while(cb):
+                    if(isinstance(cb, ClassCodeBlock)):
+                        type = cb.thisClassVariable
+                        break
+                    cb = cb.enclosing
+
             if(len(node.args) > 1):
                 bound = self.visit(node.args[1]).var
+            elif(isinstance(self.codeBlock, FunctionCodeBlock) and len(self.codeBlock.posargs) > 0):
+                bound = self.codeBlock.posargs[0]
             
-            NewSuper(tmp, type, bound, self.codeBlock)
+            if(type and bound):
+                NewSuper(tmp, type, bound, self.codeBlock)
             
         self.generic_visit(node)
         assert(isinstance(node.func, VariableNode))
@@ -468,15 +478,15 @@ class CodeBlockGenerator(ast.NodeTransformer):
 
     def visit_Import(self, node: ast.Import) -> Any:
         
-        caller = self.codeBlock.moduleName
+        callerName = self.codeBlock.module.name
         for alias in node.names:
-            self.moduleManager.import_hook(alias.name, caller)
+            self.moduleManager.import_hook(alias.name, callerName)
             if(alias.asname is None):
                 name, _, _ = alias.name.partition(".")
-                cb = self.moduleManager.getCodeBlock(name, caller)
+                cb = self.moduleManager.getCodeBlock(name, callerName)
             else:
                 name = alias.asname
-                cb = self.moduleManager.getCodeBlock(alias.name, caller)
+                cb = self.moduleManager.getCodeBlock(alias.name, callerName)
             
             
             resolved = resolveName(self.codeBlock, name)
@@ -489,10 +499,10 @@ class CodeBlockGenerator(ast.NodeTransformer):
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> Any:
         
-        caller = self.codeBlock.moduleName
+        callerName = self.codeBlock.module.name
         fromlist = [alias.name for alias in node.names]
-        self.moduleManager.import_hook(node.module or "", caller, fromlist, level=node.level)
-        imported: ModuleCodeBlock = self.moduleManager.getCodeBlock(node.module, caller, level=node.level)
+        self.moduleManager.import_hook(node.module or "", callerName, fromlist, level=node.level)
+        imported: ModuleCodeBlock = self.moduleManager.getCodeBlock(node.module, callerName, level=node.level)
         tmpModule = self.newTmpVariable()
         NewModule(tmpModule, imported, self.codeBlock)
         aliases = {}  # local name -> imported name

@@ -7,27 +7,21 @@ import os
 
 class CodeBlock:
     name: str
-    moduleName: str
+    module: 'ModuleCodeBlock'
     qualified_name: str
     # type: str                                   # module, class, function
     stmts: List[IRStmt]
     enclosing: 'CodeBlock'                          # reference to enclosing scope, this is used in name resolution. 
                                                     # Only function code block is remained
 
-    globalVariable: Variable                    # $global, all code blocks in a module share a single $global variable 
+    
     scopeLevel: int                             # indicate that how many context is needed for this codeblock
     fake: bool                                  # this mean if this codeblock really exist in the source code, or it's just made up
 
     def __init__(self, name: str, enclosing: 'CodeBlock', fake=False):
         self.name = name
         self.stmts = []
-        if(enclosing is not None):
-            self.moduleName = enclosing.moduleName
-
-        if(enclosing is not None and not isinstance(enclosing, FunctionCodeBlock)):
-            self.enclosing = enclosing.enclosing
-        else:
-            self.enclosing = enclosing
+        self.enclosing = enclosing
         self.fake = fake
 
     def addIR(self, ir:IRStmt):
@@ -37,12 +31,13 @@ class CodeBlock:
         self.stmts.remove(ir)
     
     def dump(self, rootDirectory: str):
-        path = self.moduleName.replace(".", "/")
+        moduleName = self.module.name
+        path = moduleName.replace(".", "/")
         path = os.path.join(rootDirectory, path)
         if(not os.path.exists(path)):
             os.makedirs(path)
             
-        filename = self.qualified_name[len(self.moduleName):] + ".ir"
+        filename = self.qualified_name[len(moduleName):] + ".ir"
         path = os.path.join(path, filename)
         with open(path, "w") as f:
             for stmt in self.stmts:
@@ -57,13 +52,13 @@ class CodeBlock:
         return f"CodeBlock: {self.qualified_name}"
 
 class ModuleCodeBlock(CodeBlock):
-    moduleName: str
     # done: bool
     globalNames: Set[str]
-    def __init__(self, moduleName:str, fake=False):
-        super().__init__("", None, fake)
-        self.moduleName = moduleName
-        self.qualified_name = moduleName
+    globalVariable: Variable                    # $global, all code blocks in a module share a single $global variable 
+    def __init__(self, name:str, fake=False):
+        super().__init__(name, None, fake)
+        self.qualified_name = name
+        self.module = self
         self.globalVariable = Variable("$global", self)
         # self.done = False
         self.globalNames = set()
@@ -86,7 +81,7 @@ class FunctionCodeBlock(CodeBlock):
     def __init__(self, name: str, enclosing:'CodeBlock', fake=False):
         super().__init__(name, enclosing, fake)
         self.qualified_name = f"{enclosing.qualified_name}.{name}"
-        self.globalVariable = enclosing.globalVariable
+        self.module = enclosing.module
         self.localVariables = {}
         self.declaredGlobal = set()
         # self.posonlyargs = []
@@ -96,10 +91,7 @@ class FunctionCodeBlock(CodeBlock):
         self.vararg = None
         self.kwarg = None
         self.returnVariable = Variable("$ret", self)
-        if(self.enclosing == None):
-            self.scopeLevel = 1
-        else:
-            self.scopeLevel = enclosing.scopeLevel + 1
+        self.scopeLevel = enclosing.scopeLevel + 1
 
 
 class ClassCodeBlock(CodeBlock):
@@ -109,6 +101,6 @@ class ClassCodeBlock(CodeBlock):
     def __init__(self, name:str, enclosing:'CodeBlock', fake=False):
         super().__init__(name, enclosing, fake=False)
         self.qualified_name = f"{enclosing.qualified_name}.{name}"
-        self.globalVariable = enclosing.globalVariable
+        self.module = enclosing.module
         self.thisClassVariable = Variable("$thisClass", self)
         self.scopeLevel = enclosing.scopeLevel
