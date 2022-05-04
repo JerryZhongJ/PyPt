@@ -9,14 +9,8 @@ def func3():
 
 a = [func1, func2, func3]
 
-a[0]()
-a[1]()
-a[2]()
+for f in a:
+    f()
 
-def func4():
-    pass
 
-b = [None]
-b[0] = func4
 
-b[0]()

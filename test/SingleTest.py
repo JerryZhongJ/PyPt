@@ -54,5 +54,5 @@ def test(moduleManager: ModuleManager):
     print("")
     print("Done")
 
-testScript("scopes/class_nonlocal/main.py")
+testScript("assignments/return_tuple/main.py")
 

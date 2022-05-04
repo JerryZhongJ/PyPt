@@ -7,9 +7,10 @@ def func2():
 def func3():
     pass
 
+a = {func1, func2, func3}
 
-c, d, e = func1, func2, func3
+for f in a:
+    f()
 
-c()
-d()
-e()
+
+
