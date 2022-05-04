@@ -1,5 +1,5 @@
 
-from ..CSPTA.Analysis import Analysis
+from ..PTA.Analysis import Analysis
 from ..ModuleManager import ModuleManager
 
 import shutil
@@ -54,7 +54,7 @@ def test(moduleManager: ModuleManager):
     print("")
     print("Done")
 
-testScript("classes/assigned_self_call/main.py")
+testScript("generators/iterable/main.py")
 # test("ArgMatch")
 # testScript("MRO")
 # test("Container")

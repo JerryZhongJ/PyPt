@@ -57,9 +57,10 @@ class CallGraph:
 
         # return a dict of callgraph, formed with str
     def export(self) -> Dict[str, List[str]]:
-        callgraph = self.foldToCodeBlock()
-        for callerName, callees in callgraph.items():    
-            callgraph[callerName] = list(callgraph[callerName])
+        tmp = self.foldToCodeBlock()
+        callgraph = {}
+        for caller, callees in tmp.items():
+            callgraph[caller.qualified_name] = [callee.qualified_name for callee in callees if not callee.fake]
         
         return callgraph
         

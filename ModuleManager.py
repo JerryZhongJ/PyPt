@@ -1,6 +1,7 @@
 """This file is based on python3.9/modulefinder.py"""
 
 import dis
+from typing import Union
 import importlib._bootstrap_external
 import importlib.machinery
 import marshal
@@ -171,7 +172,7 @@ class ModuleManager:
             raise Exception("Please call start() first.")
             
 
-    def getCodeBlock(self, name: str, callerName: str=None, level: int=0) -> CodeBlock:
+    def getCodeBlock(self, name: str, callerName: str=None, level: int=0) -> Union[ModuleCodeBlock, str]:
         callerName = callerName and self.modules[callerName]
         parent = self.determine_parent(callerName, level)
         if parent and name:
@@ -184,7 +185,7 @@ class ModuleManager:
         if(fqname in self.modules):
             return self.modules[fqname].__codeBlock__
         else:
-            return ModuleCodeBlock(fqname)
+            return fqname
         
 
 
@@ -373,7 +374,7 @@ class ModuleManager:
 
         try:
             m = self.load_module(fqname, fp, pathname, stuff)
-            if(parent):
+            if(m and parent):
                 tmp = parent.__generator__.newTmpVariable()
                 NewModule(tmp, m.__codeBlock__, parent.__codeBlock__)
                 SetAttr(parent.__codeBlock__.globalVariable, partname, tmp, parent.__codeBlock__)
@@ -394,15 +395,16 @@ class ModuleManager:
 
             return m
 
-        m = self.add_module(fqname)
-        m.__file__ = pathname
+        
         
         if type == _PY_SOURCE:
-            
+            m = self.add_module(fqname)
+            m.__file__ = pathname
             tree = ast.parse(fp.read())
             m.__generator__ = ModuleCodeBlockGenerator(fqname, moduleManager=self)
             m.__codeBlock__ = m.__generator__.codeBlock
             m.__generator__.parse(tree)
+            return m
         elif type == _PY_COMPILED:
             # try:
             #     data = fp.read()
@@ -411,17 +413,17 @@ class ModuleManager:
 
             #     raise
             # co = marshal.loads(memoryview(data)[16:])
-            m.__codeBlock__ = ModuleCodeBlock(fqname)
+            pass
             # m.__codeBlock__.done = True
 
         else:
-            m.__codeBlock__ = ModuleCodeBlock(fqname)
+            pass
             # m.__codeBlock__.done = True
 
 
         
 
-        return m
+        
 
     def _add_badmodule(self, name, caller):
         if name not in self.badmodules:
@@ -550,7 +552,6 @@ class ModuleManager:
         try:
             # the __init__ is treated as this package itself
             self.load_module(fqname, fp, buf, stuff)
-
             return m
         finally:
             if fp:

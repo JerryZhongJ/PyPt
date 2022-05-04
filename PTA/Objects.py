@@ -18,12 +18,12 @@ class ModuleObject(Object):
         return hash(self.codeBlock.name)
     def __init__(self, codeBlock: ModuleCodeBlock):
         self.codeBlock = codeBlock
-    def getModuleName(self):
-        return self.codeBlock.name
     def __str__(self):
         return f"Module({self.codeBlock.name})"
     def __repr__(self):
         return self.__str__()
+    def getModuleName(self):
+        return self.codeBlock.name
 
 
 # class ConstObject(Object):
@@ -78,6 +78,7 @@ class InstanceMethodObject(Object):
     def __repr__(self):
         return self.__str__()
 
+
 class ClassMethodObject(Object):
     classObj: InstanceObject
     func: FunctionObject
@@ -93,6 +94,7 @@ class ClassMethodObject(Object):
     def __repr__(self):
         return self.__str__()
 
+
 class StaticMethodObject(Object):
     
     func: FunctionObject
@@ -106,6 +108,7 @@ class StaticMethodObject(Object):
         return f"StaticMethod({self.func})"
     def __repr__(self):
         return self.__str__()
+
 
 class SuperObject(Object):
     type: ClassObject
@@ -121,6 +124,7 @@ class SuperObject(Object):
         return f"Super({self.type}, {self.bound})"
     def __repr__(self):
         return self.__str__()
+
 
 class CIObject(Object):
     alloc_site: IRStmt
@@ -192,5 +196,38 @@ class CIBuiltinObject(CIObject, BuiltinObject):
         return f"Builtin {self.getType()}({cb.qualified_name}-{cb.stmts.index(self.alloc_site)})"
     def __repr__(self):
         return self.__str__()
+
+class FakeObject(ModuleObject, ClassObject, FunctionObject):
+    class NoMore(Exception):
+        pass
+
+    codeBlock: CodeBlock
+    def __eq__(self, other):
+        return isinstance(other, FakeObject) and self.codeBlock.qualified_name == other.codeBlock.qualified_name
+    def __init__(self, name: str, enclosing: 'FakeObject'):
+        if(enclosing):
+            depth = 0
+            curr = enclosing.codeBlock
+            while(curr):
+                depth += 1
+                curr = curr.enclosing
+            if(depth >= 7):
+                raise FakeObject.NoMore
+        self.codeBlock = CodeBlock(name, enclosing and enclosing.codeBlock)
+    def __str__(self):
+        return f"Fake {self.codeBlock.qualified_name}"
+    def __hash__(self):
+        return hash(self.codeBlock.qualified_name)
+    def getCodeBlock(self) -> CodeBlock:
+        return self.codeBlock
+
+    def getBases(self) -> List[VarPtr]:
+        return []
+
+    def getAttributes(self) -> Set[str]:
+        return set()
+
+    def getModuleName(self):
+        return self.codeBlock.qualified_name
     
     

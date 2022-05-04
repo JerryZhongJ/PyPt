@@ -22,6 +22,7 @@ class Variable:
     def __init__(self, name: str, belongsTo: 'CodeBlock', temp=False):
         self.name = name
         self.belongsTo = belongsTo
+        # belongsTo.variables.add(self)
         self.qualified_name = f"<{belongsTo.qualified_name}>{name}"
         self.isTmp = temp
         
@@ -103,14 +104,15 @@ class New(IRStmt):
 
         
 class NewModule(New):
-    codeBlock: 'ModuleCodeBlock'                  
+    module: Union['ModuleCodeBlock', str]                  
 
-    def __init__(self, target:Variable, codeBlock: 'CodeBlock', belongsTo: 'CodeBlock'):
+    def __init__(self, target:Variable, module: 'CodeBlock', belongsTo: 'CodeBlock'):
         super().__init__(target, 'module', belongsTo)
-        self.codeBlock = codeBlock
+        self.module = module
 
     def __str__(self):
-        return f"{self.target} = NewModule {self.codeBlock.name if self.codeBlock else ''}"
+        return f"{self.target} = NewModule {self.module if isinstance(self.module, str) else self.module.qualified_name}"
+        
 
 class NewFunction(New):
     codeBlock: 'FunctionCodeBlock'

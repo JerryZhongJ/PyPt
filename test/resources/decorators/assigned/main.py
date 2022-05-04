@@ -4,7 +4,6 @@ def dec1(f):
 def dec2(f):
     return f
 
-a = dec1
 a = dec2
 
 @a

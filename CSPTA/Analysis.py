@@ -5,7 +5,7 @@ from .CSCallGraph import CSCallGraph
 if typing.TYPE_CHECKING:
     from . import CS_Call, CS_DelAttr, CS_GetAttr, CS_NewClass, CS_SetAttr, CSCodeBlock, CSStmt, CS_NewClassMethod, CS_NewStaticMethod, CS_NewSuper
 
-from ..PTA.Objects import ClassMethodObject, ClassObject, FunctionObject, InstanceObject, InstanceMethodObject, ModuleObject, Object, StaticMethodObject, SuperObject
+from ..PTA.Objects import ClassMethodObject, ClassObject, FakeObject, FunctionObject, InstanceObject, InstanceMethodObject, ModuleObject, Object, StaticMethodObject, SuperObject
 from .CSPointers import CSVarPtr
 
 from .Context import emptyContextChain, selectContext
@@ -43,7 +43,7 @@ class Analysis:
     pointerFlow: PointerFlow
     bindingStmts: BindingStmts
     reachable: Set['CSCodeBlock']
-    # defined: Set[CodeBlock]
+    resolved_attr: Dict[Resolver, Set[str]]
     classHiearchy: ClassHiearchy
     persist_attr: Dict[CSClassObject, Dict[str, Set[ResolveInfo]]]
     workList: List[Tuple[Pointer, Set[Object]]]
@@ -55,6 +55,7 @@ class Analysis:
         self.defined = set()
         self.reachable = set()
         self.classHiearchy = ClassHiearchy(self.pointToSet)
+        self.resolved_attr = {}
         self.persist_attr = {}
         self.workList = []
         self.verbose = verbose
@@ -78,18 +79,22 @@ class Analysis:
                 self.addFlow(sourcePtr, targetPtr)
 
             elif(isinstance(stmt, NewModule)):
-                
-                obj = ModuleObject(stmt.codeBlock)
+                if(isinstance(stmt.module, ModuleCodeBlock)):
+                    obj = ModuleObject(stmt.module)
 
-                targetPtr = CSVarPtr(ctx, stmt.target)
-                globalPtr = CSVarPtr(ctx, stmt.codeBlock.globalVariable)
+                    targetPtr = CSVarPtr(ctx, stmt.target)
+                    globalPtr = CSVarPtr(ctx, stmt.module.globalVariable)
 
-                self.workList.append((targetPtr, {obj}))
-                self.workList.append((globalPtr, {obj}))
+                    self.workList.append((targetPtr, {obj}))
+                    self.workList.append((globalPtr, {obj}))
 
-                csCodeBlock = (emptyContextChain(), stmt.codeBlock)
-                self.addReachable(csCodeBlock)
-                # self.callgraph.put(csStmt, csCodeBlock)
+                    csCodeBlock = (emptyContextChain(), stmt.module)
+                    self.addReachable(csCodeBlock)
+                    # self.callgraph.put(csStmt, csCodeBlock)
+                else:
+                    obj = FakeObject(stmt.module, None)
+                    targetPtr = CSVarPtr(ctx, stmt.target)
+                    self.workList.append((targetPtr, {obj}))
                 
             elif(isinstance(stmt, NewFunction)):
                 obj = CSFunctionObject(csStmt)
@@ -292,35 +297,39 @@ class Analysis:
         childAttr = AttrPtr(obj, FAKE_PREFIX + attr)
         for i in range(start, len(mro)):
             parent = mro[i]
-            if(parent is None):
-                break
             parentAttr = AttrPtr(parent, attr)
             self.addFlow(parentAttr, childAttr)
-            if(attr in self.persist_attr[parent]):
+            if(not isinstance(parent, FakeObject) and  attr in self.persist_attr[parent]):
                 self.persist_attr[parent][attr].add((mro, i))
                 break
 
     def resolveAttrIfNot(self, obj: Resolver, attr: str):
+        if(obj in self.resolved_attr):
+            if(attr in self.resolved_attr[obj]):
+                return
+        else:
+            self.resolved_attr[obj] = set()
 
-        if(FAKE_PREFIX + attr not in self.pointToSet.getAllAttr(obj)):
+        self.resolved_attr[obj].add(attr)
+
+        if(isinstance(obj, ClassObject)):
+            classObj = obj
+        elif(isinstance(obj, SuperObject)):
+            if(isinstance(obj.bound, InstanceObject)):
+                classObj = obj.bound.type
+            else:
+                classObj = obj.bound
+
+        for mro in self.classHiearchy.getMROs(classObj):
             if(isinstance(obj, ClassObject)):
-                classObj = obj
+                start = 0
             elif(isinstance(obj, SuperObject)):
-                if(isinstance(obj.bound, InstanceObject)):
-                    classObj = obj.bound.type
-                else:
-                    classObj = obj.bound
-
-            for mro in self.classHiearchy.getMROs(classObj):
-                if(isinstance(obj, ClassObject)):
-                    start = 0
-                elif(isinstance(obj, SuperObject)):
-                    for start in range(len(mro)):
-                        if(mro[start] == obj.type):
-                            # start from the one right after type
-                            start += 1
-                            break
-                self.resolveAttribute(obj, attr, (mro, start))
+                for start in range(len(mro)):
+                    if(mro[start] == obj.type):
+                        # start from the one right after type
+                        start += 1
+                        break
+            self.resolveAttribute(obj, attr, (mro, start))
 
     def processSetAttr(self, csStmt: 'CS_SetAttr', objs: Set[CSObject]):
         # print(f"Process SetAttr: {csStmt}")
@@ -336,6 +345,12 @@ class Analysis:
         ctx, stmt = csStmt
         for obj in objs:
             varPtr = CSVarPtr(ctx, stmt.target)
+            if(isinstance(obj, FakeObject)):
+                try:
+                    fakeObj = FakeObject(stmt.attr, obj)
+                    self.workList.append((varPtr, {fakeObj}))
+                except(FakeObject.NoMore):
+                    pass
             if(isinstance(obj, InstanceObject)):
                 # target <- instance.attr
                 insAttr = AttrPtr(obj, stmt.attr)
@@ -374,10 +389,10 @@ class Analysis:
                 mroChange |= self.classHiearchy.addClassBase(CSClassObject(csStmt), index, obj)
         for mro in mroChange:
             classObj = mro[0]
-            for attr in self.pointToSet.getAllAttr(classObj):
-                if(isFakeAttr(attr)):
-                    attr = attr[len(FAKE_PREFIX):]
-                    self.resolveAttribute(classObj, attr, (mro, 0))
+            if(classObj not in self.resolved_attr):
+                continue
+            for attr in self.resolved_attr[classObj]:
+                self.resolveAttribute(classObj, attr, (mro, 0))
 
     def processCall(self, csStmt: 'CS_Call', objs: Set[Object]):
         # print(f"Process Call: {csStmt}")
@@ -386,7 +401,11 @@ class Analysis:
         varPtr = CSVarPtr(ctx, stmt.target)
         newObjs = set()
         for obj in objs:
-            if(isinstance(obj, CSFunctionObject)):
+            if(isinstance(obj, FakeObject)):
+                func = obj.getCodeBlock()
+                csCodeBlock = (emptyContextChain(), func)
+                self.callgraph.put(csStmt, csCodeBlock)
+            elif(isinstance(obj, CSFunctionObject)):
                 func = obj.getCodeBlock()
                 tailCTX = selectContext(csStmt, None)
                 newCTX = *obj.ctxChain, tailCTX
@@ -561,27 +580,4 @@ class Analysis:
                 
         self.workList.append((target, newObjs))
 
-    def getFormattedCallGraph(self) -> Dict[str, List[str]]:
-        callgraph = self.callgraph.foldToCodeBlock()
-
-        callgraph = {caller.qualified_name:{callee.qualified_name for callee in callees if not callee.fake} for caller, callees in callgraph.items()}
-
-        # add builtins
-        for ctx, cb in self.reachable:
-            for stmt in cb.stmts:
-                if(not isinstance(stmt, Call)):
-                    continue
-                callee = CSVarPtr(ctx, stmt.callee)
-                if(self.pointToSet.get(callee)):
-                    continue
-                # callee can not be found
-                for prec in self.pointerFlow.getPrecedents(callee):
-                    if(isinstance(prec, AttrPtr) and isinstance(prec.obj, ModuleObject) and prec.attr in builtin_functions):
-                        # add this callee come from a global name, of course this global name points to nothing
-                        # then we assume that, this is a builtin function
-                        if(cb.qualified_name not in callgraph):
-                            callgraph[cb.qualified_name] = set()
-                        callgraph[cb.qualified_name].add(f"<builtin>." + prec.attr)
-        for caller, callees in callgraph.items():
-            callgraph[caller] = list(callees)
-        return callgraph
+    

@@ -1,6 +1,6 @@
 import ast
 from typing import Set, Union
-
+import builtins
 from .CodeBlock import ClassCodeBlock, CodeBlock, FunctionCodeBlock, ModuleCodeBlock
 
 from .Stmts import *
@@ -15,6 +15,7 @@ class VariableNode(ast.AST):
     def __init__(self, v:Variable):
         self.var = v
 
+builtin_names = list(builtins.__dict__.keys())
 
 # Some utils        
 def makeAttribute(v: Variable, attr: str) -> ast.Attribute:
@@ -502,7 +503,7 @@ class CodeBlockGenerator(ast.NodeTransformer):
         callerName = self.codeBlock.module.name
         fromlist = [alias.name for alias in node.names]
         self.moduleManager.import_hook(node.module or "", callerName, fromlist, level=node.level)
-        imported: ModuleCodeBlock = self.moduleManager.getCodeBlock(node.module, callerName, level=node.level)
+        imported = self.moduleManager.getCodeBlock(node.module, callerName, level=node.level)
         tmpModule = self.newTmpVariable()
         NewModule(tmpModule, imported, self.codeBlock)
         aliases = {}  # local name -> imported name
@@ -516,11 +517,11 @@ class CodeBlockGenerator(ast.NodeTransformer):
             else:
                 aliases[alias.asname] = alias.name
              
-        if(hasstar and imported):
+        if(hasstar and isinstance(imported, ModuleCodeBlock)):
             # if(not imported.done):
             #     raise Exception(f"Circular import between {self.codeBlock.moduleName} and {imported.moduleName}!")
             for name in imported.globalNames:
-                if(name[0] != "_"):
+                if(name not in builtin_names and name[0] != "_"):
                     # ignore those start with "_"
                     aliases[name] = name
 
@@ -765,7 +766,7 @@ class FunctionCodeBlockGenerator(CodeBlockGenerator):
     def preprocess(self, node):
         # get all locals, including args, function defintion, class Definition
         # remember global and nonlocal
-        
+        super().preprocess(node)
         codeBlock = self.codeBlock
 
         if(isinstance(node, ast.Lambda)):
@@ -903,6 +904,7 @@ class ClassCodeBlockGenerator(CodeBlockGenerator):
         return super().parse(node)
 
     def preprocess(self, node: ast.ClassDef):
+        super().preprocess(node)
         ds = DeclarationScanner()
         for stmt in node.body:
             ds.visit(stmt)
@@ -961,11 +963,11 @@ class ModuleCodeBlockGenerator(CodeBlockGenerator):
         super().__init__(moduleManager)
         self.codeBlock = ModuleCodeBlock(moduleName)
 
+    def preprocess(self, node: ast.Module):
+        node.body.append(ast.ImportFrom(module="builtins", names=[ast.alias(name=name) for name in builtin_names], level=0))
+        
     def parse(self, node: ast.AST):
         assert(isinstance(node, ast.Module))
         return super().parse(node)
 
-    def postprocess(self, node: ast.AST):
-        super().postprocess(node)
-        # self.codeBlock.done = True
     

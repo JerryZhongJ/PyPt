@@ -10,6 +10,7 @@ class CodeBlock:
     module: 'ModuleCodeBlock'
     qualified_name: str
     # type: str                                   # module, class, function
+    # variables: Set[Variable]
     stmts: List[IRStmt]
     enclosing: 'CodeBlock'                          # reference to enclosing scope, this is used in name resolution. 
                                                     # Only function code block is remained
@@ -20,6 +21,10 @@ class CodeBlock:
 
     def __init__(self, name: str, enclosing: 'CodeBlock', fake=False):
         self.name = name
+        if(enclosing):
+            self.qualified_name = f"{enclosing.qualified_name}.{name}"
+        else:
+            self.qualified_name = name
         self.stmts = []
         self.enclosing = enclosing
         self.fake = fake
@@ -52,12 +57,11 @@ class CodeBlock:
         return f"CodeBlock: {self.qualified_name}"
 
 class ModuleCodeBlock(CodeBlock):
-    # done: bool
+    
     globalNames: Set[str]
     globalVariable: Variable                    # $global, all code blocks in a module share a single $global variable 
     def __init__(self, name:str, fake=False):
         super().__init__(name, None, fake)
-        self.qualified_name = name
         self.module = self
         self.globalVariable = Variable("$global", self)
         # self.done = False
@@ -80,7 +84,7 @@ class FunctionCodeBlock(CodeBlock):
     returnVariable: Variable
     def __init__(self, name: str, enclosing:'CodeBlock', fake=False):
         super().__init__(name, enclosing, fake)
-        self.qualified_name = f"{enclosing.qualified_name}.{name}"
+        
         self.module = enclosing.module
         self.localVariables = {}
         self.declaredGlobal = set()
@@ -100,7 +104,6 @@ class ClassCodeBlock(CodeBlock):
     attributes: Set[str]
     def __init__(self, name:str, enclosing:'CodeBlock', fake=False):
         super().__init__(name, enclosing, fake=False)
-        self.qualified_name = f"{enclosing.qualified_name}.{name}"
         self.module = enclosing.module
         self.thisClassVariable = Variable("$thisClass", self)
         self.scopeLevel = enclosing.scopeLevel

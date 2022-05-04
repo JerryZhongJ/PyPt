@@ -1,5 +1,5 @@
 import ast
-from ...IR.CodeBlockGenerator import ModuleCodeBlockGenerator
+from ..IR.CodeBlockGenerator import ModuleCodeBlockGenerator
 import shutil
 import os
 resource = os.path.join(os.path.dirname(__file__), "resources")

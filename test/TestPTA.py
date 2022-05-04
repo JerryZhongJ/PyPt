@@ -12,12 +12,13 @@ from ..ModuleManager import ModuleManager
 class TestPTA(unittest.TestCase):
 
 
-    def assertEqual(self, first: Dict[str, List], second: Dict[str, List]) -> None:
-        for l in first.values():
-            l.sort()
-
-        for l in second.values():
-            l.sort()
+    def assertEqual(self, first: Dict[str, list], second: Dict[str, List]) -> None:
+        first = {k:v for k, v in first.items() if v}
+        second = {k:v for k, v in second.items() if v}
+        for v in first.values():
+            v.sort()
+        for v in second.values():
+            v.sort()
         super().assertEqual(first, second)
     
     def _test(self, path: str):
@@ -29,7 +30,7 @@ class TestPTA(unittest.TestCase):
         entry = moduleManager.getCodeBlock(entry)
         analysis = Analysis()
         analysis.analyze(entry)
-        output = analysis.getFormattedCallGraph()
+        output = analysis.callgraph.export()
 
         # get expected output
         expectedPath = os.path.join(os.path.dirname(path), "callgraph.json")
@@ -43,7 +44,7 @@ if __name__ == "__main__":
     def getTemplate(path):
         return lambda self: self._test(os.path.join(path, "main.py"))
 
-    exclude = [("builtins", "types"), ("builtins", "map"), ("generators", "iterable"), ("decorators", "assigned")]
+    exclude = [("builtins", "types"), ("builtins", "map")]
     resourcePath = os.path.join(os.path.dirname(__file__), "resources")
     for item in os.listdir(resourcePath):
         itemPath = os.path.join(resourcePath, item)
