@@ -3,7 +3,7 @@ import os
 from typing import Dict, List
 import unittest
 
-from ..CSPTA.Analysis import Analysis
+from ..PTA.Analysis import Analysis
 
 from ..ModuleManager import ModuleManager
 

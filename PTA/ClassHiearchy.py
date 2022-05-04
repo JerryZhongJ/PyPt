@@ -28,7 +28,9 @@ class ClassHiearchy:
         
         for i in range(len(bases)):
             for baseObj in self.pointToSet.get(bases[i]):
-                self._getSubClasses(baseObj).add((classObj, i))
+                if(isinstance(baseObj, FakeObject)):
+                    self.addClass(baseObj)
+                self.subClasses[baseObj].add((classObj, i))
 
         add = self.addBaseMRO(classObj, -1, {})
 
@@ -37,9 +39,10 @@ class ClassHiearchy:
         
     def addClassBase(self, classObj: ClassObject, index: int, baseObj: ClassObject) -> Set[MRO]:
         assert(isinstance(classObj, ClassObject))
-
-        self._getSubClasses(baseObj).add((classObj, index))
-        return self.addBaseMRO(classObj, index, self._getMROs(baseObj))
+        if(isinstance(baseObj, FakeObject)):
+            self.addClass(baseObj)
+        self.subClasses[baseObj].add((classObj, index))
+        return self.addBaseMRO(classObj, index, self.mros[baseObj])
 
     def addBaseMRO(self, classObj: ClassObject, index: int, mroList: Set[MRO]) -> Set[MRO]:
         assert(isinstance(classObj, ClassObject))
@@ -56,7 +59,7 @@ class ClassHiearchy:
                         yield tail
             else:
                 for obj in self.pointToSet.get(bases[start]):
-                    for mro in self._getMROs(obj):
+                    for mro in self.mros[obj]:
                         for tail in select(start + 1):
                             tail.insert(0, mro)
                             yield tail
@@ -115,16 +118,6 @@ class ClassHiearchy:
                 return None
             
         return *res,
-
-    def _getSubClasses(self, classObj: ClassObject) -> Set[ClassObject]:
-        if(isinstance(classObj, FakeObject) and classObj not in self.subClasses):
-            self.subClasses[classObj] = set()
-        return self.subClasses[classObj]
-
-    def _getMROs(self, classObj: ClassObject) -> Set[MRO]:
-        if(isinstance(classObj, FakeObject) and classObj not in self.mros):
-            self.mros[classObj] = {(classObj, )}
-        return self.mros[classObj]
 
     def getMROs(self, classObj: ClassObject) -> Set[MRO]:
         if(classObj in self.mros):

@@ -299,9 +299,11 @@ class Analysis:
             parent = mro[i]
             parentAttr = AttrPtr(parent, attr)
             self.addFlow(parentAttr, childAttr)
-            if(not isinstance(parent, FakeObject) and  attr in self.persist_attr[parent]):
+            try:
                 self.persist_attr[parent][attr].add((mro, i))
                 break
+            except(KeyError):
+                pass
 
     def resolveAttrIfNot(self, obj: Resolver, attr: str):
         if(obj in self.resolved_attr):
