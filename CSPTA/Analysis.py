@@ -286,13 +286,7 @@ class Analysis:
     # classObj.$r_attr <- parent.attr
     # where parent is the first class that has this attr as its persistent attributes along MRO
     def resolveAttribute(self, obj: Resolver, attr: str, resolveInfo: Tuple[MRO, int]):
-        # if(not resolveInfo):
-        #     if((FAKE_PREFIX + attr) in self.pointToSet.getAllAttr(classObj)):
-                
-        #         return
-        #     for mro in self.classHiearchy.getMROs(classObj):
-        #         self.resolveAttribute(classObj, attr, (mro, 0))
-        # else:
+       
         mro, start = resolveInfo
         childAttr = AttrPtr(obj, FAKE_PREFIX + attr)
         for i in range(start, len(mro)):

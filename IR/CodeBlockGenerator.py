@@ -927,10 +927,8 @@ class ClassCodeBlockGenerator(CodeBlockGenerator):
         codeBlock = self.codeBlock
         if(isLoad(node)):
             # an varaible/attribute outside, or this class's attribute
-            if(codeBlock.enclosing is None):
-                outside = makeAttribute(codeBlock.globalVariable, id)
-            else:
-                outside = resolveName(codeBlock.enclosing, id)
+            
+            outside = resolveName(codeBlock, id)
 
             if(id in codeBlock.attributes):
                 tmp = self.newTmpVariable()

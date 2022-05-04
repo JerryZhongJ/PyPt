@@ -54,10 +54,5 @@ def test(moduleManager: ModuleManager):
     print("")
     print("Done")
 
-testScript("generators/iterable/main.py")
-# test("ArgMatch")
-# testScript("MRO")
-# test("Container")
-# test("Sensitive")
-# test("Numpy")
-# testModule("pycg")
+testScript("scopes/class_nonlocal/main.py")
+

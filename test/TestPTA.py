@@ -22,7 +22,7 @@ class TestPTA(unittest.TestCase):
         super().assertEqual(first, second)
     
     def _test(self, path: str):
-
+        print(path)
         # get output
         moduleManager = ModuleManager()
         moduleManager.start(path, "script")
