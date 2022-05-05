@@ -928,9 +928,8 @@ class ClassCodeBlockGenerator(CodeBlockGenerator):
         if(isLoad(node)):
             # an varaible/attribute outside, or this class's attribute
             
-            outside = resolveName(codeBlock, id)
-
             if(id in codeBlock.attributes):
+                outside = resolveName(codeBlock.enclosing, id)
                 tmp = self.newTmpVariable()
                 # $tmp = $thisClass.attr
                 GetAttr(tmp, codeBlock.thisClassVariable, id, codeBlock)
@@ -940,14 +939,16 @@ class ClassCodeBlockGenerator(CodeBlockGenerator):
                 elif(isinstance(outside, ast.Attribute)):
                     GetAttr(tmp, outside.value.var, outside.attr, codeBlock)
                 return VariableNode(tmp)
-            elif(isinstance(outside, ast.Attribute)):
-                # this name is not one of this class's attributes, the name resolved to a global variable
-                tmp = self.newTmpVariable()
-                GetAttr(tmp, outside.value.var, outside.attr, codeBlock)
-                return VariableNode(tmp)
             else:
-                # this name is not one of this class's attributes, the name resolved to a local variable
-                return outside
+                outside = resolveName(codeBlock, id)
+                if(isinstance(outside, ast.Attribute)):
+                # this name is not one of this class's attributes, the name resolved to a global variable
+                    tmp = self.newTmpVariable()
+                    GetAttr(tmp, outside.value.var, outside.attr, codeBlock)
+                    return VariableNode(tmp)
+                else:
+                    # this name is not one of this class's attributes, the name resolved to a local variable
+                    return outside
 
         elif(isStore(node)):
             # return this class's attribute if it is
