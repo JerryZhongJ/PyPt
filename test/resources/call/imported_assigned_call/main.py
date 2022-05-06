@@ -1,4 +1,4 @@
-from to_import import func
+from module import func
 
 def param_func():
     pass

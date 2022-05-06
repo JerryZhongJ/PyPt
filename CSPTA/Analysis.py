@@ -486,8 +486,8 @@ class Analysis:
                 self.addFlow(insAttr, initPtr)
                 self.addStmt((ctx, Call(Variable("", stmt.belongsTo), init, stmt.posargs, stmt.kwargs, stmt.belongsTo)))
                 newObjs.add(insObj)
-                
-        self.workList.append((varPtr, newObjs))
+        if(newObjs):
+            self.workList.append((varPtr, newObjs))
                 
     def matchArgParam(self, / , posArgs: List[CSVarPtr], 
                                 kwArgs: Dict[str, CSVarPtr], 
@@ -536,7 +536,8 @@ class Analysis:
                     if(isinstance(classObj, ClassObject)):
                         classMethod = ClassMethodObject(classObj, obj)
                         newObjs.add(classMethod)
-        self.workList.append((target, newObjs))
+        if(newObjs):
+            self.workList.append((target, newObjs))
 
     def processNewStaticMethod(self, csStmt: 'CS_NewStaticMethod', objs: Set[Object]):
         assert(isinstance(csStmt[1], NewStaticMethod))
@@ -558,7 +559,8 @@ class Analysis:
             if(isinstance(obj, ClassObject)):
                 for boundObj in self.pointToSet.get(CSVarPtr(ctx, stmt.bound)):
                     newObjs.add(SuperObject(obj, boundObj))
-        self.workList.append((target, newObjs))
+        if(newObjs):
+            self.workList.append((target, newObjs))
 
     def processNewSuper_bound(self, csStmt: 'CS_NewSuper', objs: Set[Object]):
         assert(isinstance(csStmt[1], NewSuper))
@@ -569,7 +571,7 @@ class Analysis:
             if(isinstance(obj, ClassObject) or isinstance(obj, InstanceObject)):
                 for typeObj in self.pointToSet.get(CSVarPtr(ctx, stmt.type)):
                     newObjs.add(SuperObject(typeObj, obj))
-                
-        self.workList.append((target, newObjs))
+        if(newObjs):  
+            self.workList.append((target, newObjs))
 
     

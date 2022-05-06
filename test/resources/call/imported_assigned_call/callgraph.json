@@ -1,1 +1,1 @@
-{"__main__": ["to_import.func"], "to_import.func": ["__main__.param_func"]}
+{"__main__": ["module.func"], "module.func": ["__main__.param_func"]}

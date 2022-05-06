@@ -6,4 +6,6 @@
 2. optimize class method object, static method object
     1. class method object should be simply a wrapper over a function, transformed every time when it is resolved
 3. fix generator expression's scope
+4. with clause
+5. exception 
 

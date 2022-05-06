@@ -1,3 +1,4 @@
 from module import func
 
-func()()
+a = func()
+a()
