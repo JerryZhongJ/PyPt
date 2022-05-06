@@ -54,5 +54,5 @@ def test(moduleManager: ModuleManager):
     print("")
     print("Done")
 
-testScript("assignments/return_tuple/main.py")
+testScript("imports/import_root/main.py")
 

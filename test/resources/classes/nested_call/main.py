@@ -1,9 +1,9 @@
-class MyClass:
+class C:
     def func(self):
         def nested():
             pass
 
         nested()
 
-a = MyClass()
+a = C()
 a.func()

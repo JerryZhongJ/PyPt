@@ -1,1 +1,1 @@
-{"__main__": ["to_import.MyClass.__init__", "to_import.MyClass.func"]}
+{"__main__": ["to_import.C.__init__", "to_import.C.func"]}

@@ -1,1 +1,1 @@
-{"__main__": ["__main__.MyClass.func"], "__main__.MyClass.func": ["__main__.MyClass.func.nested"]}
+{"__main__": ["__main__.C.func"], "__main__.C.func": ["__main__.C.func.nested"]}

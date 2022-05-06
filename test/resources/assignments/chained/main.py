@@ -4,10 +4,6 @@ def func1():
 def func2():
     pass
 
-a = b = func1
-
-b()
-
-a = b = func2
-
+a, b = c, d = func1, func2
 a()
+d()

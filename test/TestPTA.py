@@ -10,7 +10,8 @@ from ..ModuleManager import ModuleManager
 
     
 class TestPTA(unittest.TestCase):
-
+    def setUp(self) -> None:
+        self.maxDiff = None
 
     def assertEqual(self, first: Dict[str, list], second: Dict[str, List]) -> None:
         first = {k:v for k, v in first.items() if v}

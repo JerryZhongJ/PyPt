@@ -1,13 +1,12 @@
-class MyClass:
+class C:
     def __init__(self):
         self.func1()
 
     def func1(self):
-        pass
+        self.func2()
 
     def func2(self):
-        self.func1()
+        pass
 
-a = MyClass()
+a = C()
 
-a.func2()

@@ -1,1 +1,1 @@
-{"__main__": ["from_import.func2"], "from_import.func2": ["chained_import.func1"]}
+{"__main__": ["module1.func2"], "module1.func2": ["module2.func1"]}

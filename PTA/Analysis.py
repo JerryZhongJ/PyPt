@@ -169,7 +169,10 @@ class Analysis:
             if(len(objs) == 0):
                 continue
 
-            self.propagate(ptr, objs)
+            objs = self.pointToSet.putAll(ptr, objs)
+            if(objs):
+                for succ in self.pointerFlow.getSuccessors(ptr):
+                    self.flow(ptr,succ, objs)
 
             if(not isinstance(ptr, CIVarPtr)):
                 continue
@@ -249,15 +252,7 @@ class Analysis:
             else:
                 newObjs.add(obj)
         return newObjs
-
-    def propagate(self, pointer: Pointer, objs: Set[Object]) -> Set:
-        # Special condition: when source is a class object's attribute 
-        # and target is an instance object's attribute
-        # and the object is a function
-        # print(f"Propagate {pointer} -> {', '.join([str(obj) for obj in objs])}")
-        diff = self.pointToSet.putAll(pointer, objs)
-        for succ in self.pointerFlow.getSuccessors(pointer):
-            self.flow(pointer, succ, diff)
+        
         
     # classObj.$r_attr <- parent.attr
     # where parent is the first class that has this attr as its persistent attributes along MRO
@@ -452,7 +447,8 @@ class Analysis:
                 self.addFlow(insAttr, initPtr)
                 self.addStmt(Call(Variable("", stmt.belongsTo), init, stmt.posargs, stmt.kwargs, stmt.belongsTo))
                 newObjs.add(insObj)
-        self.workList.append((varPtr, newObjs))
+        if(newObjs):
+            self.workList.append((varPtr, newObjs))
                 
     def matchArgParam(self, / , posArgs: List[CIVarPtr], 
                                 kwArgs: Dict[str, CIVarPtr], 
@@ -498,7 +494,8 @@ class Analysis:
                     if(isinstance(classObj, ClassObject)):
                         classMethod = ClassMethodObject(classObj, obj)
                         newObjs.add(classMethod)
-        self.workList.append((target, newObjs))
+        if(newObjs):
+            self.workList.append((target, newObjs))
 
     def processNewStaticMethod(self, stmt: NewStaticMethod, objs: Set[Object]):
         assert(isinstance(stmt, NewStaticMethod))
@@ -509,7 +506,8 @@ class Analysis:
                 
                 staticMethod = StaticMethodObject(obj)
                 newObjs.add(staticMethod)
-        self.workList.append((target, newObjs))
+        if(newObjs):
+            self.workList.append((target, newObjs))
 
     def processNewSuper_type(self, stmt: NewSuper, objs: Set[Object]):
         assert(isinstance(stmt, NewSuper))
@@ -519,7 +517,8 @@ class Analysis:
             if(isinstance(obj, ClassObject)):
                 for boundObj in self.pointToSet.get(CIVarPtr(stmt.bound)):
                     newObjs.add(SuperObject(obj, boundObj))
-        self.workList.append((target, newObjs))
+        if(newObjs):
+            self.workList.append((target, newObjs))
 
     def processNewSuper_bound(self, stmt: NewSuper, objs: Set[Object]):
         assert(isinstance(stmt, NewSuper))
@@ -529,8 +528,8 @@ class Analysis:
             if(isinstance(obj, ClassObject) or isinstance(obj, InstanceObject)):
                 for typeObj in self.pointToSet.get(CIVarPtr(stmt.type)):
                     newObjs.add(SuperObject(typeObj, obj))
-                
-        self.workList.append((target, newObjs))
+        if(newObjs):
+            self.workList.append((target, newObjs))
 
 
     

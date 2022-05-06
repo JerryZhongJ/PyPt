@@ -1,4 +1,5 @@
-import to_import as as_to_import
+import module as asname
 
-def func():
-    pass
+asname.func()
+
+

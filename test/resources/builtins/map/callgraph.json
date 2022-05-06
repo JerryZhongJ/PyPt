@@ -1,1 +1,0 @@
-{"__main__": ["builtins.map", "__main__.func", "__main__.func2", "__main__.func3", "__main__.func3.func"], "__main__.func2": ["__main__.func"]}

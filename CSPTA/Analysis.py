@@ -193,8 +193,10 @@ class Analysis:
 
             if(len(objs) == 0):
                 continue
-
-            self.propagate(ptr, objs)
+            
+            objs = self.pointToSet.putAll(ptr, objs)
+            for succ in self.pointerFlow.getSuccessors(ptr):
+                self.flow(ptr, succ, objs)
 
             if(not isinstance(ptr, CSVarPtr)):
                 continue
@@ -274,14 +276,8 @@ class Analysis:
                 newObjs.add(obj)
         return newObjs
 
-    def propagate(self, pointer: Pointer, objs: Set[Object]) -> Set:
-        # Special condition: when source is a class object's attribute 
-        # and target is an instance object's attribute
-        # and the object is a function
-        # print(f"Propagate {pointer} -> {', '.join([str(obj) for obj in objs])}")
-        diff = self.pointToSet.putAll(pointer, objs)
-        for succ in self.pointerFlow.getSuccessors(pointer):
-            self.flow(pointer, succ, diff)
+    
+        
         
     # classObj.$r_attr <- parent.attr
     # where parent is the first class that has this attr as its persistent attributes along MRO

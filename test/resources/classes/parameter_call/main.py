@@ -1,4 +1,4 @@
-class MyClass:
+class C:
     def func3(self):
         pass
 
@@ -8,5 +8,5 @@ class MyClass:
     def func1(self, a, b):
         a(b)
 
-a = MyClass()
+a = C()
 a.func1(a.func2, a.func3)

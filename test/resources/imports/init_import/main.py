@@ -1,3 +1,3 @@
-from nested import smth
+from package import c
 
-smth.func()
+c.func()

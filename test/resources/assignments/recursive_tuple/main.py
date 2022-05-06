@@ -16,16 +16,9 @@ def func5():
 def func6():
     pass
 
-a, (b, c) = func1, (func2, func3)
-a()
-b()
-c()
 
 a, (b, (c, d)) = func1, (func2, (func3, func4))
-
+a()
+b()
 d()
 
-f, b = c, e = func5, func6
-
-e()
-f()

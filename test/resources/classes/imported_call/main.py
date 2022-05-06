@@ -1,4 +1,4 @@
-from to_import import MyClass
+from to_import import C
 
-a = MyClass()
+a = C()
 a.func()

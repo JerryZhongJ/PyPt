@@ -1,1 +1,4 @@
-{"__main__": ["__main__.func"], "__main__.func": ["__main__.func.dec"]}
+{
+    "__main__": ["__main__.func"], 
+    "__main__.func": ["__main__.func.dec"]
+}

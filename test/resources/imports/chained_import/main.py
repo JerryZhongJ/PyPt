@@ -1,3 +1,3 @@
-from from_import import func2
+import module1
 
-func2()
+module1.func2()
