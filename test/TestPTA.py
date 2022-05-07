@@ -10,7 +10,7 @@ from ..ModuleManager import ModuleManager
 
 
     
-class TestPTA(unittest.TestCase):
+class TestBase(unittest.TestCase):
     def setUp(self) -> None:
         self.maxDiff = None
 
@@ -24,7 +24,7 @@ class TestPTA(unittest.TestCase):
         super().assertEqual(first, second)
     
     def _test(self, analysisType, path: str):
-        print(path)
+
         # get output
         moduleManager = ModuleManager()
         moduleManager.start(path, "script")
@@ -49,19 +49,21 @@ if __name__ == "__main__":
     def getCSPTATest(path):
         return lambda self: self._test(CSPTA, os.path.join(path, "main.py"))
 
-    exclude = [("builtins", "types"), ("builtins", "map")]
+
     resourcePath = os.path.join(os.path.dirname(__file__), "resources")
+    tests = []
     for item in os.listdir(resourcePath):
         itemPath = os.path.join(resourcePath, item)
+        
         if(not os.path.isdir(itemPath)):
             continue
+        clsName = "".join([s.capitalize() for s in item.split("_")])
+        attrs = {}
         for subitem in os.listdir(itemPath):
             subitemPath = os.path.join(itemPath, subitem)
+            attrName = "test" + "".join([s.capitalize() for s in subitem.split("_")])
             if(not os.path.isdir(subitemPath)):
                 continue
-            if((item, subitem) in exclude):
-                continue
-            
-            setattr(TestPTA, f"test_{item}_{subitem}", getCSPTATest(subitemPath))
-    
-    unittest.main()
+            attrs[attrName] = getCSPTATest(subitemPath)
+        globals()[clsName]  = type(clsName, (TestBase, ), attrs)
+    unittest.main(verbosity=2)

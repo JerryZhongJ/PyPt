@@ -17,6 +17,6 @@ c1.elts = [E1(), E1(), E1()]
 
 
 c2 = C()
-c1.elts = [E1(), E1(), E1()]
+c2.elts = [E2(), E2(), E2()]
 
 c1.forAll()
