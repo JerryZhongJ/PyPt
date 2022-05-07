@@ -1,0 +1,4 @@
+{
+    "__main__": ["__main__.C.forAll"],
+    "__main__.C.forAll": ["__main__.E1.m"]
+}

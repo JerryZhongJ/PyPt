@@ -440,8 +440,8 @@ class Analysis:
                 func = obj.func.getCodeBlock()
                 tailCTX = selectContext(csStmt, obj.classObj)
                 newCTX = *obj.func.ctxChain, tailCTX
-                posParams = [CSVarPtr(param) for param in func.posargs]
-
+                posParams = [CSVarPtr(newCTX, param) for param in func.posargs]
+                
                 self.workList.append((posParams[0], {obj.classObj}))
                 del posParams[0]
                 self.matchArgParam(posArgs=         [CSVarPtr(ctx, posArg) for posArg in stmt.posargs],
@@ -453,8 +453,9 @@ class Analysis:
                 retVar = CSVarPtr(newCTX, func.returnVariable)
                 resVar = CSVarPtr(ctx, stmt.target)
                 self.addFlow(retVar, resVar)
-                self.callgraph.put(stmt, func)
-                self.addReachable(func)
+                csCodeBlock = (newCTX, func)
+                self.addReachable(csCodeBlock)
+                self.callgraph.put(csStmt, csCodeBlock)
 
             elif(isinstance(obj, StaticMethodObject)):
                 func = obj.func.getCodeBlock()

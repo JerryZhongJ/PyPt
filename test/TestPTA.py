@@ -3,7 +3,8 @@ import os
 from typing import Dict, List
 import unittest
 
-from ..PTA.Analysis import Analysis
+from ..PTA.Analysis import Analysis as PTA
+from ..CSPTA.Analysis import Analysis as CSPTA
 
 from ..ModuleManager import ModuleManager
 
@@ -22,14 +23,14 @@ class TestPTA(unittest.TestCase):
             v.sort()
         super().assertEqual(first, second)
     
-    def _test(self, path: str):
+    def _test(self, analysisType, path: str):
         print(path)
         # get output
         moduleManager = ModuleManager()
         moduleManager.start(path, "script")
         entry = moduleManager.getEntry()
         entry = moduleManager.getCodeBlock(entry)
-        analysis = Analysis()
+        analysis = analysisType()
         analysis.analyze(entry)
         output = analysis.callgraph.export()
 
@@ -42,8 +43,11 @@ class TestPTA(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    def getTemplate(path):
-        return lambda self: self._test(os.path.join(path, "main.py"))
+    def getPTATest(path):
+        return lambda self: self._test(PTA, os.path.join(path, "main.py"))
+
+    def getCSPTATest(path):
+        return lambda self: self._test(CSPTA, os.path.join(path, "main.py"))
 
     exclude = [("builtins", "types"), ("builtins", "map")]
     resourcePath = os.path.join(os.path.dirname(__file__), "resources")
@@ -58,6 +62,6 @@ if __name__ == "__main__":
             if((item, subitem) in exclude):
                 continue
             
-            setattr(TestPTA, f"test_{item}_{subitem}", getTemplate(subitemPath))
+            setattr(TestPTA, f"test_{item}_{subitem}", getCSPTATest(subitemPath))
     
     unittest.main()

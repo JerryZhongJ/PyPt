@@ -11,7 +11,7 @@ CTX_LENGTH = 2
 
 # 2-callsite
 class ContextElement:
-    key: Any
+    key: IRStmt
     def __init__(self, feature):
         self.key = feature
     def __eq__(self, other):
@@ -19,7 +19,7 @@ class ContextElement:
     def __hash__(self):
         return hash(self.key)
     def __str__(self):
-        return f""
+        return f"{self.key.belongsTo.qualified_name}-{self.key.belongsTo.stmts.index(self.key)}"
 
 
 # Context consists of ContextElement, the newest are placed at the end, the first which is ctx[0] is the oldest

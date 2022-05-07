@@ -1,10 +1,11 @@
 def func3():
     pass
 
-def func2(a=func3):
+def func2(a):
     a()
 
 def func1(a, b=func2):
     a(b)
 
-func1(a=func2, b=func3)
+func1(func2)
+func1(func2, func3)

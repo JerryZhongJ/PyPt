@@ -1,5 +1,5 @@
 
-from ..PTA.Analysis import Analysis
+from ..CSPTA.Analysis import Analysis
 from ..ModuleManager import ModuleManager
 
 import shutil
@@ -54,5 +54,5 @@ def test(moduleManager: ModuleManager):
     print("")
     print("Done")
 
-testScript("imports/import_root/main.py")
+testScript("callsite_sensitive/more_nested/main.py")
 
