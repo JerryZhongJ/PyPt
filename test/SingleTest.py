@@ -54,5 +54,5 @@ def test(moduleManager: ModuleManager):
     print("")
     print("Done")
 
-testScript("callsite_sensitive/more_nested/main.py")
+testScript("object_sensitive/self_call/main.py")
 

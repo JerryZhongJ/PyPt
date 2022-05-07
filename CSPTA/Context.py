@@ -36,6 +36,7 @@ def emptyContextChain():
 
 # callsite
 def selectContext(csCallSite: 'CSStmt', selfObj: 'CSObject') -> Context:
+    # return selectCallSiteContext(csCallSite, selfObj)
     return selectMixedContext(csCallSite, selfObj)
 
 def selectCallSiteContext(csCallSite: 'CSStmt', selfObj: 'CSObject') -> Context:

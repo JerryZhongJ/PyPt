@@ -32,7 +32,8 @@ class CSFunctionObject(CSObject, FunctionObject):
     def getCodeBlock(self) -> FunctionCodeBlock:
         return self.alloc_site.codeBlock
     def __str__(self):
-        return f"Function({self.getCodeBlock().qualified_name})"
+        ctxChain_str = ", ".join(["#".join([str(e) for e in ctx if e]) for ctx in self.ctxChain])
+        return f"({ctxChain_str})Function({self.getCodeBlock().qualified_name})"
     def __repr__(self):
         return self.__str__()
 
@@ -47,7 +48,8 @@ class CSClassObject(CSObject, ClassObject):
         return self.getCodeBlock().attributes
 
     def __str__(self):
-        return f"Class({self.getCodeBlock().qualified_name})"
+        ctxChain_str = ", ".join(["#".join([str(e) for e in ctx if e]) for ctx in self.ctxChain])
+        return f"({ctxChain_str})Class({self.getCodeBlock().qualified_name})"
     def __repr__(self):
         return self.__str__()
 
@@ -68,8 +70,8 @@ class CSInstanceObject(CSObject, InstanceObject):
         self.type = type
 
     def __str__(self):
-        # TODO
-        return f"Instance {self.type.getCodeBlock().qualified_name}({self.alloc_site})"
+        ctxChain_str = ", ".join(["#".join([str(e) for e in ctx if e]) for ctx in self.ctxChain])
+        return f"({ctxChain_str})Instance {self.type.getCodeBlock().qualified_name}({self.alloc_site})"
     def __repr__(self):
         return self.__str__()
     
@@ -81,6 +83,7 @@ class CSBuiltinObject(CSObject, BuiltinObject):
         return self.alloc_site.type
 
     def __str__(self):
-        return f"Builtin({self.alloc_site})"
+        ctxChain_str = ", ".join(["#".join([str(e) for e in ctx if e]) for ctx in self.ctxChain])
+        return f"({ctxChain_str})Builtin({self.alloc_site})"
     def __repr__(self):
         return self.__str__()
