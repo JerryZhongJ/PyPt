@@ -3,10 +3,10 @@ import os
 from typing import Dict, List
 import unittest
 
-from ..PTA.Analysis import Analysis as PTA
-from ..CSPTA.Analysis import Analysis as CSPTA
+from PyPt.PTA.Analysis import Analysis as PTA
+from PyPt.CSPTA.Analysis import Analysis as CSPTA
 
-from ..ModuleManager import ModuleManager
+from PyPt.ModuleManager import ModuleManager
 
 
     
@@ -27,9 +27,8 @@ class TestBase(unittest.TestCase):
 
         # get output
         moduleManager = ModuleManager()
-        moduleManager.start(path, "script")
-        entry = moduleManager.getEntry()
-        entry = moduleManager.getCodeBlock(entry)
+        moduleManager.start(filepath=path)
+        entry = moduleManager.getCodeBlock("__main__")
         analysis = analysisType()
         analysis.analyze(entry)
         output = analysis.callgraph.export()

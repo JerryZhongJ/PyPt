@@ -1,6 +1,6 @@
 
-from ..CSPTA.Analysis import Analysis
-from ..ModuleManager import ModuleManager
+from PyPt.CSPTA.Analysis import Analysis
+from PyPt.ModuleManager import ModuleManager
 
 import shutil
 import os

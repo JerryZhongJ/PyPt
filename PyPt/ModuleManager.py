@@ -36,24 +36,6 @@ _PY_FROZEN = 7
 # is a mechanism whereby you can register extra paths in this map for a
 # package, and it will be honored.
 
-# Note this is a mapping is lists of paths.
-packagePathMap = {}
-
-# A Public interface
-def AddPackagePath(packagename, path):
-    packagePathMap.setdefault(packagename, []).append(path)
-
-replacePackageMap = {}
-
-# This ReplacePackage mechanism allows modulefinder to work around
-# situations in which a package injects itself under the name
-# of another package into sys.modules at runtime by calling
-# ReplacePackage("real_package_name", "faked_package_name")
-# before running ModuleFinder.
-
-def ReplacePackage(oldname, newname):
-    replacePackageMap[oldname] = newname
-
 
 def _find_module(name, path=None):
     """An importlib reimplementation of imp.find_module (for our purposes)."""
@@ -135,41 +117,40 @@ class ModuleManager:
         self.verbose = verbose
         # self.replace_paths = replace_paths if replace_paths is not None else []
         self.processed_paths = []   # Used in debugging only
-        self.entry = None
+       
 
-    def start(self, target, mode="script") -> None:
-        
-        if(mode == "script"):
-            self.path[0] = os.path.dirname(target)
+    def start(self, /, filepath=None, module=None, cwd=None, dependency=True) -> None:
+        if(filepath and module or not filepath and not module):
+            raise ValueError("Module Manager runs in either script node or module mode.")
+        if(not dependency):
+            self.path = self.path[:1]
+
+        if(filepath):
+            self.path[0] = os.path.dirname(filepath)
             try:
-                with io.open_code(target) as fp:
+                with io.open_code(filepath) as fp:
                     stuff = ("", "rb", _PY_SOURCE)
                     # __main__ is a fully quarlified name
-                    self.load_module('__main__', fp, target, stuff)
-                    self.entry = "__main__"
+                    self.load_module('__main__', fp, filepath, stuff)
+                    
             except(IOError):
-                raise Exception(f"Can't open file {target}. Please check if the file exists.")
+                raise ModuleNotFoundException(f"Can't open file {filepath}. Please check if the file exists.")
 
-        elif(mode == "module"):
+        if(module):
+            if(cwd):
+                self.path[0] = cwd
             try:
-                self._import_hook(target, None)
-                self.entry = target
+                self._import_hook(module, None)
+                self.modules["__main__"] = self.modules[module]
             except(ImportError):
-                raise Exception(f"Can't import {target}. Please check if this module exists.")
-                return
+                raise ModuleNotFoundException(f"Can't import {filepath}. Please check if this module exists.")
             
-            if(self.modules[target].__path__):
+            if(self.modules[module].__path__):
                 try:
-                    self._import_hook(target + ".__main__", None)
-                    self.entry = target + ".__main__"
+                    self._import_hook(module + ".__main__", None)
+                    self.modules["__main__"] = self.modules[module + ".__main__"]
                 except(ImportError):
-                    raise Exception(f"{target} is a package, but {target}.__main__ can't be imported. Please check if it exists.")
-           
-    def getEntry(self):
-        if(self.entry):
-            return self.entry
-        else:
-            raise Exception("Please call start() first.")
+                    raise ModuleNotFoundException(f"{filepath} is a package, but {filepath}.__main__ can't be imported. Please check if it exists.")
             
 
     def getCodeBlock(self, name: str, callerName: str=None, level: int=0) -> Union[ModuleCodeBlock, str]:
@@ -351,7 +332,7 @@ class ModuleManager:
     # import = find + load, import specific module
     def import_module(self, partname, fqname, parent):
         if(self.verbose):
-            print(f"\rImporting {fqname}                    ", end="")
+            print(f"Importing {fqname}                        \r", end="")
         try:
             m = self.modules[fqname]
         except KeyError:
@@ -421,10 +402,6 @@ class ModuleManager:
             # m.__codeBlock__.done = True
 
 
-        
-
-        
-
     def _add_badmodule(self, name, caller):
         if name not in self.badmodules:
             self.badmodules[name] = {}
@@ -452,101 +429,12 @@ class ModuleManager:
         except SyntaxError as msg:
 
             self._add_badmodule(name, caller)
-        # else:
-        #     if fromlist:
-        #         for sub in fromlist:
-        #             fullname = name + "." + sub
-        #             if fullname in self.badmodules:
-        #                 self._add_badmodule(fullname, caller)
-        #                 continue
-        #             try:
-        #                 self._import_hook(name, caller, [sub], level=level)
-        #             except ImportError as msg:
-
-        #                 self._add_badmodule(fullname, caller)
-
-    # def scan_opcodes(self, co):
-    #     # Scan the code, and yield 'interesting' opcode combinations
-    #     code = co.co_code
-    #     names = co.co_names
-    #     consts = co.co_consts
-    #     # opargs = (op, arg)
-    #     opargs = [(op, arg) for _, op, arg in dis._unpack_opargs(code)
-    #               if op != EXTENDED_ARG]
-    #     for i, (op, oparg) in enumerate(opargs):
-    #         if op in STORE_OPS:
-    #             yield "store", (names[oparg],)
-    #             continue
-    #         if (op == IMPORT_NAME and i >= 2
-    #                 and opargs[i-1][0] == opargs[i-2][0] == LOAD_CONST):
-    #             level = consts[opargs[i-2][1]]
-    #             fromlist = consts[opargs[i-1][1]]
-    #             if level == 0: # absolute import
-    #                 yield "absolute_import", (fromlist, names[oparg])
-    #             else: # relative import
-    #                 yield "relative_import", (level, fromlist, names[oparg])
-    #             continue
-
-    # def scan_code(self, co, m):
-        # code = co.co_code
-        # scanner = self.scan_opcodes
-        # for what, args in scanner(co):
-        #     if what == "store":
-        #         name, = args
-        #         m.globalnames[name] = 1
-        #     elif what == "absolute_import":
-        #         fromlist, name = args
-        #         have_star = 0
-        #         if fromlist is not None:
-        #             if "*" in fromlist:
-        #                 have_star = 1
-        #             fromlist = [f for f in fromlist if f != "*"]
-        #         self.import_hook(name, m, fromlist, level=0)
-        #         if have_star:
-        #             # We've encountered an "import *". If it is a Python module,
-        #             # the code has already been parsed and we can suck out the
-        #             # global names.
-        #             mm = None
-        #             if m.__path__:
-        #                 # At this point we don't know whether 'name' is a
-        #                 # submodule of 'm' or a global module. Let's just try
-        #                 # the full name first.
-        #                 mm = self.modules.get(m.__name__ + "." + name)
-        #             if mm is None:
-        #                 mm = self.modules.get(name)
-        #             if mm is not None:
-        #                 m.globalnames.update(mm.globalnames)
-        #                 m.starimports.update(mm.starimports)
-        #                 if mm.__code__ is None:
-        #                     m.starimports[name] = 1
-        #             else:
-        #                 m.starimports[name] = 1
-        #     elif what == "relative_import":
-        #         level, fromlist, name = args
-        #         if name:
-        #             self.import_hook(name, m, fromlist, level=level)
-        #         else:
-        #             parent = self.determine_parent(m, level=level)
-        #             self.import_hook(parent.__name__, None, fromlist, level=0)
-        #     else:
-        #         # We don't expect anything else from the generator.
-        #         raise RuntimeError(what)
-
-        # for c in co.co_consts:
-        #     if isinstance(c, type(co)):
-        #         self.scan_code(c, m)
 
     def load_package(self, fqname, pathname):
 
-        newname = replacePackageMap.get(fqname)
-        if newname:
-            fqname = newname
         m = self.add_module(fqname)
         m.__file__ = pathname
         m.__path__ = [pathname]
-
-        # As per comment at top of file, simulate runtime __path__ additions.
-        m.__path__ = m.__path__ + packagePathMap.get(fqname, [])
 
         fp, buf, stuff = self.find_module("__init__", m.__path__)
         try:
@@ -583,3 +471,6 @@ class ModuleManager:
             path = self.path
 
         return _find_module(name, path)
+
+class ModuleNotFoundException(Exception):
+    pass

@@ -7,7 +7,7 @@ from .Stmts import *
 from .Scanner import BindingScanner, DeclarationScanner
 
 if typing.TYPE_CHECKING:
-    from ModuleManager import ModuleManager
+    from PyPt.ModuleManager import ModuleManager
 
 # Wrapper for variable
 class VariableNode(ast.AST):
@@ -386,7 +386,7 @@ class CodeBlockGenerator(ast.NodeTransformer):
         
         self.generic_visit(node)
 
-        if(hasattr(node, "value")):
+        if(node.value):
             self._handleAssign(node.target, node.value)
 
     # let all subscribable objects have a attribute $values, tuple is an exception  
@@ -671,7 +671,6 @@ class CodeBlockGenerator(ast.NodeTransformer):
         return self.visit_With(node)
 
     def _handleAssign(self, target, value):
-        assert(isinstance(value, VariableNode))
         if(isinstance(target, VariableNode)):
             # left = right
             Assign(target.var, value.var, self.codeBlock)

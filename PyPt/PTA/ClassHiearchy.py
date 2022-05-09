@@ -59,6 +59,8 @@ class ClassHiearchy:
                         yield tail
             else:
                 for obj in self.pointToSet.get(bases[start]):
+                    if(not isinstance(obj, ClassObject)):
+                        continue
                     for mro in self.mros[obj]:
                         for tail in select(start + 1):
                             tail.insert(0, mro)

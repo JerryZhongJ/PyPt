@@ -15,35 +15,35 @@
             "justMyCode": true
         },
         {
+            "name": "PyPt",
+            "type": "python",
+            "request": "launch",
+            "module": "PyPt",
+            "justMyCode": true,
+            "args": ["-m", "flask", "-o", "./callgraph.json"]
+
+        },
+        {
             "name": "Test PTA",
             "type": "python",
             "request": "launch",
-            "module": "Python-PTA.test.TestPTA",
-            "cwd": "${workspaceFolder}/..",
-            "justMyCode": true
-        },
-        {
-            "name": "Test CSPTA",
-            "type": "python",
-            "request": "launch",
-            "module": "Python-PTA.test.TestCSPTA",
-            "cwd": "${workspaceFolder}/..",
+            "module": "test.TestPTA",
+           
             "justMyCode": true
         },
         {
             "name": "Single Test",
             "type": "python",
             "request": "launch",
-            "module": "Python-PTA.test.SingleTest",
-            "cwd": "${workspaceFolder}/..",
+            "module": "test.SingleTest",
+           
             "justMyCode": true
         },
         {
             "name": "Test IR",
             "type": "python",
             "request": "launch",
-            "module": "Python-PTA.test.TestIR",
-            "cwd": "${workspaceFolder}/..",
+            "module": "test.TestIR",
             "justMyCode": true
         },
         {
