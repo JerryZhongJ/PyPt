@@ -143,14 +143,14 @@ class ModuleManager:
                 self._import_hook(module, None)
                 self.modules["__main__"] = self.modules[module]
             except(ImportError):
-                raise ModuleNotFoundException(f"Can't import {filepath}. Please check if this module exists.")
+                raise ModuleNotFoundException(f"Can't import {module}. Please check if this module exists.")
             
             if(self.modules[module].__path__):
                 try:
                     self._import_hook(module + ".__main__", None)
                     self.modules["__main__"] = self.modules[module + ".__main__"]
                 except(ImportError):
-                    raise ModuleNotFoundException(f"{filepath} is a package, but {filepath}.__main__ can't be imported. Please check if it exists.")
+                    raise ModuleNotFoundException(f"{module} is a package, but {filepath}.__main__ can't be imported. Please check if it exists.")
             
 
     def getCodeBlock(self, name: str, callerName: str=None, level: int=0) -> Union[ModuleCodeBlock, str]:

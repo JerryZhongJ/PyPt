@@ -49,7 +49,10 @@ class CodeBlock:
                 print(str(stmt), file=f)
                 if(isinstance(stmt, NewClass) or isinstance(stmt, NewFunction)):
                     stmt.codeBlock.dump(rootDirectory)
-                
+    
+    def __eq__(self, other):
+        return isinstance(other, CodeBlock) and self.qualified_name == other.qualified_name
+        
     def __hash__(self):
         return hash(self.qualified_name)
 

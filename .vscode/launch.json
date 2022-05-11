@@ -20,7 +20,7 @@
             "request": "launch",
             "module": "PyPt",
             "justMyCode": true,
-            "args": ["-m", "flask", "-o", "./callgraph.json"]
+            "args": ["~/Documents/test_projects/flask/src/flask/__main__.py", "-nd", "-o", "./callgraph.json"]
 
         },
         {

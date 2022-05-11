@@ -1,5 +1,7 @@
 from typing import Any, List, Set, Union
 
+from ..CSPTA.Context import emptyContextChain
+
 from .Pointers import CIVarPtr, VarPtr
 
 from ..IR.Stmts import IRStmt, Call, NewBuiltin, NewClass, NewFunction
@@ -201,6 +203,17 @@ class FakeObject(ModuleObject, ClassObject, FunctionObject):
     class NoMore(Exception):
         pass
 
+    class FakeCodeBlock(ClassCodeBlock, FunctionCodeBlock):
+        def __init__(self, name, enclosing):
+            if(enclosing == None):
+                super(FunctionCodeBlock, self).__init__(name, None, fake=False)
+                self.module = self
+            else:
+                super().__init__(name, enclosing, fake=False)
+            self.scopeLevel = 0
+    
+            
+
     codeBlock: CodeBlock
     def __eq__(self, other):
         return isinstance(other, FakeObject) and self.codeBlock.qualified_name == other.codeBlock.qualified_name
@@ -211,9 +224,10 @@ class FakeObject(ModuleObject, ClassObject, FunctionObject):
             while(curr):
                 depth += 1
                 curr = curr.enclosing
-            if(depth >= 7):
+            if(depth >= 4):
                 raise FakeObject.NoMore
-        self.codeBlock = CodeBlock(name, enclosing and enclosing.codeBlock)
+        self.codeBlock = FakeObject.FakeCodeBlock(name, enclosing and enclosing.codeBlock)
+        self.ctxChain = emptyContextChain()
     def __str__(self):
         return f"Fake {self.codeBlock.qualified_name}"
     def __hash__(self):

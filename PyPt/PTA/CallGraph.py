@@ -14,7 +14,7 @@ class CallGraph:
     # reachable: Set[CodeBlock]
     def __init__(self):
         self.callgraph = {}
-        self.reachable = set()
+        
         
     def put(self, stmt: IRStmt, codeBlock:CodeBlock) -> bool:
         # assert(isinstance(stmt, NewModule) and isinstance(codeBlock, ModuleCodeBlock) or

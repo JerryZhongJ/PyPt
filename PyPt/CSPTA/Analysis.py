@@ -404,11 +404,11 @@ class Analysis:
         varPtr = CSVarPtr(ctx, stmt.target)
         newObjs = set()
         for obj in objs:
-            if(isinstance(obj, FakeObject)):
-                func = obj.getCodeBlock()
-                csCodeBlock = (emptyContextChain(), func)
-                self.callgraph.put(csStmt, csCodeBlock)
-            elif(isinstance(obj, CSFunctionObject)):
+            # if(isinstance(obj, FakeObject)):
+            #     func = obj.getCodeBlock()
+            #     csCodeBlock = (emptyContextChain(), func)
+            #     self.callgraph.put(csStmt, csCodeBlock)
+            if(isinstance(obj, FunctionObject)):
                 func = obj.getCodeBlock()
                 tailCTX = selectContext(csStmt, None)
                 newCTX = *obj.ctxChain, tailCTX
@@ -434,7 +434,7 @@ class Analysis:
                 if(len(posParams) == 0):
                     # not a method, just skip
                     continue
-                
+
                 self.workList.append((ADD_POINT_TO, posParams[0], {obj.selfObj}))
                 del posParams[0]
                 self.matchArgParam(posArgs=         [CSVarPtr(ctx, posArg) for posArg in stmt.posargs],
@@ -456,6 +456,9 @@ class Analysis:
                 newCTX = *obj.func.ctxChain, tailCTX
                 posParams = [CSVarPtr(newCTX, param) for param in func.posargs]
                 
+                if(len(posParams) == 0):
+                    # not a method, just skip
+                    continue
                 self.workList.append((ADD_POINT_TO, posParams[0], {obj.classObj}))
                 del posParams[0]
                 self.matchArgParam(posArgs=         [CSVarPtr(ctx, posArg) for posArg in stmt.posargs],
@@ -535,7 +538,7 @@ class Analysis:
         ctx, stmt = csStmt
         attr = stmt.attr
         for obj in objs:
-            if(isinstance(obj, ClassObject) and attr in self.persist_attr[obj]):
+            if(obj in self.persist_attr and attr in self.persist_attr[obj]):
                 for mro, index in self.persist_attr[obj][attr]:
                     self.resolveAttribute(mro[0], attr, (mro, index + 1))
                 del self.persist_attr[obj][attr]

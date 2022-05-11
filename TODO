@@ -1,8 +1,5 @@
-1. more test:
-    1. class method, call by subclass, call by subclass's instance
-    2. class attribute
-    3. static method
-    4. complicated super
+1. use defaultdict
+1. re-design fake object
 2. optimize class method object, static method object
     1. class method object should be simply a wrapper over a function, transformed every time when it is resolved
 3. fix generator expression's scope

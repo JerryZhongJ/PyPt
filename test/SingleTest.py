@@ -1,5 +1,6 @@
 
-from PyPt.CSPTA.Analysis import Analysis
+import json
+from PyPt.PTA.Analysis import Analysis
 from PyPt.ModuleManager import ModuleManager
 
 import shutil
@@ -12,18 +13,17 @@ def testScript(path):
     #     print(ast.dump(ast.parse(f.read()), indent=4))
 
     moduleManager = ModuleManager()
-    moduleManager.start(os.path.join(resource, path), mode="script")
+    moduleManager.start(filepath=os.path.join(resource, path))
     test(moduleManager)
     
-def testModule(moduleName):
+def testModule(moduleName, cwd):
     moduleManager = ModuleManager()
-    moduleManager.start(moduleName, mode="module")
+    moduleManager.start(module=moduleName, cwd=cwd, dependency=False)
     
     test(moduleManager)
 
 def test(moduleManager: ModuleManager):
-    entry = moduleManager.getEntry()
-    entryCodeBlock = moduleManager.getCodeBlock(entry)
+    entryCodeBlock = moduleManager.getCodeBlock("__main__")
     result = os.path.join(os.path.dirname(__file__), "result")
     if(os.path.exists(result)):
         shutil.rmtree(result)
@@ -31,8 +31,7 @@ def test(moduleManager: ModuleManager):
     for cb in moduleManager.allCodeBlocks():
         cb.dump(result)
 
-    print("")
-    print("IR generation finish, start PTA...")
+    print("IR generation finish, start PTA...                      ")
 
     analysis = Analysis()
     analysis.analyze(entryCodeBlock)
@@ -51,8 +50,10 @@ def test(moduleManager: ModuleManager):
     with open(os.path.join(result, "Class Hiearchy.txt"), "w") as f:
         analysis.classHiearchy.dump(f)
 
-    print("")
-    print("Done")
+    with open(os.path.join(result, "callgraph.json"), "w") as f:
+        json.dump(analysis.callgraph.export(), f, indent=4)
 
-testScript("object_sensitive/self_call/main.py")
+    print("Done                                                   ")
 
+# testScript("iteration/iterator/main.py")
+testModule("flask", "/home/jerry/Documents/test_projects/flask/src")

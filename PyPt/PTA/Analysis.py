@@ -68,7 +68,7 @@ class Analysis:
                     self.workList.append((ADD_POINT_TO, targetPtr, {obj}))
                     self.workList.append((ADD_POINT_TO, globalPtr, {obj}))
                     self.addReachable(stmt.module)
-                    # self.callgraph.put(stmt, stmt.codeBlock)
+                    # self.callgraph.put(stmt, stmt.module)
                 else:
                     obj = FakeObject(stmt.module, None)
                     targetPtr = CIVarPtr(stmt.target)
@@ -370,10 +370,10 @@ class Analysis:
         varPtr = CIVarPtr(stmt.target)
         newObjs = set()
         for obj in objs:
-            if(isinstance(obj, FakeObject)):
-                func = obj.getCodeBlock()
-                self.callgraph.put(stmt, func)
-            elif(isinstance(obj, FunctionObject)):
+            # if(isinstance(obj, FakeObject)):
+            #     func = obj.getCodeBlock()
+            #     self.callgraph.put(stmt, func)
+            if(isinstance(obj, FunctionObject)):
                 func = obj.getCodeBlock()
                 self.matchArgParam(posArgs=         [CIVarPtr(posArg) for posArg in stmt.posargs],
                                     kwArgs=         {kw:CIVarPtr(kwarg) for kw, kwarg in stmt.kwargs.items()},
@@ -411,7 +411,9 @@ class Analysis:
             elif(isinstance(obj, ClassMethodObject)):
                 func = obj.func.getCodeBlock()
                 posParams = [CIVarPtr(param) for param in func.posargs]
-                
+                if(len(posParams) == 0):
+                    # not a method, just skip
+                    continue
                 self.workList.append((ADD_POINT_TO, posParams[0], {obj.classObj}))
                 del posParams[0]
                 self.matchArgParam(posArgs=         [CIVarPtr(posArg) for posArg in stmt.posargs],
@@ -440,7 +442,7 @@ class Analysis:
                 self.addReachable(func)
                 self.callgraph.put(stmt, func) 
            
-            elif(isinstance(obj, ClassObject)):
+            if(isinstance(obj, ClassObject)):
                 insObj = CIInstanceObject(stmt, obj)
                 
                 # target <- instance.attr
@@ -482,7 +484,8 @@ class Analysis:
         assert(isinstance(stmt, DelAttr))
         attr = stmt.attr
         for obj in objs:
-            if(isinstance(obj, ClassObject) and attr in self.persist_attr[obj]):
+            if(obj in self.persist_attr
+                and attr in self.persist_attr[obj]):
                 for resolver, mro, index in self.persist_attr[obj][attr]:
                     self.resolveAttribute(resolver, attr, (mro, index + 1))
                 del self.persist_attr[obj][attr]
