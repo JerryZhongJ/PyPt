@@ -17,8 +17,8 @@ def testScript(path):
     test(moduleManager)
     
 def testModule(moduleName, cwd):
-    moduleManager = ModuleManager()
-    moduleManager.start(module=moduleName, cwd=cwd, dependency=False)
+    moduleManager = ModuleManager(verbose=True)
+    moduleManager.start(module=moduleName, cwd=cwd, dependency=True)
     
     test(moduleManager)
 
@@ -34,7 +34,7 @@ def test(moduleManager: ModuleManager):
     print("IR generation finish, start PTA...                      ")
 
     analysis = Analysis()
-    analysis.analyze(entryCodeBlock)
+    analysis.analyze(entryCodeBlock, verbose=True)
     
 
     

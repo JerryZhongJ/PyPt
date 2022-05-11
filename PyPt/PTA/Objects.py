@@ -224,7 +224,7 @@ class FakeObject(ModuleObject, ClassObject, FunctionObject):
             while(curr):
                 depth += 1
                 curr = curr.enclosing
-            if(depth >= 4):
+            if(depth >= 3):
                 raise FakeObject.NoMore
         self.codeBlock = FakeObject.FakeCodeBlock(name, enclosing and enclosing.codeBlock)
         self.ctxChain = emptyContextChain()

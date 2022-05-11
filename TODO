@@ -1,4 +1,5 @@
 1. use defaultdict
+2. GetItem, SetItem, builtin-functions
 1. re-design fake object
 2. optimize class method object, static method object
     1. class method object should be simply a wrapper over a function, transformed every time when it is resolved

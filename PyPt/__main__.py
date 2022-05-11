@@ -4,6 +4,7 @@ from PyPt.CSPTA.Analysis import Analysis as csAnalysis
 from PyPt.PTA.Analysis import Analysis
 
 from PyPt.ModuleManager import ModuleManager, ModuleNotFoundException
+from PyPt.PTA.CallGraph import CallGraph
 
 
 if __name__ == "__main__":
@@ -22,14 +23,18 @@ if __name__ == "__main__":
     )
     argparser.add_argument("-o", "--output",
         required=True,
-        help="The file path where output callgraph will be stored. The output format will json."
+        help="The file path where output callgraph will be stored. The output format will be json."
     )
     argparser.add_argument("-nd", "--no-dependency",
         action="store_true",
         default=False,
-        help="""If in script mode, only modules under the same directory as the entry point will be included.\
+        help="""If in script mode, only modules under the same directory as the entry point will be included.
                 If in module mode, only modules under current directory will be included."""
     )
+    argparser.add_argument("--include",
+        help="Specify a string, then output callgraph only contains callers that start with this string."
+    )
+
     args = argparser.parse_args()
     if(args.filepath and args.module):
         print("Error: Please provide one entry point at a time.")
@@ -62,8 +67,12 @@ if __name__ == "__main__":
     analysis.analyze(mm.getCodeBlock("__main__"))
     print("Point-to Analysis is done, start writing to file                ")
     
-    json.dump(analysis.callgraph.export(), fp=fp)
+    callgraph = analysis.callgraph.export()
+    if(args.include):
+        callgraph = {k:v for k, v in callgraph.items() if k.startswith(args.include)} 
+    json.dump(callgraph.export(), fp, indent=4)
+    fp.close()
 
     print("All done.")
-    fp.close()
+    
     

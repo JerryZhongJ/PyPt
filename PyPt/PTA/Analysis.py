@@ -442,7 +442,7 @@ class Analysis:
                 self.addReachable(func)
                 self.callgraph.put(stmt, func) 
            
-            if(isinstance(obj, ClassObject)):
+            elif(isinstance(obj, ClassObject)):
                 insObj = CIInstanceObject(stmt, obj)
                 
                 # target <- instance.attr
