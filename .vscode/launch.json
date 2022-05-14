@@ -32,6 +32,14 @@
             "justMyCode": true
         },
         {
+            "name": "Test Soundness&Completeness",
+            "type": "python",
+            "request": "launch",
+            "module": "test.TestSoundComplete",
+           
+            "justMyCode": true
+        },
+        {
             "name": "Single Test",
             "type": "python",
             "request": "launch",

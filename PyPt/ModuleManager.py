@@ -145,7 +145,7 @@ class ModuleManager:
                     self._import_hook(module + ".__main__", None)
                     self.entrys.append(self.modules[module + ".__main__"])
                 except(ImportError):
-                    raise ModuleNotFoundException(f"{module} is a package, but {filepath}.__main__ can't be imported. Please check if it exists.")
+                    raise ModuleNotFoundException(f"{module} is a package, but {module}.__main__ can't be imported. Please check if it exists.")
             
     def getEntrys(self) -> List[CodeBlock]:
         return [m.__codeBlock__ for m in self.entrys]

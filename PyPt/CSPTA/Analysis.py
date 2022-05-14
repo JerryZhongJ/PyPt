@@ -1,7 +1,7 @@
 from typing import Dict, List, Set, Tuple, Union
 import typing
 
-from .CSCallGraph import CSCallGraph
+
 if typing.TYPE_CHECKING:
     from . import CS_Call, CS_DelAttr, CS_GetAttr, CS_NewClass, CS_SetAttr, CSCodeBlock, CSStmt, CS_NewClassMethod, CS_NewStaticMethod, CS_NewSuper
 
@@ -27,9 +27,6 @@ from ..IR.Stmts import Assign, Call, DelAttr, GetAttr, IRStmt, NewBuiltin, NewCl
 
 
 FAKE_PREFIX = "$r_"
-builtin_functions = ["abs", "aiter", "all", "any", "anext", "ascii", "bin", "bool", "breakpoint", "bytearray", "bytes", "callable", "chr", "classmethod", "compile", "complex", "delattr", "dict", "dir", "divmod", "enumerate", "eval", "exec", "filter", "float", "format", "frozenset", "getattr", "globals", "hasattr", "hash", "help", "hex", "id", "input", "int", "isinstance", "issubclass", "iter", "len", "list", "locals", "map", "max", "memoryview", "min", "next", "object", "oct", "open", "ord", "pow", "print", "property", "range", "repr", "reversed", "round", "set", "setattr", "slice", "sorted", "staticmethod", "str", "sum", "super", "tuple", "type", "vars", "zip", "__import__"]
-
-
 def isFakeAttr(attr: str):
     return attr.startswith(FAKE_PREFIX)
 
@@ -52,7 +49,7 @@ class Analysis:
     workList: List[Tuple[Pointer, Set[Object]]]
     def __init__(self, verbose=False):
         self.pointToSet = PointToSet()
-        self.callgraph = CSCallGraph()
+        self.callgraph = CallGraph()
         self.pointerFlow = PointerFlow()
         self.bindingStmts = BindingStmts()
         self.defined = set()
@@ -114,7 +111,7 @@ class Analysis:
                 
                 csCodeBlock = (ctx, stmt.codeBlock)
                 self.addReachable(csCodeBlock)
-                self.callgraph.put(csStmt, csCodeBlock)
+                self.callgraph.put(stmt, stmt.codeBlock)
                 
                 self.classHiearchy.addClass(obj)
                 self.persist_attr[obj] = {}
@@ -134,7 +131,6 @@ class Analysis:
         for entry in entrys:
             obj = ModuleObject(entry)
             self.workList.append((ADD_POINT_TO, CSVarPtr(emptyContextChain(), entry.globalVariable), {obj}))
-
             self.addReachable((emptyContextChain(), entry))
 
         while(len(self.workList) > 0):
@@ -424,7 +420,7 @@ class Analysis:
                 self.addFlow(retVar, resVar)
                 csCodeBlock = (newCTX, func)
                 self.addReachable(csCodeBlock)
-                self.callgraph.put(csStmt, csCodeBlock)
+                self.callgraph.put(stmt, func)
                 
                 
             elif(isinstance(obj, InstanceMethodObject)):
@@ -449,7 +445,7 @@ class Analysis:
                 self.addFlow(retVar, resVar)
                 csCodeBlock = (newCTX, func)
                 self.addReachable(csCodeBlock)
-                self.callgraph.put(csStmt, csCodeBlock)
+                self.callgraph.put(stmt, func)
                 
             elif(isinstance(obj, ClassMethodObject)):
                 func = obj.func.getCodeBlock()
@@ -473,7 +469,7 @@ class Analysis:
                 self.addFlow(retVar, resVar)
                 csCodeBlock = (newCTX, func)
                 self.addReachable(csCodeBlock)
-                self.callgraph.put(csStmt, csCodeBlock)
+                self.callgraph.put(stmt, func)
 
             elif(isinstance(obj, StaticMethodObject)):
                 func = obj.func.getCodeBlock()
@@ -490,7 +486,7 @@ class Analysis:
                 self.addFlow(retVar, resVar)
                 csCodeBlock = (newCTX, func)
                 self.addReachable(csCodeBlock)
-                self.callgraph.put(csStmt, csCodeBlock)
+                self.callgraph.put(stmt, func)
 
             elif(isinstance(obj, ClassObject)):
                 insObj = CSInstanceObject(csStmt, obj)

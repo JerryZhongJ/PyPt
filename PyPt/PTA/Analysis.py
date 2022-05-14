@@ -34,7 +34,7 @@ class Analysis:
     workList: List[Tuple[Pointer, Set[Object]]]
     def __init__(self, verbose=False):
         self.pointToSet = PointToSet()
-        self.callgraph = CICallGraph()
+        self.callgraph = CallGraph()
         self.pointerFlow = PointerFlow()
         self.bindingStmts = BindingStmts()
         self.defined = set()

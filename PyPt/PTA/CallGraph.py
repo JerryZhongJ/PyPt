@@ -63,6 +63,24 @@ class CallGraph:
             callgraph[caller.qualified_name] = [callee.qualified_name for callee in callees if not callee.fake]
         
         return callgraph
+
+    def foldToStmt(self) -> Dict[CodeBlock, Dict[IRStmt, Set[CodeBlock]]]:
+        callgraph = {}
+        for stmt, callees in self.callgraph.items():
+            caller = stmt.belongsTo
+            if(caller not in callgraph):
+                callgraph[caller] = {}
+            callgraph[caller][stmt] = callees
+        return callgraph
+
+    def foldToCodeBlock(self) -> Dict[CodeBlock, Set[CodeBlock]]:
+        callgraph = {}
+        for stmt, callees in self.callgraph.items():
+            caller = stmt.belongsTo
+            if(caller not in callgraph):
+                callgraph[caller] = set()
+            callgraph[caller] |= callees
+        return callgraph
         
                 
 

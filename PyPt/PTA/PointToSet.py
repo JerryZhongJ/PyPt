@@ -50,7 +50,7 @@ class PointToSet:
             if(pointer not in self.varPtrSet):
                 self.varPtrSet[var] = set()
             diff = objs - self.varPtrSet[var]
-            self.varPtrSet[var] |= objs
+            self.varPtrSet[var] |= diff
             return diff
         elif(isinstance(pointer, AttrPtr)):
             o = pointer.obj
@@ -62,7 +62,7 @@ class PointToSet:
                 self.attrPtrSet[o][f] = set()
             
             diff = objs - self.attrPtrSet[o][f]
-            self.attrPtrSet[o][f] |= objs
+            self.attrPtrSet[o][f] |= diff
             return diff
 
     def get(self, pointer: Pointer) -> Set[Object]:

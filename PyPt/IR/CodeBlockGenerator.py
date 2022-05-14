@@ -648,7 +648,8 @@ class CodeBlockGenerator(ast.NodeTransformer):
 
         generator = ClassCodeBlockGenerator(node.name, self.codeBlock, moduleManager=self.moduleManager)
         generator.parse(node)
-        base = [self.visit(b).var for b in node.bases]
+        # TODO: a better way to deal with it when base is a starred?
+        base = [self.visit(b).var for b in node.bases if isinstance(b, VariableNode)]
         resolved = resolveName(self.codeBlock, node.name)
         if(isinstance(resolved, VariableNode)):
             NewClass(resolved.var, base, generator.codeBlock, self.codeBlock)

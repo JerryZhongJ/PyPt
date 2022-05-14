@@ -19,13 +19,13 @@ from ..IR.Stmts import Call, IRStmt, NewBuiltin, NewClass, NewFunction
 class CSObject:
     ctxChain: ContextChain
     alloc_site: IRStmt
-    def __init__ (self, alloc_site: 'CSStmt'):
-        self.alloc_site = alloc_site[1]
-        self.ctxChain = alloc_site[0]
+    def __init__ (self, cs_alloc_site: 'CSStmt'):
+        self.alloc_site = cs_alloc_site[1]
+        self.ctxChain = cs_alloc_site[0]
     def __eq__(self, other):
         return isinstance(other, CSObject) and self.alloc_site == other.alloc_site and self.ctxChain == other.ctxChain
     def __hash__(self):
-        return hash(self.alloc_site)
+        return hash((self.ctxChain, self.alloc_site))
 
 class CSFunctionObject(CSObject, FunctionObject):
     alloc_site:  NewFunction
@@ -64,7 +64,7 @@ class CSInstanceObject(CSObject, InstanceObject):
     def __eq__(self, other):
         return CSObject.__eq__(self, other) and InstanceObject.__eq__(self, other)
 
-    def __init__(self, alloc_site, type):
+    def __init__(self, alloc_site: 'CSStmt', type: ClassObject):
         self.ctxChain = alloc_site[0]
         self.alloc_site = alloc_site[1]
         self.type = type

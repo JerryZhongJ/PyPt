@@ -7,13 +7,13 @@ if typing.TYPE_CHECKING:
 
 from ..IR.Stmts import IRStmt
 
-CTX_LENGTH = 2
+CTX_LENGTH = 1
 
 # 2-callsite
 class ContextElement:
     key: IRStmt
-    def __init__(self, feature):
-        self.key = feature
+    def __init__(self, key):
+        self.key = key
     def __eq__(self, other):
         return isinstance(other, ContextElement) and self.key == other.key
     def __hash__(self):
