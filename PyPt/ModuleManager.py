@@ -89,6 +89,7 @@ class Module:
         self.__file__ = file
         self.__path__ = path
         self.__codeBlock__ = None
+        
         # # The set of global names that are assigned to in the module.
         # # This includes those names imported through starimports of
         # # Python modules.
@@ -108,16 +109,18 @@ class Module:
 
 class ModuleManager:
 
-    def __init__(self,cwd=None, /, dependency=True, maxDepth=None, verbose=False):
-        if(dependency):
-            self.path = sys.path
-        else:
-            self.path = sys.path[:1]
+    def __init__(self,cwd=None, /, maxDepth=9999, verbose=False):
+        
         if(cwd):
-            self.path[0] = cwd
+            self.cwd = [cwd]
+        else:
+            self.cwd = [os.getcwd()]
+
+        self.externalPath = sys.path[1:]
         self.modules = {}
         self.badmodules = {}
         self.verbose = verbose
+        self.maxDepth = maxDepth
         self.entrys = []
         
     def addEntry(self, /, file=None, module=None) -> None:
@@ -461,9 +464,16 @@ class ModuleManager:
             if name in sys.builtin_module_names:
                 return (None, None, ("", "", _C_BUILTIN))
 
-            path = self.path
+            path = self.cwd
 
-        return _find_module(name, path)
+        try:
+            fp, buf, stuff =  _find_module(name, path)
+            return fp, buf, stuff, False
+        except ImportError:
+            pass
+
+        fp, buf, stuff =  _find_module(name, self.externalPath)
+        return fp, buf, stuff, True
 
 class ModuleNotFoundException(Exception):
     pass
