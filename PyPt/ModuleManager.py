@@ -132,7 +132,7 @@ class ModuleManager:
             try:
                 with io.open_code(filepath) as fp:
                     stuff = ("", "rb", _PY_SOURCE)
-                    m = self.load_module(f'__main{len(self.entrys) if self.entrys else ""}__', fp, filepath, stuff)
+                    m = self.load_module(f'__main{len(self.entrys) if self.entrys else ""}__', fp, filepath, stuff, 1)
                     self.entrys.append(m)
             except(IOError):
                 raise ModuleNotFoundException(f"Can't open file {filepath}. Please check if the file exists.")
@@ -169,18 +169,9 @@ class ModuleManager:
         else:
             return fqname
         
-
-
     def allCodeBlocks(self):
         return [m.__codeBlock__ for m in self.modules.values() if m.__codeBlock__ is not None]
         
-    def load_file(self, pathname):
-        dir, name = os.path.split(pathname)
-        name, ext = os.path.splitext(name)
-        with io.open_code(pathname) as fp:
-            stuff = (ext, "rb", _PY_SOURCE)
-            self.load_module(name, fp, pathname, stuff)
-
     # import all the module in the quarlified name, and those in fromlist
     # if this is "import", return the head module
     # if this is "import ... from",  import fromlist and return None
@@ -295,7 +286,7 @@ class ModuleManager:
         for sub in fromlist:
             if not hasattr(m, sub):
                 subname = "%s.%s" % (m.__name__, sub)
-                submod = self.import_module(sub, subname, m)
+                submod = self.import_module(caller, sub, subname, m)
                 if not submod:
 
                     self._add_badmodule(subname, caller)
@@ -331,7 +322,7 @@ class ModuleManager:
         return modules.keys()
 
     # import = find + load, import specific module
-    def import_module(self, partname, fqname, parent):
+    def import_module(self, caller, partname, fqname, parent):
         if(self.verbose):
             print(f"Importing {fqname}                        \r", end="")
         try:
@@ -353,10 +344,16 @@ class ModuleManager:
         except ImportError:
             return None
 
-        if()
+        if(isExternal):
+            newDepth = (caller.__depth__ if caller else 0 ) + 1
+        else:
+            newDepth = caller.__depth__
+
+        if(newDepth > self.maxDepth):
+            return None
 
         try:
-            m = self.load_module(fqname, fp, pathname, stuff)
+            m = self.load_module(fqname, fp, pathname, stuff, newDepth)
             if(m and parent):
                 tmp = parent.__generator__.newTmpVariable()
                 NewModule(tmp, m.__codeBlock__, parent.__codeBlock__)
@@ -370,17 +367,18 @@ class ModuleManager:
         return m
 
     # load = process import statements and globalnames
-    def load_module(self, fqname, fp, pathname, file_info):
+    def load_module(self, fqname, fp, pathname, file_info, depth):
         suffix, mode, type = file_info
 
         if type == _PKG_DIRECTORY:
-            m = self.load_package(fqname, pathname)
+            m = self.load_package(fqname, pathname, depth)
 
             return m
 
         if type == _PY_SOURCE:
             m = self.add_module(fqname)
             m.__file__ = pathname
+            m.__depth__ = depth
             tree = ast.parse(fp.read())
             m.__generator__ = ModuleCodeBlockGenerator(fqname, moduleManager=self)
             m.__codeBlock__ = m.__generator__.codeBlock
@@ -430,16 +428,17 @@ class ModuleManager:
 
             self._add_badmodule(name, caller)
 
-    def load_package(self, fqname, pathname):
+    def load_package(self, fqname, pathname, depth):
 
         m = self.add_module(fqname)
         m.__file__ = pathname
         m.__path__ = [pathname]
+        m.__depth__ = depth
 
         fp, buf, stuff, _ = self.find_module("__init__", m.__path__)
         try:
             # the __init__ is treated as this package itself
-            self.load_module(fqname, fp, buf, stuff)
+            self.load_module(fqname, fp, buf, stuff, depth)
             return m
         finally:
             if fp:
