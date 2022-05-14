@@ -237,7 +237,7 @@ class ModuleManager:
         return None
 
     # determine the head and import it
-    def find_head_package(self, parent, name):
+    def find_head_package(self, caller, parent, name):
 
         if '.' in name:
             i = name.find('.')
@@ -253,14 +253,14 @@ class ModuleManager:
         else:
             qname = head
             
-        q = self.import_module(head, qname, parent)
+        q = self.import_module(caller, head, qname, parent)
         if q:
 
             return q, tail
         if parent:
             qname = head
             parent = None
-            q = self.import_module(head, qname, parent)
+            q = self.import_module(caller, head, qname, parent)
             if q:
 
                 return q, tail
@@ -269,7 +269,7 @@ class ModuleManager:
 
     # when the head is imported, import the rest, return the last module
     # TODO: add globalNames here
-    def load_tail(self, q, tail):
+    def load_tail(self, caller, q, tail):
 
         m = q
         while tail:
@@ -277,7 +277,7 @@ class ModuleManager:
             if i < 0: i = len(tail)
             head, tail = tail[:i], tail[i+1:]
             mname = "%s.%s" % (m.__name__, head)
-            m = self.import_module(head, mname, m)
+            m = self.import_module(caller, head, mname, m)
             if not m:
 
                 raise ImportError("No module named " + mname)
@@ -348,11 +348,12 @@ class ModuleManager:
 
             return None
         try:
-            fp, pathname, stuff = self.find_module(partname,
+            fp, pathname, stuff, isExternal = self.find_module(partname,
                                                    parent and parent.__path__, parent)
         except ImportError:
-
             return None
+
+        if()
 
         try:
             m = self.load_module(fqname, fp, pathname, stuff)
@@ -435,7 +436,7 @@ class ModuleManager:
         m.__file__ = pathname
         m.__path__ = [pathname]
 
-        fp, buf, stuff = self.find_module("__init__", m.__path__)
+        fp, buf, stuff, _ = self.find_module("__init__", m.__path__)
         try:
             # the __init__ is treated as this package itself
             self.load_module(fqname, fp, buf, stuff)
@@ -463,17 +464,16 @@ class ModuleManager:
         if path is None:
             if name in sys.builtin_module_names:
                 return (None, None, ("", "", _C_BUILTIN))
+            try:
+                return *_find_module(name, self.cwd), False
+                
+            except ImportError:
+                pass
 
-            path = self.cwd
-
-        try:
-            fp, buf, stuff =  _find_module(name, path)
-            return fp, buf, stuff, False
-        except ImportError:
-            pass
-
-        fp, buf, stuff =  _find_module(name, self.externalPath)
-        return fp, buf, stuff, True
+            return *_find_module(name, self.externalPath), True
+        else:
+            return *_find_module(name, self.cwd), False
+        
 
 class ModuleNotFoundException(Exception):
     pass
