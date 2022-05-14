@@ -148,7 +148,7 @@ class NewBuiltin(New):
         self.value = value
 
     def __str__(self):
-        return f"{self.target} = New {self.type}" + (f" ({self.value})" if self.value is not None else "")
+        return f"{self.target} = New {self.type}"
 
 class NewStaticMethod(New):
     func: Variable

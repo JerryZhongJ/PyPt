@@ -1,4 +1,4 @@
 {
-    "__main__": ["__main__.func1", "__main__.func2", "__main__.func3", "__main__.C.__init__", "__main__.C.__iter__", "__main__.C.__next__"],
+    "__main__": ["__main__.C", "__main__.func1", "__main__.func2", "__main__.func3", "__main__.C.__init__", "__main__.C.__iter__", "__main__.C.__next__"],
     "__main__.C.__next__": ["builtins.len"]
 }

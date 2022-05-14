@@ -1,1 +1,4 @@
-{"__main__": ["module.C.__init__", "module.C.func"]}
+{
+    "module": ["module.C"],
+    "__main__": ["module.C.__init__", "module.C.func"]
+}

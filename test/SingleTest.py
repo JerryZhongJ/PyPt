@@ -6,24 +6,23 @@ from PyPt.ModuleManager import ModuleManager
 import shutil
 import os
 import ast
-def testScript(path):
+def testScript(path, filename):
 
     resource = os.path.join(os.path.dirname(__file__), "resources")
     # with open(os.path.join(resource, path), "r") as f:
     #     print(ast.dump(ast.parse(f.read()), indent=4))
 
-    moduleManager = ModuleManager()
-    moduleManager.start(filepath=os.path.join(resource, path))
+    moduleManager = ModuleManager(os.path.join(resource, path))
+    moduleManager.addEntry(file=filename)
     test(moduleManager)
     
 def testModule(moduleName, cwd):
-    moduleManager = ModuleManager(verbose=True)
-    moduleManager.start(module=moduleName, cwd=cwd, dependency=True)
-    
+    moduleManager = ModuleManager(cwd, verbose=True)
+    moduleManager.addEntry(module=moduleName)
     test(moduleManager)
 
 def test(moduleManager: ModuleManager):
-    entryCodeBlock = moduleManager.getCodeBlock("__main__")
+    entrys = moduleManager.getEntrys()
     result = os.path.join(os.path.dirname(__file__), "result")
     if(os.path.exists(result)):
         shutil.rmtree(result)
@@ -33,8 +32,8 @@ def test(moduleManager: ModuleManager):
 
     print("IR generation finish, start PTA...                      ")
 
-    analysis = Analysis()
-    analysis.analyze(entryCodeBlock, verbose=True)
+    analysis = Analysis(verbose=True)
+    analysis.analyze(entrys)
     
 
     
@@ -55,5 +54,5 @@ def test(moduleManager: ModuleManager):
 
     print("Done                                                   ")
 
-# testScript("iteration/iterator/main.py")
+# testScript("lambda/call/", "main.py")
 testModule("flask", "/home/jerry/Documents/test_projects/flask/src")

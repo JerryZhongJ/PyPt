@@ -26,15 +26,15 @@ class TestBase(unittest.TestCase):
     def _test(self, analysisType, path: str):
 
         # get output
-        moduleManager = ModuleManager()
-        moduleManager.start(filepath=path)
-        entry = moduleManager.getCodeBlock("__main__")
+        moduleManager = ModuleManager(path)
+        moduleManager.addEntry(file="main.py")
+        entrys = moduleManager.getEntrys()
         analysis = analysisType()
-        analysis.analyze(entry)
+        analysis.analyze(entrys)
         output = analysis.callgraph.export()
 
         # get expected output
-        expectedPath = os.path.join(os.path.dirname(path), "callgraph.json")
+        expectedPath = os.path.join(path, "callgraph.json")
         with open(expectedPath, "r") as f:
             expected = json.load(f)
         
@@ -43,10 +43,10 @@ class TestBase(unittest.TestCase):
 
 if __name__ == "__main__":
     def getPTATest(path):
-        return lambda self: self._test(PTA, os.path.join(path, "main.py"))
+        return lambda self: self._test(PTA, path)
 
     def getCSPTATest(path):
-        return lambda self: self._test(CSPTA, os.path.join(path, "main.py"))
+        return lambda self: self._test(CSPTA, path)
 
 
     resourcePath = os.path.join(os.path.dirname(__file__), "resources")

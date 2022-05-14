@@ -1,1 +1,3 @@
-{"__main__": ["__main__.C.__init__"]}
+{
+    "__main__": ["__main__.C", "__main__.C.__init__"]
+}

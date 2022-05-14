@@ -1,1 +1,0 @@
-{"__main__.A.func": ["__main__.B.func2", "__main__.C.func2"], "__main__": ["__main__.B.__init__", "__main__.A.func", "__main__.C.__init__"]}

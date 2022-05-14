@@ -114,7 +114,7 @@ class Analysis:
                 
                 csCodeBlock = (ctx, stmt.codeBlock)
                 self.addReachable(csCodeBlock)
-                # self.callgraph.put(csStmt, csCodeBlock)
+                self.callgraph.put(csStmt, csCodeBlock)
                 
                 self.classHiearchy.addClass(obj)
                 self.persist_attr[obj] = {}
@@ -130,11 +130,12 @@ class Analysis:
                 self.workList.append((ADD_POINT_TO, targetPtr, {obj}))
 
     
-    def analyze(self, entry: ModuleCodeBlock):
-        entryModule = ModuleObject(entry)
-        self.workList.append((ADD_POINT_TO, CSVarPtr(emptyContextChain(), entry.globalVariable), {entryModule}))
+    def analyze(self, entrys: ModuleCodeBlock):
+        for entry in entrys:
+            obj = ModuleObject(entry)
+            self.workList.append((ADD_POINT_TO, CSVarPtr(emptyContextChain(), entry.globalVariable), {obj}))
 
-        self.addReachable((emptyContextChain(), entry))
+            self.addReachable((emptyContextChain(), entry))
 
         while(len(self.workList) > 0):
             if(self.verbose):

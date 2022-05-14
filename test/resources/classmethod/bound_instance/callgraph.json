@@ -1,4 +1,4 @@
 {
-    "__main__": ["__main__.A.method"],
+    "__main__": ["__main__.A", "__main__.B", "__main__.C", "__main__.A.method"],
     "__main__.A.method": ["__main__.C.func"]
 }

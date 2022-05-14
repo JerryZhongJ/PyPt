@@ -1,5 +1,5 @@
 {
-    "__main__": ["__main__.A.start"], 
+    "__main__": ["__main__.A", "__main__.B", "__main__.C","__main__.A.start"], 
     "__main__.A.start": ["__main__.A.m1"], 
     "__main__.A.m1": ["__main__.A.m2"], 
     "__main__.A.m2": ["__main__.B.m3", "__main__.C.m3"], 

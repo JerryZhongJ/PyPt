@@ -20,7 +20,7 @@
             "request": "launch",
             "module": "PyPt",
             "justMyCode": true,
-            "args": ["-m", "scrapy", "-o", "./callgraph.json", "--include", "scrapy"]
+            "args": ["~/Documents/test_projects/flask/tests", "-a", "-o", "./callgraph.json", "--include", "flask"]
 
         },
         {

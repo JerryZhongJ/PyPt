@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 from PyPt.CSPTA.Analysis import Analysis as csAnalysis
 from PyPt.PTA.Analysis import Analysis
 
@@ -9,12 +10,21 @@ from PyPt.PTA.CallGraph import CallGraph
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
-    argparser.add_argument("filepath", 
-        nargs="?",
-        help="Entry point is a python script. Just like how you run program directly using \"python filename.py\"."
+    argparser.add_argument("path", 
+        help="the path of working directory where scripts and modules are placed. Scripts should be placed directly in this directory."
     )
-    argparser.add_argument("-m", "--module",
-        help="Entry point is a library module. Just like how you run program using \"python -m \"."
+    argparser.add_argument("-a", "--all-files", 
+        action="store_true",
+        default=False,
+        help="Add all scripts in PATH as entry points. Scripts are files that end with \".py\"."
+    )
+    argparser.add_argument("-f", "--files", 
+        nargs="+",
+        help="Add scripts as entry points."
+    )
+    argparser.add_argument("-m", "--modules",
+        nargs="+",
+        help="Add library modules as entry points. Just like how you run program using \"python -m \"."
     )
     argparser.add_argument("-cs", "--context-sensitive",
         action="store_true",
@@ -36,21 +46,26 @@ if __name__ == "__main__":
     )
 
     args = argparser.parse_args()
-    if(args.filepath and args.module):
-        print("Error: Please provide one entry point at a time.")
-        exit()
-    if(not args.filepath and not args.module):
+
+    if(not args.files and not args.modules and not args.all_files):
         print("Error: No entry point is provided.")
         exit()
 
     fp = open(args.output, "w")
 
-    mm = ModuleManager(verbose=True)
+    mm = ModuleManager(args.path, verbose=True, dependency=not args.no_dependency)
     try:
-        if(args.filepath):
-            mm.start(filepath=args.filepath, dependency=not args.no_dependency)
-        if(args.module):
-            mm.start(module=args.module)
+        if(args.all_files):
+            for file in os.listdir(args.path):
+                _, ext = os.path.splitext(file)
+                if(ext == ".py"):
+                    mm.addEntry(file=file)
+        if(args.files):
+            for file in args.files:
+                mm.addEntry(file=file)
+        if(args.modules):
+            for module in args.modules:
+                mm.addEntry(module=module)
     except ModuleNotFoundException as e:
         print(f"Error: {e}")
         exit()
@@ -64,13 +79,14 @@ if __name__ == "__main__":
     else:
         analysis = Analysis(verbose=True)
 
-    analysis.analyze(mm.getCodeBlock("__main__"))
+    entrys = mm.getEntrys()
+    analysis.analyze(entrys)
     print("Point-to Analysis is done, start writing to file                ")
     
     callgraph = analysis.callgraph.export()
     if(args.include):
         callgraph = {k:v for k, v in callgraph.items() if k.startswith(args.include)} 
-    json.dump(callgraph.export(), fp, indent=4)
+    json.dump(callgraph, fp, indent=4)
     fp.close()
 
     print("All done.")

@@ -1,1 +1,3 @@
-{"__main__": ["__main__.A.func"], "__main__.A.func": ["__main__.A.func", "builtins.print"]}
+{
+    "__main__": ["__main__.A", "__main__.A.func"], 
+    "__main__.A.func": ["__main__.A.func", "builtins.print"]}

@@ -60,7 +60,7 @@ class CallGraph:
         tmp = self.foldToCodeBlock()
         callgraph = {}
         for caller, callees in tmp.items():
-            callgraph[caller.qualified_name] = [callee.qualified_name for callee in callees if not callee.fake and "$" not in callee.qualified_name]
+            callgraph[caller.qualified_name] = [callee.qualified_name for callee in callees if not callee.fake]
         
         return callgraph
         

@@ -88,7 +88,7 @@ class Analysis:
                 self.workList.append((ADD_POINT_TO, thisPtr, {obj}))
                 
                 self.addReachable(stmt.codeBlock)
-                # self.callgraph.put(stmt, stmt.codeBlock)
+                self.callgraph.put(stmt, stmt.codeBlock)
                 
                 self.classHiearchy.addClass(obj)
                 self.persist_attr[obj] = {}
@@ -104,11 +104,11 @@ class Analysis:
                 self.workList.append((ADD_POINT_TO, targetPtr, {obj}))
         
 
-    def analyze(self, entry: ModuleCodeBlock):
-        entryModule = ModuleObject(entry)
-        self.workList.append((ADD_POINT_TO, CIVarPtr(entry.globalVariable), {entryModule}))
-
-        self.addReachable(entry)
+    def analyze(self, entrys: ModuleCodeBlock):
+        for entry in entrys:
+            obj = ModuleObject(entry)
+            self.workList.append((ADD_POINT_TO, CIVarPtr(entry.globalVariable), {obj}))
+            self.addReachable(entry)
 
         while(len(self.workList) > 0):
             if(self.verbose):

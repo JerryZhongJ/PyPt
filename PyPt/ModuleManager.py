@@ -1,7 +1,7 @@
 """This file is based on python3.9/modulefinder.py"""
 
 import dis
-from typing import Union
+from typing import List, Union
 import importlib._bootstrap_external
 import importlib.machinery
 import marshal
@@ -108,50 +108,48 @@ class Module:
 
 class ModuleManager:
 
-    def __init__(self, verbose=False):
-        self.path = sys.path
+    def __init__(self,cwd=None, /, dependency=True, maxDepth=None, verbose=False):
+        if(dependency):
+            self.path = sys.path
+        else:
+            self.path = sys.path[:1]
+        if(cwd):
+            self.path[0] = cwd
         self.modules = {}
         self.badmodules = {}
-        self.indent = 0
-        self.excludes = []
         self.verbose = verbose
-        # self.replace_paths = replace_paths if replace_paths is not None else []
-        self.processed_paths = []   # Used in debugging only
-       
+        self.entrys = []
+        
+    def addEntry(self, /, file=None, module=None) -> None:
+        
 
-    def start(self, /, filepath=None, module=None, cwd=None, dependency=True) -> None:
-        if(filepath and module or not filepath and not module):
-            raise ValueError("Module Manager runs in either script node or module mode.")
-        if(not dependency):
-            self.path = self.path[:1]
-
-        if(filepath):
-            self.path[0] = os.path.dirname(filepath)
+        if(file):
+            filepath = os.path.join(self.path[0], file)
+            
             try:
                 with io.open_code(filepath) as fp:
                     stuff = ("", "rb", _PY_SOURCE)
-                    # __main__ is a fully quarlified name
-                    self.load_module('__main__', fp, filepath, stuff)
-                    
+                    m = self.load_module(f'__main{len(self.entrys) if self.entrys else ""}__', fp, filepath, stuff)
+                    self.entrys.append(m)
             except(IOError):
                 raise ModuleNotFoundException(f"Can't open file {filepath}. Please check if the file exists.")
 
         if(module):
-            if(cwd):
-                self.path[0] = cwd
             try:
                 self._import_hook(module, None)
-                self.modules["__main__"] = self.modules[module]
             except(ImportError):
                 raise ModuleNotFoundException(f"Can't import {module}. Please check if this module exists.")
             
             if(self.modules[module].__path__):
                 try:
                     self._import_hook(module + ".__main__", None)
-                    self.modules["__main__"] = self.modules[module + ".__main__"]
+                    self.entrys.append(self.modules[module + ".__main__"])
                 except(ImportError):
                     raise ModuleNotFoundException(f"{module} is a package, but {filepath}.__main__ can't be imported. Please check if it exists.")
             
+    def getEntrys(self) -> List[CodeBlock]:
+        return [m.__codeBlock__ for m in self.entrys]
+
 
     def getCodeBlock(self, name: str, callerName: str=None, level: int=0) -> Union[ModuleCodeBlock, str]:
         callerName = callerName and self.modules[callerName]
@@ -376,8 +374,6 @@ class ModuleManager:
 
             return m
 
-        
-        
         if type == _PY_SOURCE:
             m = self.add_module(fqname)
             m.__file__ = pathname
@@ -460,9 +456,6 @@ class ModuleManager:
             fullname = parent.__name__+'.'+name
         else:
             fullname = name
-        if fullname in self.excludes:
-
-            raise ImportError(name)
 
         if path is None:
             if name in sys.builtin_module_names:
