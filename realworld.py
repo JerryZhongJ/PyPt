@@ -9,10 +9,10 @@ from PyPt.PTA.CallGraph import CallGraph
 
 
 if __name__ == "__main__":
-    project = "scrapy"
-    src = ""
+    project = "black"
+    src = "src"
     moduleMode = True
-    entrys = ["scrapy"]
+    entrys = ["black", "blackd"]
 
     cwd = os.path.join(f"/home/jerry/Documents/test_projects/{project}", src)
 

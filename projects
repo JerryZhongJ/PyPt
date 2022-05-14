@@ -4,3 +4,6 @@ requests    X       X
 black       .       .
 rich        .       TLE
 thefuck     .       TLE
+scrapy      .       TLE
+mitmproxy   TLE     TLE
+black       .       TLE
