@@ -112,9 +112,9 @@ class ModuleManager:
     def __init__(self,cwd=None, /, maxDepth=9999, verbose=False):
         
         if(cwd):
-            self.cwd = [cwd]
+            self.cwd = cwd
         else:
-            self.cwd = [os.getcwd()]
+            self.cwd = os.getcwd()
 
         self.externalPath = sys.path[1:]
         self.modules = {}
@@ -127,7 +127,7 @@ class ModuleManager:
         
 
         if(file):
-            filepath = os.path.join(self.path[0], file)
+            filepath = os.path.join(self.cwd, file)
             
             try:
                 with io.open_code(filepath) as fp:
@@ -179,8 +179,8 @@ class ModuleManager:
         
         parent = self.determine_parent(caller, level=level)
         # q is imported, tail is not
-        q, tail = self.find_head_package(parent, name)
-        m = self.load_tail(q, tail)
+        q, tail = self.find_head_package(caller, parent, name)
+        m = self.load_tail(caller, q, tail)
         if not fromlist:
             return
         # "import ... from ...", and this is a package
@@ -462,16 +462,16 @@ class ModuleManager:
 
         if path is None:
             if name in sys.builtin_module_names:
-                return (None, None, ("", "", _C_BUILTIN))
+                return None, None, ("", "", _C_BUILTIN), False
             try:
-                return *_find_module(name, self.cwd), False
+                return *_find_module(name, [self.cwd]), False
                 
             except ImportError:
                 pass
 
             return *_find_module(name, self.externalPath), True
         else:
-            return *_find_module(name, self.cwd), False
+            return *_find_module(name, path), False
         
 
 class ModuleNotFoundException(Exception):
