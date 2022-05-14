@@ -132,7 +132,7 @@ class ModuleManager:
             try:
                 with io.open_code(filepath) as fp:
                     stuff = ("", "rb", _PY_SOURCE)
-                    m = self.load_module(f'__main{len(self.entrys) if self.entrys else ""}__', fp, filepath, stuff, 1)
+                    m = self.load_module(f'__main{len(self.entrys) if self.entrys else ""}__', fp, filepath, stuff, 0)
                     self.entrys.append(m)
             except(IOError):
                 raise ModuleNotFoundException(f"Can't open file {filepath}. Please check if the file exists.")
@@ -344,16 +344,14 @@ class ModuleManager:
         except ImportError:
             return None
 
+        depth = caller.__depth__ if caller else 0
         if(isExternal):
-            newDepth = (caller.__depth__ if caller else 0 ) + 1
-        else:
-            newDepth = caller.__depth__
-
-        if(newDepth > self.maxDepth):
+            depth += 1
+        if(depth > self.maxDepth):
             return None
 
         try:
-            m = self.load_module(fqname, fp, pathname, stuff, newDepth)
+            m = self.load_module(fqname, fp, pathname, stuff, depth)
             if(m and parent):
                 tmp = parent.__generator__.newTmpVariable()
                 NewModule(tmp, m.__codeBlock__, parent.__codeBlock__)

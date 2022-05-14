@@ -1,4 +1,5 @@
 
+from decimal import MAX_EMAX
 import json
 from PyPt.PTA.Analysis import Analysis
 from PyPt.ModuleManager import ModuleManager
@@ -17,7 +18,7 @@ def testScript(path, filename):
     test(moduleManager)
     
 def testModule(moduleName, cwd):
-    moduleManager = ModuleManager(cwd, verbose=True)
+    moduleManager = ModuleManager(cwd, maxDepth=2,verbose=True)
     moduleManager.addEntry(module=moduleName)
     test(moduleManager)
 
@@ -54,5 +55,5 @@ def test(moduleManager: ModuleManager):
 
     print("Done                                                   ")
 
-testScript("class/base_call", "main.py")
-# testModule("flask", "/home/jerry/Documents/test_projects/flask/src")
+# testScript("class/base_call", "main.py")
+testModule("flask", "/home/jerry/Documents/test_projects/flask/src")
