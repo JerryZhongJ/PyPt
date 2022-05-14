@@ -649,13 +649,18 @@ class CodeBlockGenerator(ast.NodeTransformer):
         generator = ClassCodeBlockGenerator(node.name, self.codeBlock, moduleManager=self.moduleManager)
         generator.parse(node)
         # TODO: a better way to deal with it when base is a starred?
-        base = [self.visit(b).var for b in node.bases if isinstance(b, VariableNode)]
+        bases = []
+        for base in node.bases:
+            base = self.visit(base)
+            if(isinstance(base, VariableNode)):
+                bases.append(base.var)
+
         resolved = resolveName(self.codeBlock, node.name)
         if(isinstance(resolved, VariableNode)):
-            NewClass(resolved.var, base, generator.codeBlock, self.codeBlock)
+            NewClass(resolved.var, bases, generator.codeBlock, self.codeBlock)
         elif(isinstance(resolved, ast.Attribute)):
             tmp = self.newTmpVariable()
-            NewClass(tmp, base, generator.codeBlock, self.codeBlock)
+            NewClass(tmp, bases, generator.codeBlock, self.codeBlock)
             SetAttr(resolved.value.var, resolved.attr, tmp, self.codeBlock)
             
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> Any:

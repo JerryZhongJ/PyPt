@@ -54,5 +54,5 @@ def test(moduleManager: ModuleManager):
 
     print("Done                                                   ")
 
-# testScript("lambda/call/", "main.py")
-testModule("flask", "/home/jerry/Documents/test_projects/flask/src")
+testScript("class/base_call", "main.py")
+# testModule("flask", "/home/jerry/Documents/test_projects/flask/src")
