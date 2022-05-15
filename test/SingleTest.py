@@ -18,7 +18,7 @@ def testScript(path, filename):
     test(moduleManager)
     
 def testModule(moduleName, cwd):
-    moduleManager = ModuleManager(cwd, maxDepth=2,verbose=True)
+    moduleManager = ModuleManager(cwd, maxDepth=1,verbose=True)
     moduleManager.addEntry(module=moduleName)
     test(moduleManager)
 
