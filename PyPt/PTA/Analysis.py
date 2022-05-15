@@ -27,7 +27,7 @@ class Analysis:
     pointerFlow: PointerFlow
     bindingStmts: BindingStmts
     reachable: Set[CodeBlock]
-    defined: Set[CodeBlock]
+    # defined: Set[CodeBlock]
     classHiearchy: ClassHiearchy
     persist_attr: Dict[ClassObject, Dict[str, Set[ResolveInfo]]]
     resolved_attr: Dict[Resolver, Set[str]]
@@ -37,7 +37,7 @@ class Analysis:
         self.callgraph = CallGraph()
         self.pointerFlow = PointerFlow()
         self.bindingStmts = BindingStmts()
-        self.defined = set()
+        # self.defined = set()
         self.reachable = set()
         self.classHiearchy = ClassHiearchy(self.pointToSet)
         self.persist_attr = {}
@@ -45,18 +45,16 @@ class Analysis:
         self.workList = []
         self.verbose = verbose
 
-    def addDefined(self, codeBlock: CodeBlock):
-        if(codeBlock in self.defined):
-            return
-        self.defined.add(codeBlock)
-        # Add codes into the pool
-        for stmt in codeBlock.stmts:
-            self.workList.append((BIND_STMT, stmt))
+        
 
     def addReachable(self, codeBlock: CodeBlock):
         if(codeBlock in self.reachable):
             return
         self.reachable.add(codeBlock)
+
+        # Add codes into the pool
+        for stmt in codeBlock.stmts:
+            self.workList.append((BIND_STMT, stmt))
 
         for stmt in codeBlock.stmts:
             if(isinstance(stmt, Assign)):
@@ -71,7 +69,7 @@ class Analysis:
                     globalPtr = CIVarPtr(stmt.module.globalVariable)
                     self.workList.append((ADD_POINT_TO, targetPtr, {obj}))
                     self.workList.append((ADD_POINT_TO, globalPtr, {obj}))
-                    self.addDefined(stmt.module)
+                    # self.addDefined(stmt.module)
                     self.addReachable(stmt.module)
                     # self.callgraph.put(stmt, stmt.module)
                 else:
@@ -85,7 +83,7 @@ class Analysis:
                 targetPtr = CIVarPtr(stmt.target)
                 self.workList.append((ADD_POINT_TO, targetPtr, {obj}))
 
-                self.addDefined(stmt.codeBlock)
+                self.addReachable(stmt.codeBlock)
 
             elif(isinstance(stmt, NewClass)):
                 obj = CIClassObject(stmt)
@@ -94,14 +92,14 @@ class Analysis:
                 self.workList.append((ADD_POINT_TO, targetPtr, {obj}))
                 self.workList.append((ADD_POINT_TO, thisPtr, {obj}))
                 
-                self.addDefined(stmt.codeBlock)
-                self.addReachable(stmt.codeBlock)
-                self.callgraph.put(stmt, stmt.codeBlock)
-                
                 self.classHiearchy.addClass(obj)
                 self.persist_attr[obj] = {}
                 for attr in obj.getAttributes():
                     self.persist_attr[obj][attr] = set()
+                
+                self.addReachable(stmt.codeBlock)
+                self.callgraph.put(stmt, stmt.codeBlock)
+                
 
             elif(isinstance(stmt, NewBuiltin)):
                 targetPtr = CIVarPtr(stmt.target)
@@ -116,6 +114,7 @@ class Analysis:
         for entry in entrys:
             obj = ModuleObject(entry)
             self.workList.append((ADD_POINT_TO, CIVarPtr(entry.globalVariable), {obj}))
+            
             self.addReachable(entry)
 
         while(len(self.workList) > 0):
