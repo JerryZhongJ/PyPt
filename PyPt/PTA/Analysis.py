@@ -27,7 +27,7 @@ class Analysis:
     pointerFlow: PointerFlow
     bindingStmts: BindingStmts
     reachable: Set[CodeBlock]
-   
+    defined: Set[CodeBlock]
     classHiearchy: ClassHiearchy
     persist_attr: Dict[ClassObject, Dict[str, Set[ResolveInfo]]]
     resolved_attr: Dict[Resolver, Set[str]]
@@ -45,14 +45,18 @@ class Analysis:
         self.workList = []
         self.verbose = verbose
 
+    def addDefined(self, codeBlock: CodeBlock):
+        if(codeBlock in self.defined):
+            return
+        self.defined.add(codeBlock)
+        # Add codes into the pool
+        for stmt in codeBlock.stmts:
+            self.workList.append((BIND_STMT, stmt))
+
     def addReachable(self, codeBlock: CodeBlock):
         if(codeBlock in self.reachable):
             return
         self.reachable.add(codeBlock)
-
-        # Add codes into the pool
-        for stmt in codeBlock.stmts:
-            self.workList.append((BIND_STMT, stmt))
 
         for stmt in codeBlock.stmts:
             if(isinstance(stmt, Assign)):
@@ -67,6 +71,7 @@ class Analysis:
                     globalPtr = CIVarPtr(stmt.module.globalVariable)
                     self.workList.append((ADD_POINT_TO, targetPtr, {obj}))
                     self.workList.append((ADD_POINT_TO, globalPtr, {obj}))
+                    self.addDefined(stmt.module)
                     self.addReachable(stmt.module)
                     # self.callgraph.put(stmt, stmt.module)
                 else:
@@ -80,6 +85,8 @@ class Analysis:
                 targetPtr = CIVarPtr(stmt.target)
                 self.workList.append((ADD_POINT_TO, targetPtr, {obj}))
 
+                self.addDefined(stmt.codeBlock)
+
             elif(isinstance(stmt, NewClass)):
                 obj = CIClassObject(stmt)
                 targetPtr = CIVarPtr(stmt.target)
@@ -87,6 +94,7 @@ class Analysis:
                 self.workList.append((ADD_POINT_TO, targetPtr, {obj}))
                 self.workList.append((ADD_POINT_TO, thisPtr, {obj}))
                 
+                self.addDefined(stmt.codeBlock)
                 self.addReachable(stmt.codeBlock)
                 self.callgraph.put(stmt, stmt.codeBlock)
                 
