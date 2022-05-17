@@ -17,15 +17,15 @@ class ModuleObject(Object):
     def __eq__(self, other):
         return isinstance(other, ModuleObject) and other.codeBlock == self.codeBlock
     def __hash__(self):
-        return hash(self.codeBlock.name)
+        return hash(self.codeBlock.qualified_name)
     def __init__(self, codeBlock: ModuleCodeBlock):
         self.codeBlock = codeBlock
     def __str__(self):
-        return f"Module({self.codeBlock.name})"
+        return f"Module({self.codeBlock.qualified_name})"
     def __repr__(self):
         return self.__str__()
     def getModuleName(self):
-        return self.codeBlock.name
+        return self.codeBlock.qualified_name
 
 
 # class ConstObject(Object):
@@ -224,7 +224,7 @@ class FakeObject(ModuleObject, ClassObject, FunctionObject):
             while(curr):
                 depth += 1
                 curr = curr.enclosing
-            if(depth >= 3):
+            if(depth > 5):
                 raise FakeObject.NoMore
         self.codeBlock = FakeObject.FakeCodeBlock(name, enclosing and enclosing.codeBlock)
         self.ctxChain = emptyContextChain()

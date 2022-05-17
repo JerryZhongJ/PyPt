@@ -55,5 +55,5 @@ def test(moduleManager: ModuleManager):
 
     print("Done                                                   ")
 
-# testScript("class/base_call", "main.py")
-testModule("flask", "/home/jerry/Documents/test_projects/flask/src")
+testScript("super/diamond", "main.py")
+# testModule("flask", "/home/jerry/Documents/test_projects/flask/src")

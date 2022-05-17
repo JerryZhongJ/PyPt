@@ -1,6 +1,8 @@
-1. delete cscallgraph
-2. add max-depth to ModuleManager 
+
 1. use defaultdict
+2. optimize ir: 
+    1. for GetAttr and same source.attr, let the target be the same
+3. self-construct entry-point, cancel addReachable(allAll)
 3. support function entry
 2. GetItem, SetItem, builtin-functions
 1. re-design fake object

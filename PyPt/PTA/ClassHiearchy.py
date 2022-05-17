@@ -1,4 +1,5 @@
 
+from collections import defaultdict
 from email.mime import base
 from typing import Dict, Generator, List, Set, Tuple
 
@@ -14,9 +15,9 @@ class ClassHiearchy:
     subClasses: Dict[ClassObject, Set[SubclassInfo]]
     pointToSet: PointToSet
     def __init__(self, pointToSet):
-        self.mros = {}
+        self.mros = defaultdict(set)
         self.pointToSet = pointToSet
-        self.subClasses = {}
+        self.subClasses = defaultdict(set)
 
     def addClass(self, classObj: ClassObject) -> Set[MRO]:
         assert(isinstance(classObj, ClassObject))
@@ -28,6 +29,9 @@ class ClassHiearchy:
         
         for i in range(len(bases)):
             for baseObj in self.pointToSet.get(bases[i]):
+                # TODO: not perfect
+                if(baseObj == classObj):
+                    continue
                 if(isinstance(baseObj, FakeObject)):
                     self.addClass(baseObj)
                 self.subClasses[baseObj].add((classObj, i))
@@ -39,6 +43,8 @@ class ClassHiearchy:
         
     def addClassBase(self, classObj: ClassObject, index: int, baseObj: ClassObject) -> Set[MRO]:
         assert(isinstance(classObj, ClassObject))
+        if(baseObj == classObj):
+            return set()
         if(isinstance(baseObj, FakeObject)):
             self.addClass(baseObj)
         self.subClasses[baseObj].add((classObj, index))
@@ -65,22 +71,12 @@ class ClassHiearchy:
                         for tail in select(start + 1):
                             tail.insert(0, mro)
                             yield tail
-                # TODO: ugly!
-                # objs = self.pointToSet.get(bases[start])
-                # if(len(objs) == 0):
-                #     yield [(None,)]
-                # else:
-                #     for obj in objs:
-                #         for mro in self.mros[obj]:
-                #             for tail in select(start + 1):
-                #                 tail.insert(0, mro)
-                #                 yield tail
 
         add = set()
         for mros in select(0):
             order = [mro[0] for mro in mros]
             mros.append(order)
-            res = classObj, *self._merge(mros)
+            res = self._c3(classObj, mros)
             
             if(res is not None and res not in self.mros[classObj]):
                 assert(res[0] == classObj)
@@ -96,9 +92,15 @@ class ClassHiearchy:
         return allAdd
 
     # return None if it is illegal
-    def _merge(self, mros: List) -> MRO:
+    def _c3(self, head, mros: List) -> MRO:
         for i in range(len(mros)):
             mros[i] = list(mros[i])
+
+        for mro in mros:
+            if (head in mro):
+                # illegal
+                return None
+
         res = []
         mros = [mro for mro in mros if len(mro) != 0]
         while(len(mros) != 0):
@@ -119,13 +121,10 @@ class ClassHiearchy:
                 # illegal mro
                 return None
             
-        return *res,
+        return head, *res,
 
     def getMROs(self, classObj: ClassObject) -> Set[MRO]:
-        if(classObj in self.mros):
-            return self.mros[classObj]
-        else:
-            return set()
+        return self.mros[classObj]
 
     def dump(self, fp):
         

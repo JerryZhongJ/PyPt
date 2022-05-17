@@ -635,7 +635,9 @@ class CodeBlockGenerator(ast.NodeTransformer):
             arg = func.localVariables[posargs[start + i]]
             Assign(arg, defaults[i].var, func)
         # for kwargs
-        for i in kw_defaults:
+        for i in range(len(kw_defaults)):
+            if(not kwonlyargs[i]):
+                continue
             arg = func.localVariables[kwonlyargs[i]]
             Assign(arg, kw_defaults[i].var, func)
 

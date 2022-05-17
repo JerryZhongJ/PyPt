@@ -63,6 +63,6 @@ if __name__ == "__main__":
             attrName = "test" + "".join([s.capitalize() for s in subitem.split("_")])
             if(not os.path.isdir(subitemPath)):
                 continue
-            attrs[attrName] = getCSPTATest(subitemPath)
+            attrs[attrName] = getPTATest(subitemPath)
         globals()[clsName]  = type(clsName, (TestBase, ), attrs)
     unittest.main(verbosity=2)

@@ -1,12 +1,14 @@
+import threading
+import time
 from typing import Dict, List, Set, Tuple, Union
-from ..IR.CodeBlock import ClassCodeBlock, CodeBlock, FunctionCodeBlock, ModuleCodeBlock
-from ..IR.Stmts import Assign, Call, DelAttr, GetAttr, IRStmt, NewBuiltin, NewClass, NewClassMethod, NewFunction, NewModule, NewStaticMethod, NewSuper, SetAttr, Variable
+from ..IR.CodeBlock import ClassCodeBlock, CodeBlock, ModuleCodeBlock
+from ..IR.Stmts import Assign, Call, DelAttr, GetAttr, NewBuiltin, NewClass, NewClassMethod, NewFunction, NewModule, NewStaticMethod, NewSuper, SetAttr, Variable
 from .ClassHiearchy import MRO, ClassHiearchy
 from .Objects import  CIBuiltinObject, CIClassObject, CIFunctionObject, CIInstanceObject, ClassMethodObject, ClassObject, FakeObject, FunctionObject, InstanceObject, InstanceMethodObject, ModuleObject, Object, StaticMethodObject, SuperObject
 from .BindingStmts import BindingStmts
 from .PointerFlow import PointerFlow
-from .Pointers import AttrPtr, Pointer, CIVarPtr, VarPtr
-from .CallGraph import CICallGraph, CallGraph
+from .Pointers import AttrPtr, Pointer, CIVarPtr
+from .CallGraph import CallGraph
 from .PointToSet import PointToSet
 
 FAKE_PREFIX = "$r_"
@@ -45,10 +47,9 @@ class Analysis:
         self.workList = []
         self.verbose = verbose
 
-        
-
-    def addReachable(self, codeBlock: CodeBlock):
-        if(codeBlock in self.reachable):
+    # addAll mean treat all codeblocks in this codeBlock as reachable.
+    def addReachable(self, codeBlock: CodeBlock, addAll=False):
+        if(codeBlock in self.reachable and not addAll):
             return
         self.reachable.add(codeBlock)
 
@@ -70,7 +71,7 @@ class Analysis:
                     self.workList.append((ADD_POINT_TO, targetPtr, {obj}))
                     self.workList.append((ADD_POINT_TO, globalPtr, {obj}))
                     # self.addDefined(stmt.module)
-                    self.addReachable(stmt.module)
+                    self.addReachable(stmt.module, addAll=False)
                     # self.callgraph.put(stmt, stmt.module)
                 else:
                     obj = FakeObject(stmt.module, None)
@@ -82,8 +83,8 @@ class Analysis:
                 obj = CIFunctionObject(stmt)
                 targetPtr = CIVarPtr(stmt.target)
                 self.workList.append((ADD_POINT_TO, targetPtr, {obj}))
-
-                self.addReachable(stmt.codeBlock)
+                if(addAll):
+                    self.addReachable(stmt.codeBlock, addAll=addAll)
 
             elif(isinstance(stmt, NewClass)):
                 obj = CIClassObject(stmt)
@@ -97,7 +98,7 @@ class Analysis:
                 for attr in obj.getAttributes():
                     self.persist_attr[obj][attr] = set()
                 
-                self.addReachable(stmt.codeBlock)
+                self.addReachable(stmt.codeBlock, addAll=addAll)
                 self.callgraph.put(stmt, stmt.codeBlock)
                 
 
@@ -115,9 +116,12 @@ class Analysis:
             obj = ModuleObject(entry)
             self.workList.append((ADD_POINT_TO, CIVarPtr(entry.globalVariable), {obj}))
             
-            self.addReachable(entry)
+            self.addReachable(entry, addAll=True)
 
+        
+        
         while(len(self.workList) > 0):
+
             if(self.verbose):
                 print(f"PTA worklist remains {len(self.workList)} to process.                \r", end="")
 

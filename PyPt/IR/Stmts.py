@@ -28,7 +28,7 @@ class Variable:
         
 
     def __hash__(self):
-        return hash((self.belongsTo, self.name))
+        return hash(self.qualified_name)
 
 class IRStmt:
     belongsTo: 'CodeBlock'                 # 'CodeBlock' to which this IR belongs
@@ -42,7 +42,7 @@ class IRStmt:
         return f"IRStmt: {str(self)}"
 
     def __hash__(self):
-        return hash(str(self))
+        return hash((self.belongsTo, str(self)))
     
 
 

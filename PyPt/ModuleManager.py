@@ -81,6 +81,8 @@ def _find_module(name, path=None):
 
     return file, file_path, (suffix, "rb", kind)
 
+class ModuleExcluded(Exception):
+    pass
 
 class Module:
 
@@ -89,6 +91,7 @@ class Module:
         self.__file__ = file
         self.__path__ = path
         self.__codeBlock__ = None
+        self.__generator__ = None
         
         # # The set of global names that are assigned to in the module.
         # # This includes those names imported through starimports of
@@ -109,7 +112,7 @@ class Module:
 
 class ModuleManager:
 
-    def __init__(self,cwd=None, /, maxDepth=9999, verbose=False):
+    def __init__(self,cwd=None, /, maxDepth=9999, excludes=None, verbose=False):
         
         if(cwd):
             self.cwd = cwd
@@ -119,12 +122,12 @@ class ModuleManager:
         self.externalPath = sys.path[1:]
         self.modules = {}
         self.badmodules = {}
+        self.excludes = excludes or []
         self.verbose = verbose
         self.maxDepth = maxDepth
         self.entrys = []
         
     def addEntry(self, /, file=None, module=None) -> None:
-        
 
         if(file):
             filepath = os.path.join(self.cwd, file)
@@ -135,20 +138,22 @@ class ModuleManager:
                     m = self.load_module(f'__main{len(self.entrys) if self.entrys else ""}__', fp, filepath, stuff, 0)
                     self.entrys.append(m)
             except(IOError):
-                raise ModuleNotFoundException(f"Can't open file {filepath}. Please check if the file exists.")
+                raise ImportError(f"Can't open file {filepath}. Please check if the file exists.")
 
         if(module):
             try:
                 self._import_hook(module, None)
-            except(ImportError):
-                raise ModuleNotFoundException(f"Can't import {module}. Please check if this module exists.")
+            except(ModuleExcluded):
+                return
             
             if(self.modules[module].__path__):
-                try:
-                    self._import_hook(module + ".__main__", None)
-                    self.entrys.append(self.modules[module + ".__main__"])
-                except(ImportError):
-                    raise ModuleNotFoundException(f"{module} is a package, but {module}.__main__ can't be imported. Please check if it exists.")
+                # try:
+                self._import_hook(module + ".__main__", None)
+                self.entrys.append(self.modules[module + ".__main__"])
+                # except(ImportError):
+                #     raise ModuleNotFoundException(f"{module} is a package, but {module}.__main__ can't be imported. Please check if it exists.")
+            else:
+                self.entrys.append(self.modules[module])
             
     def getEntrys(self) -> List[CodeBlock]:
         return [m.__codeBlock__ for m in self.entrys]
@@ -244,19 +249,17 @@ class ModuleManager:
         else:
             qname = head
             
-        q = self.import_module(caller, head, qname, parent)
-        if q:
-
-            return q, tail
-        if parent:
-            qname = head
-            parent = None
+        try:
             q = self.import_module(caller, head, qname, parent)
-            if q:
-
+            return q, tail
+        except ImportError:
+            if parent:
+                qname = head
+                parent = None
+                q = self.import_module(caller, head, qname, parent)
                 return q, tail
 
-        raise ImportError("No module named " + qname)
+            raise ImportError("No module named " + qname)
 
     # when the head is imported, import the rest, return the last module
     # TODO: add globalNames here
@@ -269,10 +272,6 @@ class ModuleManager:
             head, tail = tail[:i], tail[i+1:]
             mname = "%s.%s" % (m.__name__, head)
             m = self.import_module(caller, head, mname, m)
-            if not m:
-
-                raise ImportError("No module named " + mname)
-
         return m
 
     # import submodules in fromlist, m should be a pacakge
@@ -284,12 +283,14 @@ class ModuleManager:
             fromlist = [sub for sub in fromlist if sub != "*"]
 
         for sub in fromlist:
-            if not hasattr(m, sub):
-                subname = "%s.%s" % (m.__name__, sub)
-                submod = self.import_module(caller, sub, subname, m)
-                if not submod:
-
+            subname = "%s.%s" % (m.__name__, sub)
+            if (subname not in self.modules and subname not in self.badmodules):
+                try:
+                    self.import_module(caller, sub, subname, m)
+                except ImportError:
                     self._add_badmodule(subname, caller)
+                except ModuleExcluded:
+                    pass
                     
 
     # used when m is a package, return all submodules' name
@@ -323,8 +324,6 @@ class ModuleManager:
 
     # import = find + load, import specific module
     def import_module(self, caller, partname, fqname, parent):
-        if(self.verbose):
-            print(f"Importing {fqname}                        \r", end="")
         try:
             m = self.modules[fqname]
         except KeyError:
@@ -333,39 +332,48 @@ class ModuleManager:
             return m
         
         if fqname in self.badmodules:
+            raise ImportError("No module named " + fqname)
 
-            return None
+        if(fqname in self.excludes):
+            raise ModuleExcluded(fqname + " is excluded.")
+
         if parent and parent.__path__ is None:
-
-            return None
-        try:
-            fp, pathname, stuff, isExternal = self.find_module(partname,
-                                                   parent and parent.__path__, parent)
-        except ImportError:
-            return None
+            raise ImportError("No module named " + fqname)
+            
+        fp, pathname, stuff, isExternal = self.find_module(partname,
+                                                parent and parent.__path__, parent)
+        
 
         depth = caller.__depth__ if caller else 0
         if(isExternal):
             depth += 1
+        
         if(depth > self.maxDepth):
-            return None
+            raise ModuleExcluded(fqname + " is out of range.")
 
         try:
             m = self.load_module(fqname, fp, pathname, stuff, depth)
-            if(m and parent):
-                tmp = parent.__generator__.newTmpVariable()
-                NewModule(tmp, m.__codeBlock__, parent.__codeBlock__)
-                SetAttr(parent.__codeBlock__.globalVariable, partname, tmp, parent.__codeBlock__)
         finally:
             if fp:
                 fp.close()
-        if parent:
-            setattr(parent, partname, m)
+        
+        if(parent):
+            # if(not parent.__generator__):
+            #     parent.__generator__ = ModuleCodeBlockGenerator(parent.__name__, moduleManager=self)
+            #     parent.__codeBlock__ = parent.__generator__.codeBlock
+            tmp = parent.__generator__.newTmpVariable()
+            NewModule(tmp, m.__codeBlock__, parent.__codeBlock__)
+            SetAttr(parent.__codeBlock__.globalVariable, partname, tmp, parent.__codeBlock__)
 
+        
         return m
+        
+            
 
     # load = process import statements and globalnames
     def load_module(self, fqname, fp, pathname, file_info, depth):
+        if(self.verbose):
+            print(f"Loading {fqname}                            \r", end="")
         suffix, mode, type = file_info
 
         if type == _PKG_DIRECTORY:
@@ -374,6 +382,7 @@ class ModuleManager:
             return m
 
         if type == _PY_SOURCE:
+                
             m = self.add_module(fqname)
             m.__file__ = pathname
             m.__depth__ = depth
@@ -390,11 +399,11 @@ class ModuleManager:
 
             #     raise
             # co = marshal.loads(memoryview(data)[16:])
-            pass
+            raise ImportError(f"Module named {fqname} can not be imported.")
             # m.__codeBlock__.done = True
 
         else:
-            pass
+            raise ImportError(f"Module named {fqname} can not be imported.")
             # m.__codeBlock__.done = True
 
 
@@ -420,11 +429,13 @@ class ModuleManager:
         try:
             self._import_hook(name, caller, fromlist, level=level)
         except ImportError as msg:
-
             self._add_badmodule(name, caller)
+
         except SyntaxError as msg:
-
             self._add_badmodule(name, caller)
+
+        except ModuleExcluded:
+            pass
 
     def load_package(self, fqname, pathname, depth):
 
@@ -471,6 +482,3 @@ class ModuleManager:
         else:
             return *_find_module(name, path), False
         
-
-class ModuleNotFoundException(Exception):
-    pass
