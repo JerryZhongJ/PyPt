@@ -1,9 +1,9 @@
 
 1. use defaultdict
+2. giveup context chain! no context sensitive
 2. optimize ir: 
     1. for GetAttr and same source.attr, let the target be the same
 3. self-construct entry-point, cancel addReachable(allAll)
-3. support function entry
 2. GetItem, SetItem, builtin-functions
 1. re-design fake object
 2. optimize class method object, static method object
