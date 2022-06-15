@@ -3,7 +3,7 @@ from typing import Dict, Set
 from . import CSCodeBlock, CSStmt
 from ..PTA.CallGraph import CallGraph
 from ..IR.CodeBlock import CodeBlock
-from ..IR.Stmts import IRStmt
+from ..IR.IRStmts import IRStmt
 
 
 class CSCallGraph(CallGraph):

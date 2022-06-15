@@ -4,7 +4,7 @@ import typing
 
 if typing.TYPE_CHECKING:
     from .Context import ContextChain
-from ..IR.Stmts import Variable
+from ..IR.IRStmts import Variable
 from ..PTA.Pointers import VarPtr
 
 

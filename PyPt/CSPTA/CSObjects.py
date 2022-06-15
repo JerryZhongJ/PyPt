@@ -1,16 +1,18 @@
 from typing import List, Set, Tuple
 import typing
+
 if typing.TYPE_CHECKING:
     from . import CSStmt
 from .Context import ContextChain
 
 from .CSPointers import CSVarPtr
 
-from ..IR.CodeBlock import ClassCodeBlock, FunctionCodeBlock
+from ..IR.ClassCodeBlock import ClassCodeBlock
+from ..IR.FunctionCodeBlock import FunctionCodeBlock
 
 from ..PTA.Objects import BuiltinObject, ClassObject, FunctionObject, InstanceObject
 
-from ..IR.Stmts import Call, IRStmt, NewBuiltin, NewClass, NewFunction
+from ..IR.IRStmts import Call, IRStmt, NewBuiltin, NewClass, NewFunction
 
 
     

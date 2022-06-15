@@ -5,7 +5,7 @@ if typing.TYPE_CHECKING:
     from . import CSStmt
     from .CSObjects import CSObject
 
-from ..IR.Stmts import IRStmt
+from ..IR.IRStmts import IRStmt
 
 CTX_LENGTH = 1
 

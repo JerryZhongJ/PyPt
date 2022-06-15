@@ -2,11 +2,11 @@ import os
 from subprocess import call
 from typing import Dict, List, Set, Union
 
+from ..IR.CodeBlock import CodeBlock
+
 from ..CSPTA import CSCodeBlock, CSStmt
 
-from ..IR.CodeBlock import ClassCodeBlock, CodeBlock, FunctionCodeBlock, ModuleCodeBlock
-
-from ..IR.Stmts import Call, NewClass, NewModule, IRStmt
+from ..IR.IRStmts import Call, NewClass, NewModule, IRStmt
 
 
 class CallGraph:

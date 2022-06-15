@@ -3,13 +3,15 @@ from typing import Any, Dict, List, Tuple, Union
 import typing
 
 if typing.TYPE_CHECKING:
-    from .CodeBlock import CodeBlock, ClassCodeBlock, FunctionCodeBlock, ModuleCodeBlock
+    from .CodeBlock import CodeBlock
+    from .FunctionCodeBlock import FunctionCodeBlock
+    from .ClassCodeBlock import ClassCodeBlock
+    from .ModuleCodeBlock import ModuleCodeBlock
 
 
 class Variable:
     name: str                           # variable name
     belongsTo: 'CodeBlock'                # 'CodeBlock' to which it belongs
-    # TODO: implement this
     qualified_name: str
     isTmp: bool
 
@@ -22,13 +24,14 @@ class Variable:
     def __init__(self, name: str, belongsTo: 'CodeBlock', temp=False):
         self.name = name
         self.belongsTo = belongsTo
-        # belongsTo.variables.add(self)
         self.qualified_name = f"<{belongsTo.qualified_name}>{name}"
         self.isTmp = temp
         
+    def __eq__(self, other):
+        return isinstance(other, Variable) and self.name == other.name and self.belongsTo == other.belongsTo
 
     def __hash__(self):
-        return hash(self.qualified_name)
+        return hash((self.name, self.belongsTo))
 
 class IRStmt:
     belongsTo: 'CodeBlock'                 # 'CodeBlock' to which this IR belongs
@@ -36,7 +39,7 @@ class IRStmt:
 
     def __init__(self, belongsTo: 'CodeBlock'):
         self.belongsTo = belongsTo
-        belongsTo.stmts.append(self)
+        belongsTo.addIR(self)
 
     def __repr__(self):
         return f"IRStmt: {str(self)}"
@@ -44,8 +47,6 @@ class IRStmt:
     def __hash__(self):
         return hash((self.belongsTo, str(self)))
     
-
-
 class Assign(IRStmt):
     target: Variable
     source: Variable
@@ -142,7 +143,7 @@ class NewClass(New):
 class NewBuiltin(New):
     type: str
     value: Any                          # optional, for example the value of str, int, double can be use
-    def __init__(self, target:Variable, type: str, belongsTo: 'CodeBlock', value: Any=None):
+    def __init__(self, target:Variable, type: str, value: Any, belongsTo: 'CodeBlock'):
         super().__init__(target, 'builtin', belongsTo)
         self.type = type
         self.value = value

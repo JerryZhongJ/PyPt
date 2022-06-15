@@ -4,7 +4,7 @@ from typing import Dict, Set
 from ..IR.CodeBlock import CodeBlock
 
 
-from ..IR.Stmts import Variable
+from ..IR.IRStmts import Variable
 
 from .Objects import Object
 

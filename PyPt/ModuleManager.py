@@ -10,9 +10,13 @@ import io
 import sys
 import ast
 
-from .IR.CodeBlock import CodeBlock, ModuleCodeBlock
-from .IR.CodeBlockGenerator import ModuleCodeBlockGenerator
-from .IR.Stmts import NewModule, SetAttr, Variable
+from .IR.ModuleCodeBlock import ModuleCodeBlock
+from .IRGeneration.ModuleGenerator import ModuleGenerator
+
+from .IR.CodeBlock import CodeBlock
+
+
+from .IR.IRStmts import NewModule, SetAttr, Variable
 
 LOAD_CONST = dis.opmap['LOAD_CONST']
 IMPORT_NAME = dis.opmap['IMPORT_NAME']
@@ -387,7 +391,7 @@ class ModuleManager:
             m.__file__ = pathname
             m.__depth__ = depth
             tree = ast.parse(fp.read())
-            m.__generator__ = ModuleCodeBlockGenerator(fqname, moduleManager=self)
+            m.__generator__ = ModuleGenerator(fqname, moduleManager=self)
             m.__codeBlock__ = m.__generator__.codeBlock
             m.__generator__.parse(tree)
             return m

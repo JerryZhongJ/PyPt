@@ -1,8 +1,13 @@
 import threading
 import time
 from typing import Dict, List, Set, Tuple, Union
-from ..IR.CodeBlock import ClassCodeBlock, CodeBlock, ModuleCodeBlock
-from ..IR.Stmts import Assign, Call, DelAttr, GetAttr, NewBuiltin, NewClass, NewClassMethod, NewFunction, NewModule, NewStaticMethod, NewSuper, SetAttr, Variable
+from ..IR.ClassCodeBlock import ClassCodeBlock
+
+from ..IR.ModuleCodeBlock import ModuleCodeBlock
+
+from ..IR.CodeBlock import CodeBlock
+
+from ..IR.IRStmts import Assign, Call, DelAttr, GetAttr, NewBuiltin, NewClass, NewClassMethod, NewFunction, NewModule, NewStaticMethod, NewSuper, SetAttr, Variable
 from .ClassHiearchy import MRO, ClassHiearchy
 from .Objects import  CIBuiltinObject, CIClassObject, CIFunctionObject, CIInstanceObject, ClassMethodObject, ClassObject, FakeObject, FunctionObject, InstanceObject, InstanceMethodObject, ModuleObject, Object, StaticMethodObject, SuperObject
 from .BindingStmts import BindingStmts

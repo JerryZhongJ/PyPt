@@ -1,6 +1,6 @@
 from typing import Dict, Set, Tuple
 
-from ..IR.Stmts import Assign, Call, DelAttr, GetAttr, NewClass, NewClassMethod, NewStaticMethod, NewSuper, SetAttr
+from ..IR.IRStmts import Assign, Call, DelAttr, GetAttr, NewClass, NewClassMethod, NewStaticMethod, NewSuper, SetAttr
 
 from .Pointers import VarPtr
 

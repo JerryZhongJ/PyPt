@@ -1,5 +1,7 @@
 from typing import Dict, List, Set, Tuple, Union
 import typing
+from ..IR.ClassCodeBlock import ClassCodeBlock
+from ..IR.ModuleCodeBlock import ModuleCodeBlock
 
 
 if typing.TYPE_CHECKING:
@@ -22,8 +24,8 @@ from ..PTA.CallGraph import CallGraph
 from ..PTA.PointToSet import PointToSet
 
 from ..PTA.ClassHiearchy import MRO, ClassHiearchy
-from ..IR.CodeBlock import ClassCodeBlock, CodeBlock, FunctionCodeBlock, ModuleCodeBlock
-from ..IR.Stmts import Assign, Call, DelAttr, GetAttr, IRStmt, NewBuiltin, NewClass, NewClassMethod, NewFunction, NewModule, NewStaticMethod, NewSuper, SetAttr, Variable
+
+from ..IR.IRStmts import Assign, Call, DelAttr, GetAttr, IRStmt, NewBuiltin, NewClass, NewClassMethod, NewFunction, NewModule, NewStaticMethod, NewSuper, SetAttr, Variable
 
 
 FAKE_PREFIX = "$r_"
@@ -496,7 +498,7 @@ class Analysis:
                 self.addFlow(classAttr, insAttr)
                 self.resolveAttrIfNot(obj, "__init__")
 
-                init = Variable(f"${obj.getCodeBlock().qualified_name}.__init__", stmt.belongsTo)
+                init = Variable(f"${obj}$__init__", stmt.belongsTo)
                 initPtr = CSVarPtr(ctx, init)
                 self.addFlow(insAttr, initPtr)
                 newStmt = (ctx, Call(Variable("", stmt.belongsTo), init, stmt.posargs, stmt.kwargs, stmt.belongsTo))

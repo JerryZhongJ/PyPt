@@ -3,7 +3,7 @@ import typing
 
 if typing.TYPE_CHECKING:
     from .Objects import Object
-from ..IR.Stmts import Variable
+from ..IR.IRStmts import Variable
 
 class Pointer:
     pass

@@ -1,11 +1,16 @@
 from typing import Any, List, Set, Union
+from ..IR.ClassCodeBlock import ClassCodeBlock
+from ..IR.CodeBlock import CodeBlock
+from ..IR.FunctionCodeBlock import FunctionCodeBlock
+
+from ..IR.ModuleCodeBlock import ModuleCodeBlock
 
 from ..CSPTA.Context import emptyContextChain
 
 from .Pointers import CIVarPtr, VarPtr
 
-from ..IR.Stmts import IRStmt, Call, NewBuiltin, NewClass, NewFunction
-from ..IR.CodeBlock import ClassCodeBlock, CodeBlock, FunctionCodeBlock, ModuleCodeBlock
+from ..IR.IRStmts import IRStmt, Call, NewBuiltin, NewClass, NewFunction
+
 
 # Object is the representation of object entity, and should not contain any analysis data
 # Object's attributes' values should be limited!
