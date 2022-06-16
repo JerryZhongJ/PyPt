@@ -123,61 +123,54 @@ class CodeBlockGenerator(ast.NodeVisitor):
         return tmp
 
     def addAssign(self, target: Variable, source: Variable):
-        assert(isinstance(target, Variable) and isinstance(source, Variable))
-        Assign(target, source, self.codeBlock)
+        if(target and source):
+            Assign(target, source, self.codeBlock)
         
 
     def addGetAttr(self, target: Variable, source: Attribute):
-        assert(isinstance(target, Variable) and isinstance(source, Attribute))
-        GetAttr(target, source.var, source.attrName, self.codeBlock)
+        if(target and source.var):
+            GetAttr(target, source.var, source.attrName, self.codeBlock)
         
 
     def addSetAttr(self, target: Attribute, source: Variable):
-        assert(isinstance(target, Attribute) and isinstance(source, Variable))
-        SetAttr(target.var, target.attrName, source, self.codeBlock)
+        if(target.var and source):
+            SetAttr(target.var, target.attrName, source, self.codeBlock)
         
     def addNewBuiltin(self, target: Variable, type: str, value: Any=None):
-        assert(isinstance(target, Variable))
-        NewBuiltin(target, type, value, self.codeBlock)
+        if(target):
+            NewBuiltin(target, type, value, self.codeBlock)
         
     def addCall(self, target: Variable, callee: Variable, args: List[Variable], keywords: Dict[str, Variable]):
-        assert(isinstance(target, Variable) and isinstance(callee, Variable))
-        for arg in args:
-            assert(isinstance(arg, Variable))
-        for arg in keywords.values():
-            assert(isinstance(arg, Variable))
-        Call(target, callee, args, keywords, self.codeBlock)
+        if(target and callee):
+            Call(target, callee, args, keywords, self.codeBlock)
         
     def addNewFunction(self, target: Variable, codeBlock: FunctionCodeBlock):
-        assert(isinstance(target, Variable) and isinstance(codeBlock, FunctionCodeBlock))
-        NewFunction(target, codeBlock, self.codeBlock)
+        if(target):
+            NewFunction(target, codeBlock, self.codeBlock)
         
     def addNewClass(self, target: Variable, bases: List[Variable], codeBlock: ClassCodeBlock):
-        assert(isinstance(target, Variable) and isinstance(codeBlock, ClassCodeBlock))
-        for base in bases:
-            assert(isinstance(base, Variable))
-        NewClass(target, bases, codeBlock, self.codeBlock)
+        if(target):
+            NewClass(target, bases, codeBlock, self.codeBlock)
         
     def addNewModule(self, target: Variable, module: Union[ModuleCodeBlock, str]):
-        assert(isinstance(target, Variable))
-        assert(isinstance(module, ModuleCodeBlock) or isinstance(module, str))
-        NewModule(target, module, self.codeBlock)
+        if(target):
+            NewModule(target, module, self.codeBlock)
         
     def addNewSuper(self, target: Variable, type: Variable, bound: Variable):
-        assert(isinstance(target, Variable) and isinstance(type, Variable) and isinstance(bound, Variable))
-        NewSuper(target, type, bound, self.codeBlock)
+        if(target and type and bound):
+            NewSuper(target, type, bound, self.codeBlock)
         
     def addNewStaticMethod(self, target: Variable, func: Variable):
-        assert(isinstance(target, Variable) and isinstance(func, Variable))
-        NewStaticMethod(target, func, self.codeBlock)
+        if(target and func):
+            NewStaticMethod(target, func, self.codeBlock)
         
     def addNewClassMethod(self, target, func):
-        assert(isinstance(target, Variable) and isinstance(func, Variable))
-        NewClassMethod(target, func, self.codeBlock)
+        if(target and func):
+            NewClassMethod(target, func, self.codeBlock)
         
     def addDelAttr(self, attr: Attribute):
-        assert(isinstance(attr, Attribute))
-        DelAttr(attr.var, attr.attrName, self.codeBlock)
+        if(attr.var):
+            DelAttr(attr.var, attr.attrName, self.codeBlock)
         
     # names are resolved and replaced by variables or attributes as soon as being visited.
     def visit_Name(self, node: ast.Name):
@@ -408,7 +401,7 @@ class CodeBlockGenerator(ast.NodeVisitor):
         assert(isinstance(func, Variable))
         # Starred is not supported so far
         args = [v.result for v in node.args if isinstance(v.result, Variable)]
-        keywords = {kw.arg:kw.value.result for kw in node.keywords}
+        keywords = {kw.arg:kw.value.result for kw in node.keywords if isinstance(kw.value.result, Variable)}
         self.addCall(tmp, func, args, keywords)
         node.result = tmp
 
@@ -764,9 +757,8 @@ class CodeBlockGenerator(ast.NodeVisitor):
         self.visit_With(node)
 
     def _handleAssign(self, target: ast.AST, value: Variable):
-        if(value is None):
-            return
-        assert(isinstance(value, Variable))
+        
+        assert(not value or isinstance(value, Variable))
         if(isinstance(target, ast.Name) or isinstance(target, ast.Attribute) 
             or isinstance(target, ast.NamedExpr) or isinstance(target, ast.Subscript)):
             # left = right

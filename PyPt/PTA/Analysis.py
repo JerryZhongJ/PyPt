@@ -53,8 +53,8 @@ class Analysis:
         self.verbose = verbose
 
     # addAll mean treat all codeblocks in this codeBlock as reachable.
-    def addReachable(self, codeBlock: CodeBlock, addAll=False):
-        if(codeBlock in self.reachable and not addAll):
+    def addReachable(self, codeBlock: CodeBlock):
+        if(codeBlock in self.reachable):
             return
         self.reachable.add(codeBlock)
 
@@ -76,7 +76,7 @@ class Analysis:
                     self.workList.append((ADD_POINT_TO, targetPtr, {obj}))
                     self.workList.append((ADD_POINT_TO, globalPtr, {obj}))
                     # self.addDefined(stmt.module)
-                    self.addReachable(stmt.module, addAll=False)
+                    self.addReachable(stmt.module)
                     # self.callgraph.put(stmt, stmt.module)
                 else:
                     obj = FakeObject(stmt.module, None)
@@ -88,8 +88,7 @@ class Analysis:
                 obj = CIFunctionObject(stmt)
                 targetPtr = CIVarPtr(stmt.target)
                 self.workList.append((ADD_POINT_TO, targetPtr, {obj}))
-                if(addAll):
-                    self.addReachable(stmt.codeBlock, addAll=addAll)
+                
 
             elif(isinstance(stmt, NewClass)):
                 obj = CIClassObject(stmt)
@@ -103,7 +102,7 @@ class Analysis:
                 for attr in obj.getAttributes():
                     self.persist_attr[obj][attr] = set()
                 
-                self.addReachable(stmt.codeBlock, addAll=addAll)
+                self.addReachable(stmt.codeBlock)
                 self.callgraph.put(stmt, stmt.codeBlock)
                 
 
@@ -121,7 +120,7 @@ class Analysis:
             obj = ModuleObject(entry)
             self.workList.append((ADD_POINT_TO, CIVarPtr(entry.globalVariable), {obj}))
             
-            self.addReachable(entry, addAll=True)
+            self.addReachable(entry)
 
         
         
