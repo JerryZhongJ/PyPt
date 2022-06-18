@@ -23,8 +23,7 @@ class ClassHiearchy:
         assert(isinstance(classObj, ClassObject))
         if(classObj in self.mros):
             return
-        self.mros[classObj] = set()
-        self.subClasses[classObj] = set()
+        
         bases = classObj.getBases()
         
         for i in range(len(bases)):

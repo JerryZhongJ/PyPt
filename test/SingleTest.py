@@ -55,5 +55,5 @@ def test(moduleManager: ModuleManager):
 
     print("Done                                                   ")
 
-testScript("import/chained_import_all", "main.py")
+testScript("super/diamond", "main.py")
 # testModule("flask", "/home/jerry/Documents/test_projects/flask/src")

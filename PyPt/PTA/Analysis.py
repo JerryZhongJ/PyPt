@@ -52,6 +52,18 @@ class Analysis:
         self.workList = []
         self.verbose = verbose
 
+        self.processStmts = {
+            "GetAttr": self.processGetAttr,
+            "SetAttr": self.processSetAttr,
+            "NewClass": self.processNewClass,
+            "Call": self.processCall,
+            "DelAttr": self.processDelAttr,
+            "NewStaticMethod": self.processNewStaticMethod,
+            "NewClassMethod": self.processNewClassMethod,
+            "NewSuper": self.processNewSuper,
+            
+        }
+
     # addAll mean treat all codeblocks in this codeBlock as reachable.
     def addReachable(self, codeBlock: CodeBlock):
         if(codeBlock in self.reachable):
@@ -145,85 +157,73 @@ class Analysis:
                 if(not isinstance(ptr, CIVarPtr)):
                     continue
 
-                for stmt in self.bindingStmts.getSetAttr(ptr):
-                    self.processSetAttr(stmt, objs)
+                for opname, process in self.processStmts.items():
+                    for stmtInfo in self.bindingStmts.get(opname, ptr):
+                        process(stmtInfo, objs)
 
-                for stmt in self.bindingStmts.getGetAttr(ptr):
-                    self.processGetAttr(stmt, objs)
-
-                for stmt, index in self.bindingStmts.getNewClass(ptr):
-                    self.processNewClass(stmt, index, objs)
-
-                for stmt in self.bindingStmts.getCall(ptr):
-                    self.processCall(stmt, objs)
-
-                for stmt in self.bindingStmts.getDelAttr(ptr):
-                    self.processDelAttr(stmt, objs)
-
-                for stmt in self.bindingStmts.getNewClassMethod(ptr):
-                    self.processNewClassMethod(stmt, objs)
-
-                for stmt in self.bindingStmts.getNewStaticMethod(ptr):
-                    self.processNewStaticMethod(stmt, objs)
-
-                for stmt in self.bindingStmts.getNewSuper_type(ptr):
-                    self.processNewSuper_type(stmt, objs)
-
-                for stmt in self.bindingStmts.getNewSuper_bound(ptr):
-                    self.processNewSuper_bound(stmt, objs)
 
             if(type == BIND_STMT):
                 stmt, = args
+                
                 if(isinstance(stmt, SetAttr)):
                     # print(f"Bind SetAttr: {stmt.target} - {stmt}")
                     varPtr = CIVarPtr(stmt.target)
-                    self.bindingStmts.bindSetAttr(varPtr, stmt)
-                    self.processSetAttr(stmt, self.pointToSet.get(varPtr))
+                    stmtInfo = (stmt, )
+                    self.bindingStmts.bind("SetAttr", varPtr, stmtInfo)
+                    self.processSetAttr(stmtInfo, self.pointToSet.get(varPtr))
 
                 elif(isinstance(stmt, GetAttr)):
                     # print(f"Bind GetAttr: {stmt.source} - {stmt}")
                     varPtr = CIVarPtr(stmt.source)
-                    self.bindingStmts.bindGetAttr(varPtr, stmt)
-                    self.processGetAttr(stmt, self.pointToSet.get(varPtr))
+                    stmtInfo = (stmt, )
+                    self.bindingStmts.bind("GetAttr", varPtr, stmtInfo)
+                    self.processGetAttr(stmtInfo, self.pointToSet.get(varPtr))
 
                 elif(isinstance(stmt, NewClass)):
                     for i in range(len(stmt.bases)):
                         # print(f"Bind Base: {stmt.bases[i]} - {stmt} - {i}")
                         varPtr = CIVarPtr(stmt.bases[i])
-                        self.bindingStmts.bindNewClass(varPtr, stmt, i)
-                        self.processNewClass(stmt, i, self.pointToSet.get(varPtr))
+                        stmtInfo = (stmt, i)
+                        self.bindingStmts.bind("NewClass", varPtr, stmtInfo)
+                        self.processNewClass(stmtInfo, self.pointToSet.get(varPtr))
 
                 elif(isinstance(stmt, Call)):
                     # print(f"Bind Call: {stmt.callee} - {stmt}")
                     varPtr = CIVarPtr(stmt.callee)
-                    self.bindingStmts.bindCall(varPtr, stmt)
-                    self.processCall(stmt, self.pointToSet.get(varPtr))
+                    stmtInfo = (stmt, )
+                    self.bindingStmts.bind("Call", varPtr, stmtInfo)
+                    self.processCall(stmtInfo, self.pointToSet.get(varPtr))
 
                 elif(isinstance(stmt, DelAttr)):
                     # print(f"Bind DelAttr: {stmt.var} - {stmt}")
                     varPtr = CIVarPtr(stmt.var)
-                    self.bindingStmts.bindDelAttr(varPtr, stmt)
-                    self.processDelAttr(stmt, self.pointToSet.get(varPtr))
+                    stmtInfo = (stmt, )
+                    self.bindingStmts.bind("DelAttr", varPtr, stmtInfo)
+                    self.processDelAttr(stmtInfo, self.pointToSet.get(varPtr))
                 
                 elif(isinstance(stmt, NewClassMethod)):
                     varPtr = CIVarPtr(stmt.func)
-                    self.bindingStmts.bindNewClassMethod(varPtr, stmt)
-                    self.processNewClassMethod(stmt, self.pointToSet.get(varPtr))
+                    stmtInfo = (stmt, )
+                    self.bindingStmts.bind("NewClassMethod", varPtr, stmtInfo)
+                    self.processNewClassMethod(stmtInfo, self.pointToSet.get(varPtr))
 
                 elif(isinstance(stmt, NewStaticMethod)):
                     varPtr = CIVarPtr(stmt.func)
-                    self.bindingStmts.bindNewStaticMethod(varPtr, stmt)
-                    self.processNewStaticMethod(stmt, self.pointToSet.get(varPtr))
+                    stmtInfo = (stmt, )
+                    self.bindingStmts.bind("NewStaticMethod", varPtr, stmtInfo)
+                    self.processNewStaticMethod(stmtInfo, self.pointToSet.get(varPtr))
 
                 elif(isinstance(stmt, NewSuper)):
                     
                     varPtr = CIVarPtr(stmt.type)
-                    self.bindingStmts.bindNewSuper_type(varPtr, stmt)
-                    self.processNewSuper_type(stmt, self.pointToSet.get(varPtr))
+                    stmtInfo = (stmt, "type")
+                    self.bindingStmts.bind("NewSuper", varPtr, stmtInfo)
+                    self.processNewSuper(stmtInfo, self.pointToSet.get(varPtr))
 
                     varPtr = CIVarPtr(stmt.bound)
-                    self.bindingStmts.bindNewSuper_bound(varPtr, stmt)
-                    self.processNewSuper_bound(stmt, self.pointToSet.get(varPtr))
+                    stmtInfo = (stmt, "bound")
+                    self.bindingStmts.bind("NewSuper", varPtr, stmtInfo)
+                    self.processNewSuper(stmtInfo, self.pointToSet.get(varPtr))
 
     def addFlow(self, source: Pointer, target: Pointer):
         if(self.pointerFlow.put(source, target)):
@@ -319,15 +319,15 @@ class Analysis:
                         break
             self.resolveAttribute(obj, attr, (mro, start))
 
-    def processSetAttr(self, stmt: SetAttr, objs: Set[Object]):
-        # print(f"Process SetAttr: {stmt}")
+    def processSetAttr(self, stmtInfo: Tuple[SetAttr], objs: Set[Object]):
+        stmt,  = *stmtInfo,
         assert(isinstance(stmt, SetAttr))
         for obj in objs:
             attrPtr = AttrPtr(obj, stmt.attr)
             self.addFlow(CIVarPtr(stmt.source), attrPtr)
 
-    def processGetAttr(self, stmt: GetAttr, objs: Set[Object]):
-        # print(f"Process GetAttr: {stmt}")
+    def processGetAttr(self, stmtInfo: Tuple[GetAttr], objs: Set[Object]):
+        stmt, = *stmtInfo, 
         assert(isinstance(stmt, GetAttr))
         for obj in objs:
             varPtr = CIVarPtr(stmt.target)
@@ -365,8 +365,8 @@ class Analysis:
                 attrPtr = AttrPtr(obj, stmt.attr)
                 self.addFlow(attrPtr, varPtr)
 
-    def processNewClass(self, stmt: NewClass, index: int, objs: Set[Object]):
-        # print(f"Process NewClass: {stmt}")
+    def processNewClass(self, stmtInfo: Tuple[NewClass, int], objs: Set[Object]):
+        stmt, index = *stmtInfo,
         assert(isinstance(stmt, NewClass))
         mroChange = set()
         for obj in objs:
@@ -379,8 +379,8 @@ class Analysis:
             for attr in self.resolved_attr[classObj]:
                 self.resolveAttribute(classObj, attr, (mro, 0))
 
-    def processCall(self, stmt: Call, objs: Set[Object]):
-        # print(f"Process Call: {stmt}")
+    def processCall(self, stmtInfo: Tuple[Call], objs: Set[Object]):
+        stmt, = *stmtInfo,
         assert(isinstance(stmt, Call))
         varPtr = CIVarPtr(stmt.target)
         newObjs = set()
@@ -494,8 +494,8 @@ class Analysis:
             elif(kwParam):
                 self.addFlow(kwArgs[kw], kwParam)
                 
-    def processDelAttr(self, stmt: DelAttr, objs: Set[Object]):
-        # print(f"Process DelAttr: {stmt}")
+    def processDelAttr(self, stmtInfo: Tuple[DelAttr], objs: Set[Object]):
+        stmt,  = *stmtInfo, 
         assert(isinstance(stmt, DelAttr))
         attr = stmt.attr
         for obj in objs:
@@ -505,7 +505,8 @@ class Analysis:
                     self.resolveAttribute(resolver, attr, (mro, index + 1))
                 del self.persist_attr[obj][attr]
 
-    def processNewClassMethod(self, stmt: NewClassMethod, objs: Set[Object]):
+    def processNewClassMethod(self, stmtInfo: Tuple[NewClassMethod], objs: Set[Object]):
+        stmt, = *stmtInfo, 
         assert(isinstance(stmt, NewClassMethod))
         target = CIVarPtr(stmt.target)
         newObjs = set()
@@ -519,7 +520,8 @@ class Analysis:
         if(newObjs):
             self.workList.append((ADD_POINT_TO, target, newObjs))
 
-    def processNewStaticMethod(self, stmt: NewStaticMethod, objs: Set[Object]):
+    def processNewStaticMethod(self, stmtInfo: Tuple[NewStaticMethod], objs: Set[Object]):
+        stmt, = *stmtInfo, 
         assert(isinstance(stmt, NewStaticMethod))
         target = CIVarPtr(stmt.target)
         newObjs = set()
@@ -531,27 +533,30 @@ class Analysis:
         if(newObjs):
             self.workList.append((ADD_POINT_TO, target, newObjs))
 
-    def processNewSuper_type(self, stmt: NewSuper, objs: Set[Object]):
+    def processNewSuper(self, stmtInfo: NewSuper, objs: Set[Object]):
+        stmt, operand = *stmtInfo,
         assert(isinstance(stmt, NewSuper))
-        newObjs = set()
-        target = CIVarPtr(stmt.target)
-        for obj in objs:
-            if(isinstance(obj, ClassObject)):
-                for boundObj in self.pointToSet.get(CIVarPtr(stmt.bound)):
-                    newObjs.add(SuperObject(obj, boundObj))
-        if(newObjs):
-            self.workList.append((ADD_POINT_TO, target, newObjs))
+        if(operand == "type"):
+            newObjs = set()
+            target = CIVarPtr(stmt.target)
+            for obj in objs:
+                if(isinstance(obj, ClassObject)):
+                    for boundObj in self.pointToSet.get(CIVarPtr(stmt.bound)):
+                        newObjs.add(SuperObject(obj, boundObj))
+            if(newObjs):
+                self.workList.append((ADD_POINT_TO, target, newObjs))
+        else:
+            newObjs = set()
+            target = CIVarPtr(stmt.target)
+            for obj in objs:
+                if(isinstance(obj, ClassObject) or isinstance(obj, InstanceObject)):
+                    for typeObj in self.pointToSet.get(CIVarPtr(stmt.type)):
+                        newObjs.add(SuperObject(typeObj, obj))
+            if(newObjs):
+                self.workList.append((ADD_POINT_TO, target, newObjs))
 
-    def processNewSuper_bound(self, stmt: NewSuper, objs: Set[Object]):
-        assert(isinstance(stmt, NewSuper))
-        newObjs = set()
-        target = CIVarPtr(stmt.target)
-        for obj in objs:
-            if(isinstance(obj, ClassObject) or isinstance(obj, InstanceObject)):
-                for typeObj in self.pointToSet.get(CIVarPtr(stmt.type)):
-                    newObjs.add(SuperObject(typeObj, obj))
-        if(newObjs):
-            self.workList.append((ADD_POINT_TO, target, newObjs))
+
+        
 
 
     

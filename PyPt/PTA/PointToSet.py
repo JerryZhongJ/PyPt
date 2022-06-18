@@ -1,4 +1,5 @@
 
+from collections import defaultdict
 from typing import Dict, Set
 
 from ..IR.CodeBlock import CodeBlock
@@ -16,14 +17,12 @@ class PointToSet:
     attrPtrSet: Dict[Object, Dict[str, Set]]
 
     def __init__(self):
-        self.varPtrSet = {}
-        self.attrPtrSet = {}
+        self.varPtrSet = defaultdict(set)
+        self.attrPtrSet = defaultdict(lambda: defaultdict(set))
 
     def put(self, pointer: Pointer, obj: Object) -> bool:
         if(isinstance(pointer, VarPtr)):
             var = pointer
-            if(pointer not in self.varPtrSet):
-                self.varPtrSet[var] = set()
             if(obj not in self.varPtrSet[var]):
                 self.varPtrSet[var].add(obj)
                 return True
@@ -32,12 +31,6 @@ class PointToSet:
         elif(isinstance(pointer, AttrPtr)):
             o = pointer.obj
             f = pointer.attr
-            if(o not in self.attrPtrSet):
-                self.attrPtrSet[o] = {}
-            
-            if(f not in self.attrPtrSet[o]):
-                self.attrPtrSet[o][f] = set()
-            
             if(obj not in self.attrPtrSet[o][f]):
                 self.attrPtrSet[o][f].add(obj)
                 return True
@@ -47,19 +40,13 @@ class PointToSet:
     def putAll(self, pointer: Pointer, objs: Set[Object]) -> Set[Object]:
         if(isinstance(pointer, VarPtr)):
             var = pointer
-            if(pointer not in self.varPtrSet):
-                self.varPtrSet[var] = set()
+            
             diff = objs - self.varPtrSet[var]
             self.varPtrSet[var] |= diff
             return diff
         elif(isinstance(pointer, AttrPtr)):
             o = pointer.obj
             f = pointer.attr
-            if(o not in self.attrPtrSet):
-                self.attrPtrSet[o] = {}
-            
-            if(f not in self.attrPtrSet[o]):
-                self.attrPtrSet[o][f] = set()
             
             diff = objs - self.attrPtrSet[o][f]
             self.attrPtrSet[o][f] |= diff
@@ -68,24 +55,17 @@ class PointToSet:
     def get(self, pointer: Pointer) -> Set[Object]:
         if(isinstance(pointer, VarPtr)):
             var = pointer
-            if(var not in self.varPtrSet):
-                return set()
-            else:
-                return self.varPtrSet[var]
+            return self.varPtrSet[var]
 
         elif(isinstance(pointer, AttrPtr)):
             o = pointer.obj
             f = pointer.attr
-            try:
-                return self.attrPtrSet[o][f]
-            except(KeyError):
-                return set()
+            return self.attrPtrSet[o][f]
+            
 
     def getAllAttr(self, obj: Object):
-        if(obj not in self.attrPtrSet):
-            return set()
-        else:
-            return self.attrPtrSet[obj].keys()
+        
+        return self.attrPtrSet[obj].keys()
 
     
     def dump(self, fp):
