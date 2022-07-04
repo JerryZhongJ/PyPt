@@ -23,14 +23,14 @@ class Attribute:
     var: Variable
     attrName: str
     def __init__(self, var: Variable, attrName: str):
-        assert(isinstance(var, Variable) and isinstance(attrName, str))
+        # assert(isinstance(var, Variable) and isinstance(attrName, str))
         self.var = var
         self.attrName = attrName
 
 class Starred:
     var: Variable
     def __init__(self, var: Variable):
-        assert(isinstance(var, Variable))
+        # assert(isinstance(var, Variable))
         self.var = var
 
 def isLoad(node: ast.AST) -> bool:
@@ -398,7 +398,7 @@ class CodeBlockGenerator(ast.NodeVisitor):
             
         self.generic_visit(node)
         func = node.func.result
-        assert(isinstance(func, Variable))
+        
         # Starred is not supported so far
         args = [v.result for v in node.args if isinstance(v.result, Variable)]
         keywords = {kw.arg:kw.value.result for kw in node.keywords if isinstance(kw.value.result, Variable)}
@@ -420,7 +420,7 @@ class CodeBlockGenerator(ast.NodeVisitor):
 
         if(isLoad(node)):
             srcVar = node.value.result
-            assert(isinstance(srcVar, Variable))
+            
             tmp = self.newTmpVariable()
             self.addGetAttr(tmp, Attribute(srcVar, node.attr))
             node.result = tmp
@@ -500,7 +500,7 @@ class CodeBlockGenerator(ast.NodeVisitor):
         self.generic_visit(node)
         tmp = self._makeDict()
         self.addSetAttr(Attribute(tmp, "$keys"), node.key.result)
-        self.addSetAttr(Attribute(tmp, "$value"). node.value.result)
+        self.addSetAttr(Attribute(tmp, "$value"), node.value.result)
         
         for comp in node.generators:
             self._handleFor(comp.target, comp.iter)

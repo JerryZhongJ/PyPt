@@ -5,7 +5,14 @@
     "version": "0.2.0",
     "configurations": [
 
-
+        {
+            "name": "Real World",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/realworld.py",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
         {
             "name": "Python: Current File",
             "type": "python",

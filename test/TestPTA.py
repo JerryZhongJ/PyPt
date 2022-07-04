@@ -2,6 +2,8 @@ import json
 import os
 from typing import Dict, List
 import unittest
+from PyPt.IR.CodeBlock import CodeBlock
+from PyPt.Optimizer import Optimizer
 
 from PyPt.PTA.Analysis import Analysis as PTA
 from PyPt.CSPTA.Analysis import Analysis as CSPTA
@@ -9,6 +11,11 @@ from PyPt.CSPTA.Analysis import Analysis as CSPTA
 from PyPt.ModuleManager import ModuleManager
 
 
+def countAllStmts(codeBlocks: List[CodeBlock]):
+    sum = 0
+    for codeBlock in codeBlocks:
+        sum += len(codeBlock.stmts)
+    return sum 
     
 class TestBase(unittest.TestCase):
     def setUp(self) -> None:
@@ -28,6 +35,14 @@ class TestBase(unittest.TestCase):
         # get output
         moduleManager = ModuleManager(path)
         moduleManager.addEntry(file="main.py")
+
+        codeBlocks = moduleManager.allCodeBlocks()
+        num0 = countAllStmts(codeBlocks)
+        optimizer = Optimizer(codeBlocks)
+        optimizer.start()
+        num1 = countAllStmts(codeBlocks)
+        print(f"optimize {num0} -> {num1}")
+
         entrys = moduleManager.getEntrys()
         analysis = analysisType()
         analysis.analyze(entrys)

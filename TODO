@@ -1,15 +1,14 @@
-
-1. use defaultdict
-2. giveup context chain! no context sensitive
-2. optimize ir: 
-    1. for GetAttr and same source.attr, let the target be the same
-3. self-construct entry-point, cancel addReachable(allAll)
-2. GetItem, SetItem, builtin-functions
-1. re-design fake object
-2. optimize class method object, static method object
-    1. class method object should be simply a wrapper over a function, transformed every time when it is resolved
-3. fix generator expression's scope
-4. default arguments, a better way
-4. with clause
-5. exception 
+- storeless heap model!
+- giveup context chain! no context sensitive
+- optimize ir: 
+    - for GetAttr and same source.attr, let the target be the same
+- self-construct entry-point, cancel addReachable(allAll)
+- GetItem, SetItem, builtin-functions
+- re-design fake object
+- optimize class method object, static method object
+    - class method object should be simply a wrapper over a function, transformed every time when it is resolved
+- fix generator expression's scope
+- default arguments, a better way
+- with-clause
+- exception 
 
