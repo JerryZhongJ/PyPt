@@ -2,6 +2,8 @@ import ast
 from typing import Any, Set
 import typing
 
+from ..IR.ClassCodeBlock import ClassCodeBlock
+
 from .DeclarationScanner import DeclarationScanner
 from .BindingScanner import BindingScanner
 from ..IR.CodeBlock import CodeBlock
@@ -82,7 +84,8 @@ class FunctionGenerator(CodeBlockGenerator):
             # varargs are passed into this list (referenced by tmp)
             # then v points to this list, remember v can point other object
             # this approach can avoid varargs to spread to other object
-            vararg = self._makeList()
+            vararg = self.newTmpVariable()
+            self.addNewBuiltin(vararg, "list")
             tmp = self.newTmpVariable()
             self.addSetAttr(Attribute(vararg, "$values"), tmp)
             self.addAssign(v, vararg)
@@ -99,21 +102,27 @@ class FunctionGenerator(CodeBlockGenerator):
             self.addSetAttr(Attribute(kwarg, "$values"), tmp)
             self.addAssign(v, kwarg)
             codeBlock.localVariables[args.kwarg.arg] = v
+
+        if(isinstance(codeBlock.enclosing, ClassCodeBlock) 
+            and isinstance(node, ast.FunctionDef) and len(codeBlock.posargs) > 0):
+            for decorator in node.decorator_list:
+                if(isinstance(decorator, ast.Name) and decorator.id == "staticmethod"):
+                    break
+            else:
+                enclosingClass = codeBlock.enclosing
+                self.addAssign(codeBlock.posargs[0], enclosingClass.thisClassVariable)
         
-        # return None
-        # NewBuiltin(codeBlock.returnVariable, "NoneType", codeBlock, None)
 
     def postprocess(self, node: ast.AST):
         
 
         if(self.yielded):
-            # if(None in self.yielded):
-            #     tmp = self.newTmpVariable()
-            #     NewBuiltin(tmp, "None", self.codeBlock, None)
-            #     self.yielded.remove(None)
-            #     # self.yielded.add(tmp)
 
-            tmp = self._makeGenerator(self.yielded, self.sended)
+            # tmp = self._makeGenerator(self.yielded, self.sended)
+            tmp = self.newTmpVariable()
+            self.addNewBuiltin(tmp, "list")
+            for yielded in self.yielded:
+                self.addSetAttr(Attribute(tmp, "$values"), yielded)
             self.addAssign(self.codeBlock.returnVariable, tmp)
 
         super().postprocess(node)
@@ -131,30 +140,15 @@ class FunctionGenerator(CodeBlockGenerator):
             self.yielded.add(node.value.result)
         # else:
         #     self.yielded.add(None)
-        node.result = self.sended
+        # node.result = self.sended
         
 
 
     def visit_YieldFrom(self, node: ast.YieldFrom) -> Any:
         
         self.generic_visit(node)
-
-        # $iterMethod = iter.__iter__
-        iterMethod = self.newTmpVariable()
-        self.addGetAttr(iterMethod, Attribute(node.value.result, "__iter__"))
+        tmp = self.newTmpVariable()
+        self.addGetAttr(tmp, Attribute(node.value.result, "$values"))
         
-
-        # $iterator = Call iterMethod()
-        iterator = self.newTmpVariable()
-        self.addCall(iterator, iterMethod, [], {})
-
-        # $nextMethod = $iterator.__next__
-        nextMethod = self.newTmpVariable()
-        self.addGetAttr(nextMethod, Attribute(iterator, "__next__"))
-
-        # value = Call $nextMethod()
-        value = self.newTmpVariable()
-        self.addCall(value, nextMethod, [], {})
-        
-        self.yielded.add(value)
-        node.result = self.sended
+        self.yielded.add(tmp)
+        # node.result = self.sended

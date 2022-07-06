@@ -6,7 +6,7 @@ from PyPt.IR.CodeBlock import CodeBlock
 from PyPt.Optimizer import Optimizer
 
 from PyPt.PTA.Analysis import Analysis as PTA
-from PyPt.CSPTA.Analysis import Analysis as CSPTA
+
 
 from PyPt.ModuleManager import ModuleManager
 
@@ -37,11 +37,11 @@ class TestBase(unittest.TestCase):
         moduleManager.addEntry(file="main.py")
 
         codeBlocks = moduleManager.allCodeBlocks()
-        num0 = countAllStmts(codeBlocks)
-        optimizer = Optimizer(codeBlocks)
-        optimizer.start()
-        num1 = countAllStmts(codeBlocks)
-        print(f"optimize {num0} -> {num1}")
+        # num0 = countAllStmts(codeBlocks)
+        # optimizer = Optimizer(codeBlocks)
+        # optimizer.start()
+        # num1 = countAllStmts(codeBlocks)
+        # print(f"optimize {num0} -> {num1}")
 
         entrys = moduleManager.getEntrys()
         analysis = analysisType()
@@ -60,8 +60,8 @@ if __name__ == "__main__":
     def getPTATest(path):
         return lambda self: self._test(PTA, path)
 
-    def getCSPTATest(path):
-        return lambda self: self._test(CSPTA, path)
+    # def getCSPTATest(path):
+    #     return lambda self: self._test(CSPTA, path)
 
 
     resourcePath = os.path.join(os.path.dirname(__file__), "resources")

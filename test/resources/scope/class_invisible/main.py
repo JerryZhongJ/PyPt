@@ -1,11 +1,11 @@
 
-def func():
+def func(self):
     pass
-def func2():
+def func2(self):
     pass
 class C:
     func = func2
-    def method():
+    def method(self):
         func()
     class D:
         method = func

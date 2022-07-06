@@ -5,7 +5,6 @@ from typing import Dict, List, Set, Union
 
 from ..IR.CodeBlock import CodeBlock
 
-from ..CSPTA import CSCodeBlock, CSStmt
 
 from ..IR.IRStmts import Call, NewClass, NewModule, IRStmt
 
@@ -57,20 +56,16 @@ class CallGraph:
         return callgraph
 
     def foldToStmt(self) -> Dict[CodeBlock, Dict[IRStmt, Set[CodeBlock]]]:
-        callgraph = {}
+        callgraph = defaultdict(dict)
         for stmt, callees in self.callgraph.items():
             caller = stmt.belongsTo
-            if(caller not in callgraph):
-                callgraph[caller] = {}
             callgraph[caller][stmt] = callees
         return callgraph
 
     def foldToCodeBlock(self) -> Dict[CodeBlock, Set[CodeBlock]]:
-        callgraph = {}
+        callgraph = defaultdict(set)
         for stmt, callees in self.callgraph.items():
             caller = stmt.belongsTo
-            if(caller not in callgraph):
-                callgraph[caller] = set()
             callgraph[caller] |= callees
         return callgraph
         

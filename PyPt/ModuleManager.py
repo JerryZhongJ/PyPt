@@ -377,7 +377,7 @@ class ModuleManager:
     # load = process import statements and globalnames
     def load_module(self, fqname, fp, pathname, file_info, depth):
         if(self.verbose):
-            print(f"Loading {fqname}                            \r", end="")
+            print(f"Loading {fqname:<100}\r", end="")
         suffix, mode, type = file_info
 
         if type == _PKG_DIRECTORY:

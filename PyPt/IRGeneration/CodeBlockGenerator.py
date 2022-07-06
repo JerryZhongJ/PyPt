@@ -2,6 +2,7 @@ import ast
 import builtins
 from typing import Set, Union
 import typing
+from xml.dom.minidom import Attr
 
 from numpy import isin
 from ..IR.CodeBlock import CodeBlock
@@ -164,9 +165,9 @@ class CodeBlockGenerator(ast.NodeVisitor):
         if(target and func):
             NewStaticMethod(target, func, self.codeBlock)
         
-    def addNewClassMethod(self, target, func):
-        if(target and func):
-            NewClassMethod(target, func, self.codeBlock)
+    # def addNewClassMethod(self, target, func):
+    #     if(target and func):
+    #         NewClassMethod(target, func, self.codeBlock)
         
     def addDelAttr(self, attr: Attribute):
         if(attr.var):
@@ -259,46 +260,29 @@ class CodeBlockGenerator(ast.NodeVisitor):
                 else:
                     self.addSetAttr(Attribute(tmp, "$values"), elt)
             
-            self._makeIterator(tmp, {Attribute(tmp, "$tupleElements"), Attribute(tmp, "$values")})
+            # self._makeIterator(tmp, {Attribute(tmp, "$tupleElements"), Attribute(tmp, "$values")})
             node.result = tmp
         
     
-    def _makeList(self) -> Variable:
-        tmp = self.newTmpVariable()
-        self.addNewBuiltin(tmp, "list")
-        self._makeIterator(tmp, {Attribute(tmp, "$values")})
-        return tmp
+    # def _makeList(self) -> Variable:
+    #     tmp = self.newTmpVariable()
+    #     self.addNewBuiltin(tmp, "list")
+    #     # self._makeIterator(tmp, {Attribute(tmp, "$values")})
+    #     return tmp
 
     # every list has $values
     def visit_List(self, node: ast.List):
-        self.generic_visit(node)
-        if(isLoad(node)):
-            tmp = self._makeList()
-            
-            for elt in node.elts:
-                elt = elt.result
-                if(isinstance(elt, Starred)):
-                    tmp2 = self.newTmpVariable()
-                    self.addGetAttr(tmp2, Attribute(elt.var, "$tupleElements"))
-                    self.addGetAttr(tmp2, Attribute(elt.var, "$values"))
-                    self.addSetAttr(Attribute(tmp, "$values"), tmp2)
-                    
-                else:
-                    self.addSetAttr(Attribute(tmp, "$values"), elt)
-                    
-            node.result = tmp
-    
-    def _makeSet(self) -> Variable:
-        tmp = self.newTmpVariable()
-        self.addNewBuiltin(tmp, "set")
-        self._makeIterator(tmp, {Attribute(tmp, "$values")})
-        return tmp
-
-    # every set has $values
-    def visit_Set(self, node: ast.Set):
         
+        if(isLoad(node)):
+            self.visit_Set(node)
+        else:
+            self.generic_visit(node)
+
+    def visit_Set(self, node: ast.Set):
         self.generic_visit(node)
-        tmp = self._makeSet()
+        tmp = self.newTmpVariable()
+        self.addNewBuiltin(tmp, "list")
+        
         for elt in node.elts:
             elt = elt.result
             if(isinstance(elt, Starred)):
@@ -306,16 +290,16 @@ class CodeBlockGenerator(ast.NodeVisitor):
                 self.addGetAttr(tmp2, Attribute(elt.var, "$tupleElements"))
                 self.addGetAttr(tmp2, Attribute(elt.var, "$values"))
                 self.addSetAttr(Attribute(tmp, "$values"), tmp2)
-                    
+                
             else:
                 self.addSetAttr(Attribute(tmp, "$values"), elt)
-
+                
         node.result = tmp
 
     def _makeDict(self) -> Variable:
         tmp = self.newTmpVariable()
         self.addNewBuiltin(tmp, "dict")
-        self._makeIterator(tmp, {Attribute(tmp, "$keys")})
+        # self._makeIterator(tmp, {Attribute(tmp, "$keys")})
         return tmp
         
     # every dict has $values and $keys
@@ -477,7 +461,8 @@ class CodeBlockGenerator(ast.NodeVisitor):
     def visit_ListComp(self, node: ast.ListComp):
         
         self.generic_visit(node)
-        tmp = self._makeList()
+        tmp = self.newTmpVariable()
+        self.addNewBuiltin(tmp, "list")
         self.addSetAttr(Attribute(tmp, "$values"), node.elt.result)
         
         for comp in node.generators:
@@ -486,14 +471,7 @@ class CodeBlockGenerator(ast.NodeVisitor):
 
 
     def visit_SetComp(self, node: ast.SetComp):
-        
-        self.generic_visit(node)
-        tmp = self._makeSet()
-        self.addSetAttr(Attribute(tmp, "$values"), node.elt.result)
-        
-        for comp in node.generators:
-            self._handleFor(comp.target, comp.iter)
-        node.result = tmp
+        self.visit_ListComp(node)
 
     def visit_DictComp(self, node: ast.DictComp):
         
@@ -506,34 +484,37 @@ class CodeBlockGenerator(ast.NodeVisitor):
             self._handleFor(comp.target, comp.iter)
         node.result = tmp
 
-    def _makeGenerator(self, elts: Set, sended: Variable) -> Variable:
-        tmp = self.newTmpVariable()
-        self.addNewBuiltin(tmp, "generator")
+    # def _makeGenerator(self, elts: Set, sended: Variable) -> Variable:
+    #     tmp = self.newTmpVariable()
+    #     self.addNewBuiltin(tmp, "generator")
         
-        self._makeIterator(tmp, elts)
-        # TODO: This is too ugly!
-        if(sended):
-            # def send(value):
-            #    sended = value
-            send = FunctionCodeBlock(f"<{tmp.name}>send", self.codeBlock, fake=True)
-            value = Variable("value", send)
-            send.posargs.append(value)
-            send.kwargs["value"] = value
-            Assign(sended, value, send)
+    #     self._makeIterator(tmp, elts)
+    #     # TODO: This is too ugly!
+    #     if(sended):
+    #         # def send(value):
+    #         #    sended = value
+    #         send = FunctionCodeBlock(f"<{tmp.name}>send", self.codeBlock, fake=True)
+    #         value = Variable("value", send)
+    #         send.posargs.append(value)
+    #         send.kwargs["value"] = value
+    #         Assign(sended, value, send)
             
             
 
-            # tmp.send = new function
-            tmp2 = self.newTmpVariable()
-            self.addNewFunction(tmp, send)
-            self.addSetAttr(Attribute(tmp2, "send"), tmp)
+    #         # tmp.send = new function
+    #         tmp2 = self.newTmpVariable()
+    #         self.addNewFunction(tmp, send)
+    #         self.addSetAttr(Attribute(tmp2, "send"), tmp)
             
-        return tmp
+    #         return tmp
 
     def visit_GeneratorExp(self, node: ast.GeneratorExp):
         
         self.generic_visit(node)
-        tmp = self._makeGenerator({node.elt.result}, None)
+        tmp = self.newTmpVariable()
+        self.addNewBuiltin(tmp, "list")
+        self.addSetAttr(Attribute(tmp, "$values"), node.elt.result)
+        # tmp = self._makeGenerator({node.elt.result}, None)
         for comp in node.generators:
             self._handleFor(comp.target, comp.iter)
         node.result = tmp
@@ -610,25 +591,12 @@ class CodeBlockGenerator(ast.NodeVisitor):
 
     def _handleFor(self, target, iter):
         # $iterMethod = iter.__iter__
-        iterMethod = self.newTmpVariable()
-        self.addGetAttr(iterMethod, Attribute(iter.result, "__iter__"))
+        tmp = self.newTmpVariable()
         
-
-        # $iterator = Call iterMethod()
-        iterator = self.newTmpVariable()
-        self.addCall(iterator, iterMethod, [], {})
-        
-
-        # $nextMethod = $iterator.__next__
-        nextMethod = self.newTmpVariable()
-        self.addGetAttr(nextMethod, Attribute(iterator, "__next__"))
-        
-
-        # value = Call $nextMethod()
-        value = self.newTmpVariable()
-        self.addCall(value, nextMethod, [], {})
-
-        self._handleAssign(target, value)
+        self.addGetAttr(tmp, Attribute(iter.result, "$values"))
+        self.addGetAttr(tmp, Attribute(iter.result, "$tupleElements"))
+        self.addGetAttr(tmp, Attribute(iter.result, "$keys"))
+        self._handleAssign(target, tmp)
 
     def visit_For(self, node: ast.For):
         self.generic_visit(node)
@@ -682,7 +650,8 @@ class CodeBlockGenerator(ast.NodeVisitor):
             if(isinstance(decorator, ast.Name) and decorator.id == "staticmethod"):
                 self.addNewStaticMethod(tmp, nextTmp) 
             elif(isinstance(decorator, ast.Name) and decorator.id == "classmethod"):
-                self.addNewClassMethod(tmp, nextTmp)
+                # self.addNewClassMethod(tmp, nextTmp)
+                nextTmp = tmp
             else:
                 self.visit(decorator)
                 self.addCall(tmp, decorator.result, [nextTmp], {})
@@ -777,7 +746,8 @@ class CodeBlockGenerator(ast.NodeVisitor):
                 
                 if(isinstance(elt.result, Starred)):
                     afterStarred = True
-                    tmp = self._makeList()
+                    tmp = self.newTmpVariable()
+                    self.addNewBuiltin(tmp, "list")
                     tmp2 = self.newTmpVariable()
                     # if value is a list
                     self.addGetAttr(tmp2, Attribute(value, "$values"))
@@ -810,33 +780,37 @@ class CodeBlockGenerator(ast.NodeVisitor):
             assert(False)
 
     # set up __iter__() for a variable 
-    def _makeIterator(self, v:Variable, elts:Set[Union[Variable, Attribute]]):
-        iter = FunctionCodeBlock(f"{v.name}__iter__", self.codeBlock, fake=True)
-        next = FunctionCodeBlock(f"{v.name}__next__", self.codeBlock, fake=True)
+    # def _makeIterator(self, v:Variable, elts:Set[Union[Variable, Attribute]]):
+    #     if(not v):
+    #         return
+
+    #     iter = FunctionCodeBlock(f"{v.name}__iter__", self.codeBlock, fake=True)
+    #     next = FunctionCodeBlock(f"{v.name}__next__", self.codeBlock, fake=True)
         
 
-        # v.__iter__ = new function
-        tmp = self.newTmpVariable()
-        self.addNewFunction(tmp, iter)
-        self.addSetAttr(Attribute(v, "__iter__"), tmp)
+    #     # v.__iter__ = new function
+    #     tmp = self.newTmpVariable()
+    #     self.addNewFunction(tmp, iter)
+    #     self.addSetAttr(Attribute(v, "__iter__"), tmp)
         
         
-        # In __iter__()
-        # $1 = new function(__next__)
-        # ret = new iterator
-        # ret.__next__ = $1
-        tmp = Variable("$1", iter)
+    #     # In __iter__()
+    #     # $1 = new function(__next__)
+    #     # v.__next__ = $1
+    #     # ret = v
+    #     tmp = Variable("$1", iter)
         
-        NewBuiltin(iter.returnVariable, "iterator", None, iter)
-        NewFunction(tmp, next, iter)
-        SetAttr(iter.returnVariable, "__next__", tmp, iter)
+    #     NewBuiltin(iter.returnVariable, "iterator", None, iter)
+    #     NewFunction(tmp, next, iter)
+    #     SetAttr(v, "__next__", tmp, iter)
+    #     Assign(iter.returnVariable, v, iter)
 
-        # In __next__(), ret = elts
-        for elt in elts:
-            if(isinstance(elt, Variable)):
-                Assign(next.returnVariable, elt, next)
-            elif(isinstance(elt, Attribute)):
-                GetAttr(next.returnVariable, elt.var, elt.attrName, next)
+    #     # In __next__(), ret = elts
+    #     for elt in elts:
+    #         if(isinstance(elt, Variable)):
+    #             Assign(next.returnVariable, elt, next)
+    #         elif(isinstance(elt, Attribute)):
+    #             GetAttr(next.returnVariable, elt.var, elt.attrName, next)
 
     # TODO: add line and column number into IR
 

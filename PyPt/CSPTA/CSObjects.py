@@ -10,7 +10,7 @@ from .CSPointers import CSVarPtr
 from ..IR.ClassCodeBlock import ClassCodeBlock
 from ..IR.FunctionCodeBlock import FunctionCodeBlock
 
-from ..PTA.Objects import BuiltinObject, ClassObject, FunctionObject, InstanceObject
+from ..PTA.Objects import BuiltinObject, ClassObject, FunctionObject
 
 from ..IR.IRStmts import Call, IRStmt, NewBuiltin, NewClass, NewFunction
 

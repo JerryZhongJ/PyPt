@@ -7,7 +7,7 @@ from ..IR.ModuleCodeBlock import ModuleCodeBlock
 if typing.TYPE_CHECKING:
     from . import CS_Call, CS_DelAttr, CS_GetAttr, CS_NewClass, CS_SetAttr, CSCodeBlock, CSStmt, CS_NewClassMethod, CS_NewStaticMethod, CS_NewSuper
 
-from ..PTA.Objects import ClassMethodObject, ClassObject, FakeObject, FunctionObject, InstanceObject, InstanceMethodObject, ModuleObject, Object, StaticMethodObject, SuperObject
+from ..PTA.Objects import ClassMethodObject, ClassObject, FakeObject, FunctionObject, ModuleObject, Object, StaticMethodObject, SuperObject
 from .CSPointers import CSVarPtr
 
 from .Context import emptyContextChain, selectContext

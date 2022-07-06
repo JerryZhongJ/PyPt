@@ -6,7 +6,7 @@ def func(arg):
     return arg
 
 class C:
-    def f():
+    def f(self):
         pass
 
 func(C)()

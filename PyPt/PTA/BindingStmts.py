@@ -1,7 +1,7 @@
 from collections import defaultdict
 from typing import Dict, Set, Tuple
 
-from ..IR.IRStmts import Assign, Call, DelAttr, GetAttr, IRStmt, NewClass, NewClassMethod, NewStaticMethod, NewSuper, SetAttr, NewFunction
+from ..IR.IRStmts import Assign, Call, DelAttr, GetAttr, IRStmt, NewClass, NewStaticMethod, NewSuper, SetAttr, NewFunction
 
 from .Pointers import VarPtr
 
@@ -15,7 +15,7 @@ class BindingStmts:
             "Call",
             "DelAttr",
             "NewStaticMethod",
-            "NewClassMethod",
+            # "NewClassMethod",
             "NewSuper"]
         self.bindings = {}
         for opname in opnames:

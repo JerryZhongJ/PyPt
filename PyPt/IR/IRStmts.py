@@ -159,13 +159,13 @@ class NewStaticMethod(New):
     def __str__(self):
          return f"{self.target} = New Static Method({self.func})"
 
-class NewClassMethod(New):
-    func: Variable
-    def __init__(self, target: Variable, func: Variable, belongsTo: 'CodeBlock'):
-        super().__init__(target, 'classmethod', belongsTo)
-        self.func = func
-    def __str__(self):
-         return f"{self.target} = New Class Method({self.func})"
+# class NewClassMethod(New):
+#     func: Variable
+#     def __init__(self, target: Variable, func: Variable, belongsTo: 'CodeBlock'):
+#         super().__init__(target, 'classmethod', belongsTo)
+#         self.func = func
+#     def __str__(self):
+#          return f"{self.target} = New Class Method({self.func})"
 
 
 class NewSuper(New):

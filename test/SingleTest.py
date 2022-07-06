@@ -1,12 +1,11 @@
 
-from decimal import MAX_EMAX
 import json
 from PyPt.PTA.Analysis import Analysis
 from PyPt.ModuleManager import ModuleManager
 
 import shutil
 import os
-import ast
+
 def testScript(path, filename):
 
     resource = os.path.join(os.path.dirname(__file__), "resources")
@@ -55,5 +54,5 @@ def test(moduleManager: ModuleManager):
 
     print("Done                                                   ")
 
-testScript("super/diamond", "main.py")
+testScript("scope/class_attr", "main.py")
 # testModule("flask", "/home/jerry/Documents/test_projects/flask/src")

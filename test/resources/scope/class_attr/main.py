@@ -1,6 +1,6 @@
 
 def func():
-    def g():
+    def g(self):
         pass
     class C:
         f = g
@@ -9,7 +9,7 @@ def func():
 
     return C
 
-def gg():
+def gg(self):
     pass
 
 C = func()

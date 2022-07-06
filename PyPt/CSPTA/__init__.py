@@ -2,7 +2,7 @@ from typing import Tuple, Union
 
 from ..IR.CodeBlock import CodeBlock
 
-from ..IR.IRStmts import Assign, Call, DelAttr, GetAttr, IRStmt, NewBuiltin, NewClass, NewClassMethod, NewFunction, NewModule, NewStaticMethod, NewSuper, SetAttr
+from ..IR.IRStmts import Assign, Call, DelAttr, GetAttr, IRStmt, NewBuiltin, NewClass, NewFunction, NewModule, NewStaticMethod, NewSuper, SetAttr
 
 from .Context import ContextChain
 

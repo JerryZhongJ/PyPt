@@ -9,9 +9,6 @@ class Pointer:
     pass
 
 class VarPtr(Pointer):
-    var: Variable
-
-class CIVarPtr(VarPtr):
     
     def __eq__(self, other):
         return isinstance(other, VarPtr) and self.var == other.var

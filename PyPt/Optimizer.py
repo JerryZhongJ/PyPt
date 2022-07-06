@@ -1,7 +1,7 @@
 
 from typing import Any, Dict, List, Set, Tuple
 
-from .IR.IRStmts import Assign, Call, GetAttr, IRStmt, New, NewClass, NewClassMethod, NewFunction, NewModule, NewStaticMethod, NewSuper, SetAttr, Variable
+from .IR.IRStmts import Assign, Call, GetAttr, IRStmt, New, NewClass, NewFunction, NewModule, NewStaticMethod, NewSuper, SetAttr, Variable
 
 from .IR.CodeBlock import CodeBlock
 
@@ -52,8 +52,7 @@ class Optimizer:
                 for i in range(len(stmt.bases)):
                     base = stmt.bases[i]
                     operate(base, (stmt, i), USED_OTHERS)
-            elif(isinstance(stmt, NewStaticMethod) or 
-                    isinstance(stmt, NewClassMethod)):
+            elif(isinstance(stmt, NewStaticMethod)):
                     operate(stmt.func, (stmt, "func"), USED_OTHERS)
             elif(isinstance(stmt, NewSuper)):
                 operate(stmt.type, (stmt, "type"), USED_OTHERS)
