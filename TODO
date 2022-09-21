@@ -1,14 +1,8 @@
-- storeless heap model!
-- giveup context chain! no context sensitive
-- optimize ir: 
-    - for GetAttr and same source.attr, let the target be the same
-- self-construct entry-point, cancel addReachable(allAll)
+- destinguish Instance and Class
 - GetItem, SetItem, builtin-functions
-- re-design fake object
 - optimize class method object, static method object
     - class method object should be simply a wrapper over a function, transformed every time when it is resolved
 - fix generator expression's scope
-- default arguments, a better way
 - with-clause
 - exception 
 

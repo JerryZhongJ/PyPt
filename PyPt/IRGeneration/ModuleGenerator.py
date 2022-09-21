@@ -2,7 +2,7 @@ import ast
 import builtins
 import typing
 from ..IR.ModuleCodeBlock import ModuleCodeBlock
-from .CodeBlockGenerator import CodeBlockGenerator
+from .CodeGenerator import CodeBlockGenerator
 
 
 if typing.TYPE_CHECKING:
@@ -13,9 +13,9 @@ builtin_names = list(builtins.__dict__.keys())
 class ModuleGenerator(CodeBlockGenerator):
     codeBlock: ModuleCodeBlock
     # module has no enclosing block
-    def __init__(self, moduleName: str, moduleManager: 'ModuleManager'):
+    def __init__(self, codeBlock: ModuleCodeBlock, moduleManager: 'ModuleManager'):
         super().__init__(moduleManager)
-        self.codeBlock = ModuleCodeBlock(moduleName)
+        self.codeBlock = codeBlock
 
     def preprocess(self, node: ast.Module):
         node.body.append(ast.ImportFrom(module="builtins", names=[ast.alias(name=name) for name in builtin_names], level=0))

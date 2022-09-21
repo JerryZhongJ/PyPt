@@ -148,7 +148,7 @@ class Analysis:
                     continue
                 
                 objs = self.pointToSet.putAll(ptr, objs)
-                for succ in self.pointerFlow.getSuccessors(ptr):
+                for succ in self.pointerFlow.successors(ptr):
                     self.flow(ptr, succ, objs)
 
                 if(not isinstance(ptr, CSVarPtr)):

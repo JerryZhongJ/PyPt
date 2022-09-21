@@ -24,7 +24,7 @@ class ClassHiearchy:
         if(classObj in self.mros):
             return
         
-        bases = classObj.getBases()
+        bases = classObj.bases
         
         for i in range(len(bases)):
             for baseObj in self.pointToSet.get(bases[i]):
@@ -51,7 +51,7 @@ class ClassHiearchy:
 
     def addBaseMRO(self, classObj: ClassObject, index: int, mroList: Set[MRO]) -> Set[MRO]:
         assert(isinstance(classObj, ClassObject))
-        bases = classObj.getBases()
+        bases = classObj.bases
         # yield mros
         def select(start: int) -> Generator[List[MRO], None, None]:
             if(start == len(bases)):

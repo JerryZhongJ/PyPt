@@ -4,7 +4,7 @@ import os
 from PyPt.CSPTA.Analysis import Analysis as csAnalysis
 from PyPt.PTA.Analysis import Analysis
 
-from PyPt.ModuleManager import ModuleManager, ModuleNotFoundException
+from PyPt.ModuleManager import ModuleManager
 from PyPt.PTA.CallGraph import CallGraph
 
 

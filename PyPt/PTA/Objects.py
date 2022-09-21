@@ -1,36 +1,47 @@
-from typing import Any, List, Set, Union
+from typing import Any, List, Set, Tuple, Union
+
+from tblib import Code
 from ..IR.ClassCodeBlock import ClassCodeBlock
 from ..IR.CodeBlock import CodeBlock
 from ..IR.FunctionCodeBlock import FunctionCodeBlock
 
 from ..IR.ModuleCodeBlock import ModuleCodeBlock
 
-# from ..CSPTA.Context import emptyContextChain
-
 from .Pointers import VarPtr, VarPtr
 
-from ..IR.IRStmts import IRStmt, Call, NewBuiltin, NewClass, NewFunction
+from ..IR.IRStmts import GetAttr, NewBuiltin, NewClass, NewFunction
 
+# Object's information should remain static as the pta proceeds.
+# Objects have loose relation with IR, but contain all the necessary information in the IR, and can be easily exported. 
+# That means even without IR, objects can be still represented, and pta can still run. 
 
-# Object is the representation of object entity, and should not contain any analysis data
-# Object's attributes' values should be limited!
 class Object:
-    pass
+    id: str
+    def __init__(self, objType: str):
+        self.objType = objType
+
+    def __str__(self):
+        return self.qualified_name if hasattr(self, 'qualified_name') else self.id
+
+    def __eq__(self, other):
+        return isinstance(other, Object) and self.id == other.id
+
+    def __hash__(self):
+        return hash(self.id) 
+
+    def __repr__(self):
+        return self.id
 
 class ModuleObject(Object):
-    codeBlock: ModuleCodeBlock
-    def __eq__(self, other):
-        return isinstance(other, ModuleObject) and other.codeBlock == self.codeBlock
-    def __hash__(self):
-        return hash(self.codeBlock.qualified_name)
+    # codeBlock: ModuleCodeBlock
+    qualified_name: str
+
     def __init__(self, codeBlock: ModuleCodeBlock):
-        self.codeBlock = codeBlock
-    def __str__(self):
-        return f"Module({self.codeBlock.qualified_name})"
-    def __repr__(self):
-        return self.__str__()
-    def getModuleName(self):
-        return self.codeBlock.qualified_name
+        super().__init__("Module")
+        # self.codeBlock = codeBlock
+        self.id = f"Module({codeBlock.id})"
+        self.qualified_name = codeBlock.qualified_name
+
 
 
 # class ConstObject(Object):
@@ -56,10 +67,6 @@ class ModuleObject(Object):
 #     def __hash__(self):
 #         return hash(self.type)
 
-class BuiltinObject(Object):
-    def getType(self) -> str:
-        pass
-
 
 # class CIObject(Object):
 #     alloc_site: IRStmt
@@ -71,42 +78,51 @@ class BuiltinObject(Object):
     #     self.alloc_site = alloc_site
 
 class FunctionObject(Object):
-    alloc_site: NewFunction
-    def getCodeBlock(self) -> FunctionCodeBlock:
-        return self.alloc_site.codeBlock
-    def __str__(self):
-        return f"Function({self.getCodeBlock().qualified_name})"
-    def __repr__(self):
-        return self.__str__()
-    def __eq__(self, other):
-        return isinstance(other, FunctionObject) and self.alloc_site == other.alloc_site
-    def __hash__(self):
-        return hash(self.alloc_site)
-    def __init__(self, alloc_site):
-        self.alloc_site = alloc_site
+    codeBlock: FunctionCodeBlock    # used 
 
+    # necessary info in IR
+    qualified_name: str
+
+    def __init__(self, alloc_site: NewFunction=None, id: str=None, qualified_name: str=None):
+        super().__init__("Function")
+        if(alloc_site):
+            self.codeBlock = alloc_site.codeBlock
+            func = self.codeBlock
+            self.id = f"Function({func.id})"
+            self.qualified_name = func.qualified_name
+            self.retVar = VarPtr(func.returnVariable)
+            self.posParams = [VarPtr(posarg) for posarg in func.posargs]
+            self.kwParams = {kw:VarPtr(kwOnlyParam) for kw, kwOnlyParam in func.kwargs.items()}
+            self.varParam = VarPtr(func.vararg) if func.vararg else None
+            self.kwParam = VarPtr(func.kwarg) if func.kwarg else None
+        else:
+            self.id = id
+            self.qualified_name = qualified_name
+            self.codeBlock = None
+            
+
+    
+    
 class ClassObject(Object):
-    alloc_site: NewClass
-    def getCodeBlock(self) -> ClassCodeBlock:
-        return self.alloc_site.codeBlock
-    def getBases(self) -> List[VarPtr]:
-        return [VarPtr(base) for base in self.alloc_site.bases]
-
-    def getAttributes(self) -> Set[str]:
-        return self.getCodeBlock().attributes
-
-    def __str__(self):
-        return f"Class({self.getCodeBlock().qualified_name})"
-    def __repr__(self):
-        return self.__str__()
-
-    def __eq__(self, other):
-        return isinstance(other, ClassObject) and self.alloc_site == other.alloc_site
-    def __hash__(self):
-        return hash(self.alloc_site)
-    def __init__(self, alloc_site):
-        self.alloc_site = alloc_site
-
+    # alloc_site: NewClass
+    qualified_name: str
+    bases: List[VarPtr]
+    attributes: List[str]
+   
+    def __init__(self, alloc_site: NewClass=None, id: str=None, qualified_name: str=None):
+        super().__init__("Class")
+        if(alloc_site):
+            # self.codeBlock = alloc_site.codeBlock
+            codeBlock = alloc_site.codeBlock
+            self.id = f"Class({codeBlock.id})"
+            self.bases = [VarPtr(base) for base in alloc_site.bases]
+            self.attributes = codeBlock.attributes
+            self.qualified_name = codeBlock.qualified_name
+        else:
+            assert(id and qualified_name)
+            self.id = id
+            self.qualified_name = qualified_name
+            # self.alloc_site = alloc_site
 
 # class CIInstanceObject(CIObject, InstanceObject):
 #     alloc_site: Call
@@ -130,26 +146,9 @@ class ClassObject(Object):
     
 
 class BuiltinObject(Object):
-    alloc_site: NewBuiltin
-
-    def getType(self):
-        return self.alloc_site.type
-    def getValue(self):
-        return self.alloc_site.value
-    def __str__(self):
-        v = self.getValue() 
-        if(v is not None):
-            return f"Builtin({v})"
-        cb = self.alloc_site.belongsTo
-        return f"Builtin {self.getType()}({cb.qualified_name}-{cb.stmts.index(self.alloc_site)})"
-    def __repr__(self):
-        return self.__str__()
-    def __eq__(self, other):
-        return isinstance(other, BuiltinObject) and self.alloc_site == other.alloc_site
-    def __hash__(self):
-        return hash(self.alloc_site)
+    
     def __init__(self, alloc_site):
-        self.alloc_site = alloc_site
+        self.id = f"{alloc_site.belongsTo.id}.{alloc_site.id})"
 
 # class InstanceMethodObject(Object):
 #     selfObj: InstanceObject
@@ -170,92 +169,77 @@ class BuiltinObject(Object):
 class ClassMethodObject(Object):
     classObj: ClassObject
     func: FunctionObject
-    def __eq__(self, other):
-        return isinstance(other, ClassMethodObject) and self.classObj == other.classObj and self.func == other.func
-    def __hash__(self):
-        return hash((self.classObj, self.func))
+    
     def __init__(self, classObj, func):
         self.classObj = classObj
         self.func = func
-    def __str__(self):
-        return f"ClassMethod(cls: {self.classObj}, {self.func})"
-    def __repr__(self):
-        return self.__str__()
-
+        self.id = f"ClassMethod({classObj.id},{func.id})"
+    
 
 class StaticMethodObject(Object):
     
     func: FunctionObject
-    def __eq__(self, other):
-        return isinstance(other, ClassMethodObject) and self.func == other.func
-    def __hash__(self):
-        return hash(self.func)
+    
     def __init__(self, func):
         self.func = func
-    def __str__(self):
-        return f"StaticMethod({self.func})"
-    def __repr__(self):
-        return self.__str__()
+        self.id = f"StaticMethod({func.id})"
 
+    
 
 class SuperObject(Object):
     type: ClassObject
     bound: ClassObject
-    def __eq__(self, other):
-        return isinstance(other, SuperObject) and self.type == other.type and self.bound == other.bound
-    def __hash__(self):
-        return hash((self.type, self.bound))
+   
     def __init__(self, type, bound):
         self.type = type
         self.bound = bound
-    def __str__(self):
-        return f"Super({self.type}, {self.bound})"
-    def __repr__(self):
-        return self.__str__()
+        self.id = f"Super({type.id},{bound.id})"
+    
+
+
 
 class FakeObject(ModuleObject, ClassObject, FunctionObject):
-    class NoMore(Exception):
-        pass
+    # class NoMore(Exception):
+    #     pass
 
-    class FakeCodeBlock(ClassCodeBlock, FunctionCodeBlock):
-        def __init__(self, name, enclosing):
-            if(enclosing == None):
-                super(FunctionCodeBlock, self).__init__(name, None, fake=False)
-                self.module = self
-            else:
-                super().__init__(name, enclosing, fake=False)
-            self.scopeLevel = 0
+    # class FakeCodeBlock(ClassCodeBlock, FunctionCodeBlock):
+    #     def __init__(self, name, enclosing):
+    #         if(enclosing == None):
+    #             super(FunctionCodeBlock, self).__init__(name, None, fake=False)
+    #             self.module = self
+    #         else:
+    #             super().__init__(name, enclosing, fake=False)
+    #         self.scopeLevel = 0
     
-            
+    GetEdge = Tuple[VarPtr, VarPtr, str]
+    id: str
+    # codeBlock: CodeBlock
+    prefix: 'FakeObject'
+    cause: GetEdge
 
-    codeBlock: CodeBlock
-    def __eq__(self, other):
-        return isinstance(other, FakeObject) and self.codeBlock.qualified_name == other.codeBlock.qualified_name
-    def __init__(self, name: str, enclosing: 'FakeObject'):
-        if(enclosing):
-            depth = 0
-            curr = enclosing.codeBlock
-            while(curr):
-                depth += 1
-                curr = curr.enclosing
-            if(depth > 5):
-                raise FakeObject.NoMore
-        self.codeBlock = FakeObject.FakeCodeBlock(name, enclosing and enclosing.codeBlock)
-        # self.ctxChain = emptyContextChain()
-    def __str__(self):
-        return f"Fake {self.codeBlock.qualified_name}"
-    def __hash__(self):
-        return hash(self.codeBlock.qualified_name)
-    def getCodeBlock(self) -> CodeBlock:
-        return self.codeBlock
+    
+    def __init__(self, prefix: 'FakeObject', /, getEdge: GetEdge=None, name:str =None):
+        if(prefix):
+            assert(getEdge)
+            self.cause = getEdge
+            target, source, attr = getEdge
+            fo = prefix
+            while(fo.cause):
+                if(fo.cause == getEdge):
+                    self.prefix = fo.prefix
+                    break
+                fo = fo.prefix
+            else:
+                self.prefix = prefix
 
-    def getBases(self) -> List[VarPtr]:
-        return []
+            self.id = self.prefix.id[:-1]
+        else:
+            assert(name)
+            self.cause = None
+            self.prefix = None
+            self.id = name
+        
+        
 
-    def getAttributes(self) -> Set[str]:
-        return set()
-
-    def getModuleName(self):
-        return self.codeBlock.qualified_name
     
     

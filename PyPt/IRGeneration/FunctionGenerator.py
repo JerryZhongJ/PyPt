@@ -1,4 +1,5 @@
 import ast
+
 from typing import Any, Set
 import typing
 
@@ -10,7 +11,7 @@ from ..IR.CodeBlock import CodeBlock
 
 from ..IR.IRStmts import Assign, Call, GetAttr, SetAttr, Variable
 from ..IR.FunctionCodeBlock import FunctionCodeBlock
-from .CodeBlockGenerator import Attribute, CodeBlockGenerator
+from .CodeGenerator import Attribute, CodeBlockGenerator
 
 if typing.TYPE_CHECKING:
     from ..ModuleManager import ModuleManager
@@ -20,10 +21,10 @@ class FunctionGenerator(CodeBlockGenerator):
     codeBlock: FunctionCodeBlock
     yielded: Set[Variable]
     sended: Variable
-    def __init__(self, name:str, enclosing: CodeBlock, moduleManager: 'ModuleManager'):
+    def __init__(self, codeBlock: FunctionCodeBlock, moduleManager: 'ModuleManager'):
         
         super().__init__(moduleManager)
-        self.codeBlock = FunctionCodeBlock(name, enclosing)
+        self.codeBlock = codeBlock
         self.yielded = set()
         self.sended = Variable("$sended", self.codeBlock)
 

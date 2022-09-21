@@ -1,7 +1,8 @@
 from collections import defaultdict
-import threading
-import time
+
 from typing import Dict, List, Set, Tuple, Union
+
+from .AttrGraph import AttrGraph
 from ..IR.ClassCodeBlock import ClassCodeBlock
 
 from ..IR.ModuleCodeBlock import ModuleCodeBlock
@@ -18,7 +19,7 @@ from .CallGraph import CallGraph
 from .PointToSet import PointToSet
 
 FAKE_PREFIX = "$r_"
-builtin_functions = ["abs", "aiter", "all", "any", "anext", "ascii", "bin", "bool", "breakpoint", "bytearray", "bytes", "callable", "chr", "classmethod", "compile", "complex", "delattr", "dict", "dir", "divmod", "enumerate", "eval", "exec", "filter", "float", "format", "frozenset", "getattr", "globals", "hasattr", "hash", "help", "hex", "id", "input", "int", "isinstance", "issubclass", "iter", "len", "list", "locals", "map", "max", "memoryview", "min", "next", "object", "oct", "open", "ord", "pow", "print", "property", "range", "repr", "reversed", "round", "set", "setattr", "slice", "sorted", "staticmethod", "str", "sum", "super", "tuple", "type", "vars", "zip", "__import__"]
+# builtin_functions = ["abs", "aiter", "all", "any", "anext", "ascii", "bin", "bool", "breakpoint", "bytearray", "bytes", "callable", "chr", "classmethod", "compile", "complex", "delattr", "dict", "dir", "divmod", "enumerate", "eval", "exec", "filter", "float", "format", "frozenset", "getattr", "globals", "hasattr", "hash", "help", "hex", "id", "input", "int", "isinstance", "issubclass", "iter", "len", "list", "locals", "map", "max", "memoryview", "min", "next", "object", "oct", "open", "ord", "pow", "print", "property", "range", "repr", "reversed", "round", "set", "setattr", "slice", "sorted", "staticmethod", "str", "sum", "super", "tuple", "type", "vars", "zip", "__import__"]
 
 def isFakeAttr(attr: str):
     return attr.startswith(FAKE_PREFIX)
@@ -26,15 +27,16 @@ def isFakeAttr(attr: str):
 Resolver = Union[ClassObject, SuperObject]
 ResolveInfo = Tuple[Resolver, MRO, int]
 
-ADD_POINT_TO = 1
+ADD_POINTS_TO = 1
 BIND_STMT = 2
 
 class Analysis:
     pointToSet: PointToSet
-    callgraph: CallGraph
+    callgraph: Dict[str, Set[str]]
     pointerFlow: PointerFlow
-    bindingStmts: BindingStmts
-    reachable: Set[CodeBlock]
+    attrGraph: AttrGraph
+    
+    
     # defined: Set[CodeBlock]
     classHiearchy: ClassHiearchy
     persist_attr: Dict[ClassObject, Dict[str, Set[ResolveInfo]]]
@@ -42,8 +44,9 @@ class Analysis:
     workList: List[Tuple[Pointer, Set[Object]]]
     def __init__(self, verbose=False):
         self.pointToSet = PointToSet()
-        self.callgraph = CallGraph()
+        self.callgraph = defaultdict(set)
         self.pointerFlow = PointerFlow()
+        self.attrGraph = AttrGraph()
         self.bindingStmts = BindingStmts()
         # self.defined = set()
         self.reachable = set()
@@ -54,8 +57,8 @@ class Analysis:
         self.verbose = verbose
 
         self.processStmts = {
-            "GetAttr": self.processGetAttr,
-            "SetAttr": self.processSetAttr,
+            # "GetAttr": self.processGetAttr,
+            # "SetAttr": self.processSetAttr,
             "NewClass": self.processNewClass,
             "Call": self.processCall,
             "DelAttr": self.processDelAttr,
@@ -67,7 +70,7 @@ class Analysis:
 
     # addAll mean treat all codeblocks in this codeBlock as reachable.
     def addReachable(self, codeBlock: CodeBlock):
-        if(codeBlock in self.reachable):
+        if(not codeBlock or codeBlock in self.reachable):
             return
         self.reachable.add(codeBlock)
 
@@ -81,43 +84,53 @@ class Analysis:
                 targetPtr = VarPtr(stmt.target)
                 self.addFlow(sourcePtr, targetPtr)
 
+            elif(isinstance(stmt, GetAttr)):
+                sourcePtr = VarPtr(stmt.source)
+                targetPtr = VarPtr(stmt.target)
+                self.attrGraph.putGet(targetPtr, sourcePtr, stmt.attr)
+            
+            elif(isinstance(stmt, SetAttr)):
+                sourcePtr = VarPtr(stmt.source)
+                targetPtr = VarPtr(stmt.target)
+                self.attrGraph.putSet(targetPtr, sourcePtr, stmt.attr)
+
             elif(isinstance(stmt, NewModule)):
                 if(isinstance(stmt.module, ModuleCodeBlock)):
                     obj = ModuleObject(stmt.module)
                     targetPtr = VarPtr(stmt.target)
                     globalPtr = VarPtr(stmt.module.globalVariable)
-                    self.workList.append((ADD_POINT_TO, targetPtr, {obj}))
-                    self.workList.append((ADD_POINT_TO, globalPtr, {obj}))
+                    self.workList.append((ADD_POINTS_TO, targetPtr, {obj}))
+                    self.workList.append((ADD_POINTS_TO, globalPtr, {obj}))
                     # self.addDefined(stmt.module)
                     self.addReachable(stmt.module)
                     # self.callgraph.put(stmt, stmt.module)
                 else:
-                    obj = FakeObject(stmt.module, None)
+                    obj = FakeObject(None, name=stmt.module)
                     targetPtr = VarPtr(stmt.target)
-                    self.workList.append((ADD_POINT_TO, targetPtr, {obj}))
+                    self.workList.append((ADD_POINTS_TO, targetPtr, {obj}))
                 
                 
             elif(isinstance(stmt, NewFunction)):
                 obj = FunctionObject(stmt)
                 targetPtr = VarPtr(stmt.target)
-                self.workList.append((ADD_POINT_TO, targetPtr, {obj}))
+                self.workList.append((ADD_POINTS_TO, targetPtr, {obj}))
                 
 
             elif(isinstance(stmt, NewClass)):
                 obj = ClassObject(stmt)
                 targetPtr = VarPtr(stmt.target)
                 thisPtr = VarPtr(stmt.codeBlock.thisClassVariable)
-                self.workList.append((ADD_POINT_TO, targetPtr, {obj}))
-                self.workList.append((ADD_POINT_TO, thisPtr, {obj}))
+                self.workList.append((ADD_POINTS_TO, targetPtr, {obj}))
+                self.workList.append((ADD_POINTS_TO, thisPtr, {obj}))
                 
                 self.classHiearchy.addClass(obj)
                 
-                for attr in obj.getAttributes():
+                for attr in obj.attributes:
                     self.persist_attr[obj][attr] = set()
                 
                 self.addReachable(stmt.codeBlock)
-                self.callgraph.put(stmt, stmt.codeBlock)
-                
+                # self.callgraph.put(stmt, stmt.codeBlock)
+                self.callgraph[codeBlock.qualified_name].add(stmt.codeBlock.qualified_name)
 
             elif(isinstance(stmt, NewBuiltin)):
                 targetPtr = VarPtr(stmt.target)
@@ -125,17 +138,16 @@ class Analysis:
                 #     obj = ConstObject(stmt.value)
                 # else:
                 obj = BuiltinObject(stmt)
-                self.workList.append((ADD_POINT_TO, targetPtr, {obj}))
+                self.workList.append((ADD_POINTS_TO, targetPtr, {obj}))
         
 
     def analyze(self, entrys: CodeBlock):
         for entry in entrys:
             if(isinstance(entry, ModuleCodeBlock)):
                 obj = ModuleObject(entry)
-                self.workList.append((ADD_POINT_TO, VarPtr(entry.globalVariable), {obj}))
+                self.workList.append((ADD_POINTS_TO, VarPtr(entry.globalVariable), {obj}))
             self.addReachable(entry)
 
-        
         
         while(len(self.workList) > 0):
 
@@ -145,18 +157,23 @@ class Analysis:
             type, *args = self.workList[0]
             del self.workList[0]
 
-            if(type == ADD_POINT_TO):
+            if(type == ADD_POINTS_TO):
                 ptr, objs = args
                 if(len(objs) == 0):
                     continue
 
                 objs = self.pointToSet.putAll(ptr, objs)
                 if(objs):
-                    for succ in self.pointerFlow.getSuccessors(ptr):
+                    for succ in self.pointerFlow.successors(ptr):
                         self.flow(ptr,succ, objs)
 
                 if(not isinstance(ptr, VarPtr)):
                     continue
+                for target, attr in self.attrGraph.getTargets(ptr):
+                    self.addGetEdge(target, ptr, attr, objs)
+                
+                for source, attr in self.attrGraph.setSources(ptr):
+                    self.addSetEdge(ptr, source, attr, objs)
 
                 for opname, process in self.processStmts.items():
                     for stmtInfo in self.bindingStmts.get(opname, ptr):
@@ -166,21 +183,21 @@ class Analysis:
             if(type == BIND_STMT):
                 stmt, = args
                 
-                if(isinstance(stmt, SetAttr)):
-                    # print(f"Bind SetAttr: {stmt.target} - {stmt}")
-                    varPtr = VarPtr(stmt.target)
-                    stmtInfo = (stmt, )
-                    self.bindingStmts.bind("SetAttr", varPtr, stmtInfo)
-                    self.processSetAttr(stmtInfo, self.pointToSet.get(varPtr))
+                # if(isinstance(stmt, SetAttr)):
+                #     # print(f"Bind SetAttr: {stmt.target} - {stmt}")
+                #     varPtr = VarPtr(stmt.target)
+                #     stmtInfo = (stmt, )
+                #     self.bindingStmts.bind("SetAttr", varPtr, stmtInfo)
+                #     self.processSetAttr(stmtInfo, self.pointToSet.get(varPtr))
 
-                elif(isinstance(stmt, GetAttr)):
-                    # print(f"Bind GetAttr: {stmt.source} - {stmt}")
-                    varPtr = VarPtr(stmt.source)
-                    stmtInfo = (stmt, )
-                    self.bindingStmts.bind("GetAttr", varPtr, stmtInfo)
-                    self.processGetAttr(stmtInfo, self.pointToSet.get(varPtr))
+                # elif(isinstance(stmt, GetAttr)):
+                #     # print(f"Bind GetAttr: {stmt.source} - {stmt}")
+                #     varPtr = VarPtr(stmt.source)
+                #     stmtInfo = (stmt, )
+                #     self.bindingStmts.bind("GetAttr", varPtr, stmtInfo)
+                #     self.processGetAttr(stmtInfo, self.pointToSet.get(varPtr))
 
-                elif(isinstance(stmt, NewClass)):
+                if(isinstance(stmt, NewClass)):
                     for i in range(len(stmt.bases)):
                         # print(f"Bind Base: {stmt.bases[i]} - {stmt} - {i}")
                         varPtr = VarPtr(stmt.bases[i])
@@ -245,7 +262,7 @@ class Analysis:
                 
                 newObjs = self.transformObj_Class(target.obj.bound, objs)
 
-        self.workList.append((ADD_POINT_TO, target, newObjs))
+        self.workList.append((ADD_POINTS_TO, target, newObjs))
 
     # def transformObj_Instance(self, insObj: InstanceObject, objs) -> Set[Object]:
     #     newObjs = set()
@@ -318,24 +335,23 @@ class Analysis:
                         break
             self.resolveAttribute(obj, attr, (mro, start))
 
-    def processSetAttr(self, stmtInfo: Tuple[SetAttr], objs: Set[Object]):
-        stmt,  = *stmtInfo,
-        assert(isinstance(stmt, SetAttr))
+    def addSetEdge(self, target: VarPtr, source: VarPtr, attr: str, objs: Set[Object]):
+        # stmt,  = *stmtInfo,
+        # assert(isinstance(stmt, SetAttr))
         for obj in objs:
-            attrPtr = AttrPtr(obj, stmt.attr)
-            self.addFlow(VarPtr(stmt.source), attrPtr)
+            attrPtr = AttrPtr(obj, attr)
+            self.addFlow(source, attrPtr)
 
-    def processGetAttr(self, stmtInfo: Tuple[GetAttr], objs: Set[Object]):
-        stmt, = *stmtInfo, 
-        assert(isinstance(stmt, GetAttr))
+    def addGetEdge(self, target: VarPtr, source: VarPtr, attr:str, objs: Set[Object]):
+        # stmt, = *stmtInfo, 
+        # assert(isinstance(stmt, GetAttr))
         for obj in objs:
-            varPtr = VarPtr(stmt.target)
+            
             if(isinstance(obj, FakeObject)):
-                try:
-                    fakeObj = FakeObject(stmt.attr, obj)
-                    self.workList.append((ADD_POINT_TO, varPtr, {fakeObj}))
-                except(FakeObject.NoMore):
-                    pass
+               
+                fakeObj = FakeObject(obj, getEdge=(target, source, attr))
+                self.workList.append((ADD_POINTS_TO, target, {fakeObj}))
+                
             # elif(isinstance(obj, InstanceObject)):
             #     # target <- instance.attr
             #     insAttr = AttrPtr(obj, stmt.attr)
@@ -348,21 +364,21 @@ class Analysis:
             #     classAttr = AttrPtr(classObj, FAKE_PREFIX + stmt.attr)
             #     self.addFlow(classAttr, insResAttr)
 
-            elif(isinstance(obj, ClassObject)):
-                self.resolveAttrIfNot(obj, stmt.attr)
+            if(isinstance(obj, ClassObject)):
+                self.resolveAttrIfNot(obj, attr)
                 # instance.attr <- class.$r_attr
-                classAttr = AttrPtr(obj, FAKE_PREFIX + stmt.attr)
-                self.addFlow(classAttr, varPtr)
+                classAttr = AttrPtr(obj, FAKE_PREFIX + attr)
+                self.addFlow(classAttr, target)
 
             elif(isinstance(obj, SuperObject)):
-                self.resolveAttrIfNot(obj, stmt.attr)
+                self.resolveAttrIfNot(obj, attr)
                 # instance.attr <- class.$r_attr
-                superAttr = AttrPtr(obj, FAKE_PREFIX + stmt.attr)
-                self.addFlow(superAttr, varPtr)
+                superAttr = AttrPtr(obj, FAKE_PREFIX + attr)
+                self.addFlow(superAttr, target)
 
             else:
-                attrPtr = AttrPtr(obj, stmt.attr)
-                self.addFlow(attrPtr, varPtr)
+                attrPtr = AttrPtr(obj, attr)
+                self.addFlow(attrPtr, target)
 
     def processNewClass(self, stmtInfo: Tuple[NewClass, int], objs: Set[Object]):
         stmt, index = *stmtInfo,
@@ -387,18 +403,18 @@ class Analysis:
             #     func = obj.getCodeBlock()
             #     self.callgraph.put(stmt, func)
             if(isinstance(obj, FunctionObject)):
-                func = obj.getCodeBlock()
+                
                 self.matchArgParam(posArgs=         [VarPtr(posArg) for posArg in stmt.posargs],
                                     kwArgs=         {kw:VarPtr(kwarg) for kw, kwarg in stmt.kwargs.items()},
-                                    posParams=      [VarPtr(param) for param in func.posargs],
-                                    kwParams=       {kw:VarPtr(kwOnlyParam) for kw, kwOnlyParam in func.kwargs.items()},
-                                    varParam=       VarPtr(func.vararg) if func.vararg else None,
-                                    kwParam=        VarPtr(func.kwarg) if func.kwarg else None)
-                retVar = VarPtr(func.returnVariable)
+                                    posParams=      obj.posParams,
+                                    kwParams=       obj.kwParams,
+                                    varParam=       obj.varParam,
+                                    kwParam=        obj.kwParam)
+                retVar = obj.retVar
                 resVar = VarPtr(stmt.target)
                 self.addFlow(retVar, resVar)
-                self.addReachable(func)
-                self.callgraph.put(stmt, func)
+                self.addReachable(obj.codeBlock)
+                self.callgraph[stmt.belongsTo.qualified_name].add(obj.qualified_name)
                 
                 
             # elif(isinstance(obj, InstanceMethodObject)):
@@ -427,7 +443,7 @@ class Analysis:
                 if(len(posParams) == 0):
                     # not a method, just skip
                     continue
-                self.workList.append((ADD_POINT_TO, posParams[0], {obj.classObj}))
+                self.workList.append((ADD_POINTS_TO, posParams[0], {obj.classObj}))
                 del posParams[0]
                 self.matchArgParam(posArgs=         [VarPtr(posArg) for posArg in stmt.posargs],
                                     kwArgs=         {kw:VarPtr(kwarg) for kw, kwarg in stmt.kwargs.items()},
@@ -471,7 +487,7 @@ class Analysis:
                 self.workList.append((BIND_STMT, newStmt))
                 newObjs.add(obj)
         if(newObjs):
-            self.workList.append((ADD_POINT_TO, varPtr, newObjs))
+            self.workList.append((ADD_POINTS_TO, varPtr, newObjs))
                 
     def matchArgParam(self, / , posArgs: List[VarPtr], 
                                 kwArgs: Dict[str, VarPtr], 
@@ -528,7 +544,7 @@ class Analysis:
                 staticMethod = StaticMethodObject(obj)
                 newObjs.add(staticMethod)
         if(newObjs):
-            self.workList.append((ADD_POINT_TO, target, newObjs))
+            self.workList.append((ADD_POINTS_TO, target, newObjs))
 
     def processNewSuper(self, stmtInfo: NewSuper, objs: Set[Object]):
         stmt, operand = *stmtInfo,
@@ -541,7 +557,7 @@ class Analysis:
                     for boundObj in self.pointToSet.get(VarPtr(stmt.bound)):
                         newObjs.add(SuperObject(obj, boundObj))
             if(newObjs):
-                self.workList.append((ADD_POINT_TO, target, newObjs))
+                self.workList.append((ADD_POINTS_TO, target, newObjs))
         else:
             newObjs = set()
             target = VarPtr(stmt.target)
@@ -550,7 +566,7 @@ class Analysis:
                     for typeObj in self.pointToSet.get(VarPtr(stmt.type)):
                         newObjs.add(SuperObject(typeObj, obj))
             if(newObjs):
-                self.workList.append((ADD_POINT_TO, target, newObjs))
+                self.workList.append((ADD_POINTS_TO, target, newObjs))
 
 
         

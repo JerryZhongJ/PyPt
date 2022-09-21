@@ -10,7 +10,7 @@ if typing.TYPE_CHECKING:
 
 
 class Variable:
-    name: str                           # variable name
+    id: str                                # include belongsTo's id
     belongsTo: 'CodeBlock'                # 'CodeBlock' to which it belongs
     qualified_name: str
     isTmp: bool
@@ -19,27 +19,31 @@ class Variable:
         return self.qualified_name
 
     def __repr__(self):
-        return f"Variable: {self.qualified_name}"
+        return f"Variable: {self.id}"
 
     def __init__(self, name: str, belongsTo: 'CodeBlock', temp=False):
-        self.name = name
+        # self.name = name
         self.belongsTo = belongsTo
-        self.qualified_name = f"<{belongsTo.qualified_name}>{name}"
+        self.qualified_name = f"{name}@{belongsTo.qualified_name}"
+        self.id = f"{name}@{belongsTo.id}"
         self.isTmp = temp
         
     def __eq__(self, other):
-        return isinstance(other, Variable) and self.name == other.name and self.belongsTo == other.belongsTo
+        return isinstance(other, Variable) and self.id == self.id
 
     def __hash__(self):
-        return hash((self.name, self.belongsTo))
+        return hash((self.id, self.belongsTo))
 
+# Every stmt has a id
+# If that stmt is NewFunction, NewClass, then stmt's id is used in codeblock's id.
 class IRStmt:
     belongsTo: 'CodeBlock'                 # 'CodeBlock' to which this IR belongs
     srcPos: Tuple[int]
-
-    def __init__(self, belongsTo: 'CodeBlock'):
+    id: int
+    def __init__(self, belongsTo: 'CodeBlock', id: int):
         self.belongsTo = belongsTo
         belongsTo.addIR(self)
+        self.id = id
 
     def __repr__(self):
         return f"IRStmt: {str(self)}"
@@ -51,8 +55,8 @@ class Assign(IRStmt):
     target: Variable
     source: Variable
 
-    def __init__(self, target: Variable, source: Variable, belongsTo: 'CodeBlock'):
-        super().__init__(belongsTo)
+    def __init__(self, target: Variable, source: Variable, belongsTo: 'CodeBlock', id: int):
+        super().__init__(belongsTo, id)
         self.target = target
         self.source = source
 
@@ -66,8 +70,8 @@ class SetAttr(IRStmt):
     source: Variable
     attr: str
 
-    def __init__(self, target: Variable, attr: str, source: Variable, belongsTo: 'CodeBlock'):
-        super().__init__(belongsTo)
+    def __init__(self, target: Variable, attr: str, source: Variable, belongsTo: 'CodeBlock', id: int):
+        super().__init__(belongsTo, id)
         self.target = target
         self.source = source
         self.attr = attr
@@ -84,8 +88,8 @@ class GetAttr(IRStmt):
     source: Variable
     attr: str
 
-    def __init__(self, target: Variable, source: Variable, attr: str, belongsTo: 'CodeBlock'):
-        super().__init__(belongsTo)
+    def __init__(self, target: Variable, source: Variable, attr: str, belongsTo: 'CodeBlock', id: int):
+        super().__init__(belongsTo, id)
         self.target = target
         self.source = source
         self.attr = attr
@@ -97,9 +101,10 @@ class GetAttr(IRStmt):
 class New(IRStmt):
     target: Variable
     objType:str                             # module, function, class, method, instance, builtin
-
-    def __init__(self, target: Variable, objType: str, belongsTo: 'CodeBlock'):
-        super().__init__(belongsTo)
+    
+    def __init__(self, target: Variable, objType: str, belongsTo: 'CodeBlock', id: int):
+        super().__init__(belongsTo, id)
+        
         self.target = target
         self.objType = objType
 
@@ -107,8 +112,8 @@ class New(IRStmt):
 class NewModule(New):
     module: Union['ModuleCodeBlock', str]                  
 
-    def __init__(self, target:Variable, module: 'CodeBlock', belongsTo: 'CodeBlock'):
-        super().__init__(target, 'module', belongsTo)
+    def __init__(self, target:Variable, module: 'CodeBlock', belongsTo: 'CodeBlock', id: int):
+        super().__init__(target, 'module', belongsTo, id)
         self.module = module
 
     def __str__(self):
@@ -118,8 +123,8 @@ class NewModule(New):
 class NewFunction(New):
     codeBlock: 'FunctionCodeBlock'
 
-    def __init__(self, target:Variable, codeBlock: 'CodeBlock', belongsTo: 'CodeBlock'):
-        super().__init__(target, 'function', belongsTo)
+    def __init__(self, target:Variable, codeBlock: 'CodeBlock', belongsTo: 'CodeBlock', id: int):
+        super().__init__(target, 'function', belongsTo, id)
         self.codeBlock = codeBlock
 
     def __str__(self):
@@ -129,8 +134,8 @@ class NewClass(New):
     codeBlock: 'ClassCodeBlock'
     bases: List[Variable]                # variables that points to a class object
 
-    def __init__(self, target:Variable, bases:List[Variable], codeBlock: 'CodeBlock', belongsTo: 'CodeBlock'):
-        super().__init__(target, 'class', belongsTo)
+    def __init__(self, target:Variable, bases:List[Variable], codeBlock: 'CodeBlock', belongsTo: 'CodeBlock', id: int):
+        super().__init__(target, 'class', belongsTo, id)
         self.codeBlock = codeBlock
         self.bases = bases
     
@@ -143,8 +148,8 @@ class NewClass(New):
 class NewBuiltin(New):
     type: str
     value: Any                          # optional, for example the value of str, int, double can be use
-    def __init__(self, target:Variable, type: str, value: Any, belongsTo: 'CodeBlock'):
-        super().__init__(target, 'builtin', belongsTo)
+    def __init__(self, target:Variable, type: str, value: Any, belongsTo: 'CodeBlock', id: int):
+        super().__init__(target, 'builtin', belongsTo, id)
         self.type = type
         self.value = value
 
@@ -153,15 +158,15 @@ class NewBuiltin(New):
 
 class NewStaticMethod(New):
     func: Variable
-    def __init__(self, target: Variable, func: Variable, belongsTo: 'CodeBlock'):
-        super().__init__(target, 'staticmethod', belongsTo)
+    def __init__(self, target: Variable, func: Variable, belongsTo: 'CodeBlock', id: int):
+        super().__init__(target, 'staticmethod', belongsTo, id)
         self.func = func
     def __str__(self):
          return f"{self.target} = New Static Method({self.func})"
 
 # class NewClassMethod(New):
 #     func: Variable
-#     def __init__(self, target: Variable, func: Variable, belongsTo: 'CodeBlock'):
+#     def __init__(self, target: Variable, func: Variable, belongsTo: 'CodeBlock', id: int):
 #         super().__init__(target, 'classmethod', belongsTo)
 #         self.func = func
 #     def __str__(self):
@@ -171,8 +176,8 @@ class NewStaticMethod(New):
 class NewSuper(New):
     type: Variable
     bound: Variable
-    def __init__(self, target: Variable, type: Union[Variable, None], bound: Union[Variable, None],belongsTo: 'CodeBlock'):
-        super().__init__(target, 'classmethod', belongsTo)
+    def __init__(self, target: Variable, type: Union[Variable, None], bound: Union[Variable, None],belongsTo: 'CodeBlock', id: int):
+        super().__init__(target, 'classmethod', belongsTo, id)
         self.type = type
         self.bound = bound
     def __str__(self):
@@ -186,8 +191,8 @@ class Call(IRStmt):
     posargs: List[Variable]
     kwargs: Dict[str, Variable]
 
-    def __init__(self, target: Variable, callee: Variable, args: List[Variable], keywords: Dict[str, Variable], belongsTo: 'CodeBlock'):
-        super().__init__(belongsTo)
+    def __init__(self, target: Variable, callee: Variable, args: List[Variable], keywords: Dict[str, Variable], belongsTo: 'CodeBlock', id: int):
+        super().__init__(belongsTo, id)
         self.target = target
         self.callee = callee
         self.posargs = [None] * len(args)
@@ -205,8 +210,8 @@ class DelAttr(IRStmt):
     var: Variable
     attr: str
     
-    def __init__(self, v: Variable, attr: str, belongsTo: 'CodeBlock'):
-        super().__init__(belongsTo)
+    def __init__(self, v: Variable, attr: str, belongsTo: 'CodeBlock', id: int):
+        super().__init__(belongsTo, id)
         self.var = v
         self.attr = attr
 

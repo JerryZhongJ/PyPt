@@ -9,8 +9,9 @@ from .Pointers import VarPtr
 class BindingStmts:
     bindings: Tuple[Dict[VarPtr, Set], ...]
     def __init__(self):
-        opnames = ["GetAttr",
-            "SetAttr",
+        opnames = [
+            # "GetAttr",
+            # "SetAttr",
             "NewClass",
             "Call",
             "DelAttr",

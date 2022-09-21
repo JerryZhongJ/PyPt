@@ -365,9 +365,13 @@ class ModuleManager:
             # if(not parent.__generator__):
             #     parent.__generator__ = ModuleCodeBlockGenerator(parent.__name__, moduleManager=self)
             #     parent.__codeBlock__ = parent.__generator__.codeBlock
-            tmp = parent.__generator__.newTmpVariable()
-            NewModule(tmp, m.__codeBlock__, parent.__codeBlock__)
-            SetAttr(parent.__codeBlock__.globalVariable, partname, tmp, parent.__codeBlock__)
+            p_codeblock = parent.__codeBlock__
+            p_generator = parent.__generator__
+            m_codeblock = m.__codeBlock__
+            m_generator = m.__generator__
+            tmp = p_codeblock.newTmpVariable()
+            NewModule(tmp, m_codeblock, p_codeblock, p_codeblock.getNewID())
+            SetAttr(p_codeblock.globalVariable, partname, tmp, p_codeblock)
 
         
         return m
@@ -391,8 +395,8 @@ class ModuleManager:
             m.__file__ = pathname
             m.__depth__ = depth
             tree = ast.parse(fp.read())
-            m.__generator__ = ModuleGenerator(fqname, moduleManager=self)
-            m.__codeBlock__ = m.__generator__.codeBlock
+            m.__codeBlock__ = ModuleCodeBlock(fqname)
+            m.__generator__ = ModuleGenerator(m.__codeBlock__, moduleManager=self)
             m.__generator__.parse(tree)
             return m
         elif type == _PY_COMPILED:

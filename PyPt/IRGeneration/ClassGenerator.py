@@ -10,7 +10,7 @@ from .BindingScanner import BindingScanner
 from ..IR.CodeBlock import CodeBlock
 from ..IR.ClassCodeBlock import ClassCodeBlock
 
-from .CodeBlockGenerator import Attribute, CodeBlockGenerator, isLoad, isStore, resolveName
+from .CodeGenerator import Attribute, CodeBlockGenerator, isLoad, isStore, resolveName
 
 if typing.TYPE_CHECKING:
     from ..ModuleManager import ModuleManager
@@ -19,9 +19,10 @@ class ClassGenerator(CodeBlockGenerator):
     codeBlock: ClassCodeBlock
     attributes: Set[str]
 
-    def __init__(self, name: str, enclosing: CodeBlock, moduleManager: 'ModuleManager'):
+    def __init__(self, codeBlock, moduleManager: 'ModuleManager'):
         super().__init__(moduleManager)
-        self.codeBlock = ClassCodeBlock(name, enclosing)
+        self.codeBlock = codeBlock
+        
 
     def parse(self, node: ast.AST):
         assert(isinstance(node, ast.ClassDef))

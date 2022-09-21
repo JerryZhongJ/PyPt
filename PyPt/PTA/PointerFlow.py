@@ -19,10 +19,10 @@ class PointerFlow:
         else:
             return False
 
-    def getSuccessors(self, source) -> Set[Pointer]:
+    def successors(self, source) -> Set[Pointer]:
         return self.forward[source]
             
-    def getPrecedents(self, target) -> Set[Pointer]:
+    def precedents(self, target) -> Set[Pointer]:
         return self.backward[target]
 
     def dump(self, fp):
