@@ -12,16 +12,21 @@ class Pointer:
     def __eq__(self, other):
         return isinstance(other, Pointer) and self.id == other.id
 
+    def __str__(self):
+        return self.readable_name if hasattr(self, 'readable_name') else self.id
+
     def __hash__(self):
         return hash(self.id)
 
 class VarPtr(Pointer):
     
-    def __init__(self, var: Variable = None, id: str = None):
-        if(var):
-            self.id = var.id
-        else:
-            self.id = id
+    def __init__(self, id: str, readable_name: str):
+        self.id = id
+        self.readable_name = readable_name
+
+    @staticmethod
+    def create(var: Variable):
+        return VarPtr(var.id, var.readable_name)
 
 
     
@@ -33,7 +38,10 @@ class AttrPtr(Pointer):
     def __init__(self, obj, attr):
         self.obj = obj
         self.attr = attr
-        self.id = f"<{obj}>.attr"
+        self.id = f"<{obj.id}>.{attr}"
+        if(hasattr(obj, "readable_name")):
+            self.readable_name = f"<{obj.readable_name}>.{attr}"
+        
         
 
 

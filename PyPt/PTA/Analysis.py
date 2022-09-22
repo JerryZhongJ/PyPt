@@ -2,6 +2,8 @@ from collections import defaultdict
 
 from typing import Dict, List, Set, Tuple, Union
 
+from PyPt.PTA.ObjectPool import OBJ_BUILTIN, OBJ_CLASS, OBJ_CLASS_METHOD, OBJ_FAKE, OBJ_FUNCTION, OBJ_MODULE, OBJ_STATIC_METHOD, OBJ_SUPER, ObjectPool
+
 from .AttrGraph import AttrGraph
 from ..IR.ClassCodeBlock import ClassCodeBlock
 
@@ -9,13 +11,12 @@ from ..IR.ModuleCodeBlock import ModuleCodeBlock
 
 from ..IR.CodeBlock import CodeBlock
 
-from ..IR.IRStmts import Assign, Call, DelAttr, GetAttr, NewBuiltin, NewClass, NewFunction, NewModule, NewStaticMethod, NewSuper, SetAttr, Variable
+from ..IR.IRStmts import Assign, Call, DelAttr, GetAttr, IRStmt, NewBuiltin, NewClass, NewFunction, NewModule, NewStaticMethod, NewSuper, SetAttr, Variable
 from .ClassHiearchy import MRO, ClassHiearchy
 from .Objects import BuiltinObject, ClassMethodObject, ClassObject, FakeObject, FunctionObject,  ModuleObject, Object, StaticMethodObject, SuperObject
 from .BindingStmts import BindingStmts
 from .PointerFlow import PointerFlow
 from .Pointers import AttrPtr, Pointer, VarPtr
-from .CallGraph import CallGraph
 from .PointToSet import PointToSet
 
 FAKE_PREFIX = "$r_"
@@ -48,7 +49,7 @@ class Analysis:
         self.pointerFlow = PointerFlow()
         self.attrGraph = AttrGraph()
         self.bindingStmts = BindingStmts()
-        # self.defined = set()
+        self.objectPool = ObjectPool()
         self.reachable = set()
         self.classHiearchy = ClassHiearchy(self.pointToSet)
         self.persist_attr = defaultdict(dict)
@@ -80,46 +81,48 @@ class Analysis:
 
         for stmt in codeBlock.stmts:
             if(isinstance(stmt, Assign)):
-                sourcePtr = VarPtr(stmt.source)
-                targetPtr = VarPtr(stmt.target)
+                sourcePtr = VarPtr.create(stmt.source)
+                targetPtr = VarPtr.create(stmt.target)
                 self.addFlow(sourcePtr, targetPtr)
 
             elif(isinstance(stmt, GetAttr)):
-                sourcePtr = VarPtr(stmt.source)
-                targetPtr = VarPtr(stmt.target)
+                sourcePtr = VarPtr.create(stmt.source)
+                targetPtr = VarPtr.create(stmt.target)
                 self.attrGraph.putGet(targetPtr, sourcePtr, stmt.attr)
+                self.addGetEdge(targetPtr, sourcePtr, stmt.attr, self.pointToSet.get(sourcePtr))
             
             elif(isinstance(stmt, SetAttr)):
-                sourcePtr = VarPtr(stmt.source)
-                targetPtr = VarPtr(stmt.target)
+                sourcePtr = VarPtr.create(stmt.source)
+                targetPtr = VarPtr.create(stmt.target)
                 self.attrGraph.putSet(targetPtr, sourcePtr, stmt.attr)
+                self.addSetEdge(targetPtr, sourcePtr, stmt.attr, self.pointToSet.get(targetPtr))
 
             elif(isinstance(stmt, NewModule)):
                 if(isinstance(stmt.module, ModuleCodeBlock)):
-                    obj = ModuleObject(stmt.module)
-                    targetPtr = VarPtr(stmt.target)
-                    globalPtr = VarPtr(stmt.module.globalVariable)
+                    obj = self.objectPool.create(OBJ_MODULE, stmt.module)
+                    targetPtr = VarPtr.create(stmt.target)
+                    globalPtr = VarPtr.create(stmt.module.globalVariable)
                     self.workList.append((ADD_POINTS_TO, targetPtr, {obj}))
                     self.workList.append((ADD_POINTS_TO, globalPtr, {obj}))
                     # self.addDefined(stmt.module)
                     self.addReachable(stmt.module)
                     # self.callgraph.put(stmt, stmt.module)
                 else:
-                    obj = FakeObject(None, name=stmt.module)
-                    targetPtr = VarPtr(stmt.target)
+                    obj = self.objectPool.create(OBJ_FAKE, stmt.module)
+                    targetPtr = VarPtr.create(stmt.target)
                     self.workList.append((ADD_POINTS_TO, targetPtr, {obj}))
                 
                 
             elif(isinstance(stmt, NewFunction)):
-                obj = FunctionObject(stmt)
-                targetPtr = VarPtr(stmt.target)
+                obj = self.objectPool.create(OBJ_FUNCTION, stmt)
+                targetPtr = VarPtr.create(stmt.target)
                 self.workList.append((ADD_POINTS_TO, targetPtr, {obj}))
                 
 
             elif(isinstance(stmt, NewClass)):
-                obj = ClassObject(stmt)
-                targetPtr = VarPtr(stmt.target)
-                thisPtr = VarPtr(stmt.codeBlock.thisClassVariable)
+                obj = self.objectPool.create(OBJ_CLASS, stmt)
+                targetPtr = VarPtr.create(stmt.target)
+                thisPtr = VarPtr.create(stmt.codeBlock.thisClassVariable)
                 self.workList.append((ADD_POINTS_TO, targetPtr, {obj}))
                 self.workList.append((ADD_POINTS_TO, thisPtr, {obj}))
                 
@@ -130,22 +133,22 @@ class Analysis:
                 
                 self.addReachable(stmt.codeBlock)
                 # self.callgraph.put(stmt, stmt.codeBlock)
-                self.callgraph[codeBlock.qualified_name].add(stmt.codeBlock.qualified_name)
+                self.addCallEdge(stmt, obj.readable_name)
 
             elif(isinstance(stmt, NewBuiltin)):
-                targetPtr = VarPtr(stmt.target)
+                targetPtr = VarPtr.create(stmt.target)
                 # if(stmt.value is not None or stmt.type == "NoneType"):
                 #     obj = ConstObject(stmt.value)
                 # else:
-                obj = BuiltinObject(stmt)
+                obj = self.objectPool.create(OBJ_BUILTIN, stmt)
                 self.workList.append((ADD_POINTS_TO, targetPtr, {obj}))
         
 
     def analyze(self, entrys: CodeBlock):
         for entry in entrys:
             if(isinstance(entry, ModuleCodeBlock)):
-                obj = ModuleObject(entry)
-                self.workList.append((ADD_POINTS_TO, VarPtr(entry.globalVariable), {obj}))
+                obj = self.objectPool.create(OBJ_MODULE, entry)
+                self.workList.append((ADD_POINTS_TO, VarPtr.create(entry.globalVariable), {obj}))
             self.addReachable(entry)
 
         
@@ -185,14 +188,14 @@ class Analysis:
                 
                 # if(isinstance(stmt, SetAttr)):
                 #     # print(f"Bind SetAttr: {stmt.target} - {stmt}")
-                #     varPtr = VarPtr(stmt.target)
+                #     varPtr = VarPtr.create(stmt.target)
                 #     stmtInfo = (stmt, )
                 #     self.bindingStmts.bind("SetAttr", varPtr, stmtInfo)
                 #     self.processSetAttr(stmtInfo, self.pointToSet.get(varPtr))
 
                 # elif(isinstance(stmt, GetAttr)):
                 #     # print(f"Bind GetAttr: {stmt.source} - {stmt}")
-                #     varPtr = VarPtr(stmt.source)
+                #     varPtr = VarPtr.create(stmt.source)
                 #     stmtInfo = (stmt, )
                 #     self.bindingStmts.bind("GetAttr", varPtr, stmtInfo)
                 #     self.processGetAttr(stmtInfo, self.pointToSet.get(varPtr))
@@ -200,45 +203,45 @@ class Analysis:
                 if(isinstance(stmt, NewClass)):
                     for i in range(len(stmt.bases)):
                         # print(f"Bind Base: {stmt.bases[i]} - {stmt} - {i}")
-                        varPtr = VarPtr(stmt.bases[i])
+                        varPtr = VarPtr.create(stmt.bases[i])
                         stmtInfo = (stmt, i)
                         self.bindingStmts.bind("NewClass", varPtr, stmtInfo)
                         self.processNewClass(stmtInfo, self.pointToSet.get(varPtr))
 
                 elif(isinstance(stmt, Call)):
                     # print(f"Bind Call: {stmt.callee} - {stmt}")
-                    varPtr = VarPtr(stmt.callee)
+                    varPtr = VarPtr.create(stmt.callee)
                     stmtInfo = (stmt, )
                     self.bindingStmts.bind("Call", varPtr, stmtInfo)
                     self.processCall(stmtInfo, self.pointToSet.get(varPtr))
 
                 elif(isinstance(stmt, DelAttr)):
                     # print(f"Bind DelAttr: {stmt.var} - {stmt}")
-                    varPtr = VarPtr(stmt.var)
+                    varPtr = VarPtr.create(stmt.var)
                     stmtInfo = (stmt, )
                     self.bindingStmts.bind("DelAttr", varPtr, stmtInfo)
                     self.processDelAttr(stmtInfo, self.pointToSet.get(varPtr))
                 
                 # elif(isinstance(stmt, NewClassMethod)):
-                #     varPtr = VarPtr(stmt.func)
+                #     varPtr = VarPtr.create(stmt.func)
                 #     stmtInfo = (stmt, )
                 #     self.bindingStmts.bind("NewClassMethod", varPtr, stmtInfo)
                 #     self.processNewClassMethod(stmtInfo, self.pointToSet.get(varPtr))
 
                 elif(isinstance(stmt, NewStaticMethod)):
-                    varPtr = VarPtr(stmt.func)
+                    varPtr = VarPtr.create(stmt.func)
                     stmtInfo = (stmt, )
                     self.bindingStmts.bind("NewStaticMethod", varPtr, stmtInfo)
                     self.processNewStaticMethod(stmtInfo, self.pointToSet.get(varPtr))
 
                 elif(isinstance(stmt, NewSuper)):
                     
-                    varPtr = VarPtr(stmt.type)
+                    varPtr = VarPtr.create(stmt.type)
                     stmtInfo = (stmt, "type")
                     self.bindingStmts.bind("NewSuper", varPtr, stmtInfo)
                     self.processNewSuper(stmtInfo, self.pointToSet.get(varPtr))
 
-                    varPtr = VarPtr(stmt.bound)
+                    varPtr = VarPtr.create(stmt.bound)
                     stmtInfo = (stmt, "bound")
                     self.bindingStmts.bind("NewSuper", varPtr, stmtInfo)
                     self.processNewSuper(stmtInfo, self.pointToSet.get(varPtr))
@@ -285,7 +288,8 @@ class Analysis:
             # else:
             #     newObjs.add(obj)
             if(isinstance(obj, FunctionObject)):
-                newObjs.add(ClassMethodObject(classObj, obj))
+                newObj = self.objectPool.create(OBJ_CLASS_METHOD, classObj, obj)
+                newObjs.add(newObj)
             else:
                 newObjs.add(obj)
         return newObjs
@@ -349,7 +353,7 @@ class Analysis:
             
             if(isinstance(obj, FakeObject)):
                
-                fakeObj = FakeObject(obj, getEdge=(target, source, attr))
+                fakeObj = self.objectPool.create(OBJ_FAKE, obj, (source, target, attr))
                 self.workList.append((ADD_POINTS_TO, target, {fakeObj}))
                 
             # elif(isinstance(obj, InstanceObject)):
@@ -386,7 +390,8 @@ class Analysis:
         mroChange = set()
         for obj in objs:
             if(isinstance(obj, ClassObject)):
-                mroChange |= self.classHiearchy.addClassBase(ClassObject(stmt), index, obj)
+                cls = self.objectPool.create(OBJ_CLASS, stmt)
+                mroChange |= self.classHiearchy.addClassBase(cls, index, obj)
         for mro in mroChange:
             classObj = mro[0]
             
@@ -396,7 +401,7 @@ class Analysis:
     def processCall(self, stmtInfo: Tuple[Call], objs: Set[Object]):
         stmt, = *stmtInfo,
         assert(isinstance(stmt, Call))
-        varPtr = VarPtr(stmt.target)
+        varPtr = VarPtr.create(stmt.target)
         newObjs = set()
         for obj in objs:
             # if(isinstance(obj, FakeObject)):
@@ -404,72 +409,72 @@ class Analysis:
             #     self.callgraph.put(stmt, func)
             if(isinstance(obj, FunctionObject)):
                 
-                self.matchArgParam(posArgs=         [VarPtr(posArg) for posArg in stmt.posargs],
-                                    kwArgs=         {kw:VarPtr(kwarg) for kw, kwarg in stmt.kwargs.items()},
+                self.matchArgParam(posArgs=         [VarPtr.create(posArg) for posArg in stmt.posargs],
+                                    kwArgs=         {kw:VarPtr.create(kwarg) for kw, kwarg in stmt.kwargs.items()},
                                     posParams=      obj.posParams,
                                     kwParams=       obj.kwParams,
                                     varParam=       obj.varParam,
                                     kwParam=        obj.kwParam)
                 retVar = obj.retVar
-                resVar = VarPtr(stmt.target)
+                resVar = VarPtr.create(stmt.target)
                 self.addFlow(retVar, resVar)
                 self.addReachable(obj.codeBlock)
-                self.callgraph[stmt.belongsTo.qualified_name].add(obj.qualified_name)
+                self.addCallEdge(stmt, obj.readable_name)
                 
                 
             # elif(isinstance(obj, InstanceMethodObject)):
             #     func = obj.func.getCodeBlock()
-            #     posParams = [VarPtr(param) for param in func.posargs]
+            #     posParams = [VarPtr.create(param) for param in func.posargs]
             #     if(len(posParams) == 0):
             #         # not a method, just skip
             #         continue
             #     self.workList.append((ADD_POINT_TO, posParams[0], {obj.selfObj}))
             #     del posParams[0]
-            #     self.matchArgParam(posArgs=         [VarPtr(posArg) for posArg in stmt.posargs],
-            #                         kwArgs=         {kw:VarPtr(kwarg) for kw, kwarg in stmt.kwargs.items()},
+            #     self.matchArgParam(posArgs=         [VarPtr.create(posArg) for posArg in stmt.posargs],
+            #                         kwArgs=         {kw:VarPtr.create(kwarg) for kw, kwarg in stmt.kwargs.items()},
             #                         posParams=      posParams,
-            #                         kwParams=       {kw:VarPtr(kwOnlyParam) for kw, kwOnlyParam in func.kwargs.items()},
-            #                         varParam=       VarPtr(func.vararg) if func.vararg else None,
-            #                         kwParam=        VarPtr(func.kwarg) if func.kwarg else None)
-            #     retVar = VarPtr(func.returnVariable)
-            #     resVar = VarPtr(stmt.target)
+            #                         kwParams=       {kw:VarPtr.create(kwOnlyParam) for kw, kwOnlyParam in func.kwargs.items()},
+            #                         varParam=       VarPtr.create(func.vararg) if func.vararg else None,
+            #                         kwParam=        VarPtr.create(func.kwarg) if func.kwarg else None)
+            #     retVar = VarPtr.create(func.returnVariable)
+            #     resVar = VarPtr.create(stmt.target)
             #     self.addFlow(retVar, resVar)
             #     self.callgraph.put(stmt, func)
             #     self.addReachable(func)
 
             elif(isinstance(obj, ClassMethodObject)):
-                func = obj.func.getCodeBlock()
-                posParams = [VarPtr(param) for param in func.posargs]
+                funcObj = obj.func
+                posParams = funcObj.posParams[:]
                 if(len(posParams) == 0):
                     # not a method, just skip
                     continue
                 self.workList.append((ADD_POINTS_TO, posParams[0], {obj.classObj}))
                 del posParams[0]
-                self.matchArgParam(posArgs=         [VarPtr(posArg) for posArg in stmt.posargs],
-                                    kwArgs=         {kw:VarPtr(kwarg) for kw, kwarg in stmt.kwargs.items()},
+                self.matchArgParam(posArgs=         [VarPtr.create(posArg) for posArg in stmt.posargs],
+                                    kwArgs=         {kw:VarPtr.create(kwarg) for kw, kwarg in stmt.kwargs.items()},
                                     posParams=      posParams,
-                                    kwParams=       {kw:VarPtr(kwOnlyParam) for kw, kwOnlyParam in func.kwargs.items()},
-                                    varParam=       VarPtr(func.vararg) if func.vararg else None,
-                                    kwParam=        VarPtr(func.kwarg) if func.kwarg else None)
-                retVar = VarPtr(func.returnVariable)
-                resVar = VarPtr(stmt.target)
+                                    kwParams=       funcObj.kwParams,
+                                    varParam=       funcObj.varParam,
+                                    kwParam=        funcObj.kwParam)
+                retVar = funcObj.retVar
+                resVar = VarPtr.create(stmt.target)
                 self.addFlow(retVar, resVar)
-                self.callgraph.put(stmt, func)
-                self.addReachable(func)
+                self.addCallEdge(stmt, funcObj.readable_name)
+                self.addReachable(funcObj.codeBlock)
 
             elif(isinstance(obj, StaticMethodObject)):
-                func = obj.func.getCodeBlock()
-                self.matchArgParam(posArgs=         [VarPtr(posArg) for posArg in stmt.posargs],
-                                    kwArgs=         {kw:VarPtr(kwarg) for kw, kwarg in stmt.kwargs.items()},
-                                    posParams=      [VarPtr(param) for param in func.posargs],
-                                    kwParams=       {kw:VarPtr(kwOnlyParam) for kw, kwOnlyParam in func.kwargs.items()},
-                                    varParam=       VarPtr(func.vararg) if func.vararg else None,
-                                    kwParam=        VarPtr(func.kwarg) if func.kwarg else None)
-                retVar = VarPtr(func.returnVariable)
-                resVar = VarPtr(stmt.target)
+                funcObj = obj.func
+                self.matchArgParam(posArgs=         [VarPtr.create(posArg) for posArg in stmt.posargs],
+                                    kwArgs=         {kw:VarPtr.create(kwarg) for kw, kwarg in stmt.kwargs.items()},
+                                    posParams=      funcObj.posParams,
+                                    kwParams=       funcObj.kwParams,
+                                    varParam=       funcObj.varParam,
+                                    kwParam=        funcObj.kwParam)
+                retVar = funcObj.retVar
+                resVar = VarPtr.create(stmt.target)
                 self.addFlow(retVar, resVar)
-                self.addReachable(func)
-                self.callgraph.put(stmt, func) 
+                self.addReachable(funcObj.codeBlock)
+                self.addCallEdge(stmt, funcObj.readable_name)
            
             elif(isinstance(obj, ClassObject)):
                 # insObj = CIInstanceObject(stmt, obj)
@@ -480,10 +485,10 @@ class Analysis:
                 # self.addFlow(classAttr, insAttr)
                 self.resolveAttrIfNot(obj, "__init__")
 
-                init = Variable(f"${obj.getCodeBlock().qualified_name}.__init__", stmt.belongsTo)
-                initPtr = VarPtr(init)
+                init = Variable(f"$init_method_of_{obj.id}", stmt.belongsTo)
+                initPtr = VarPtr.create(init)
                 self.addFlow(classAttr, initPtr)
-                newStmt = Call(Variable("", stmt.belongsTo), init, stmt.posargs, stmt.kwargs, stmt.belongsTo)
+                newStmt = Call(Variable("", stmt.belongsTo), init, stmt.posargs, stmt.kwargs, stmt.belongsTo, stmt.belongsTo.getNewID())
                 self.workList.append((BIND_STMT, newStmt))
                 newObjs.add(obj)
         if(newObjs):
@@ -521,12 +526,12 @@ class Analysis:
     # def processNewClassMethod(self, stmtInfo: Tuple[NewClassMethod], objs: Set[Object]):
     #     stmt, = *stmtInfo, 
     #     assert(isinstance(stmt, NewClassMethod))
-    #     target = VarPtr(stmt.target)
+    #     target = VarPtr.create(stmt.target)
     #     newObjs = set()
     #     for obj in objs:
     #         if(isinstance(obj, FunctionObject) and isinstance(stmt.belongsTo, ClassCodeBlock)):
                 
-    #             for classObj in self.pointToSet.get(VarPtr(stmt.belongsTo.thisClassVariable)):
+    #             for classObj in self.pointToSet.get(VarPtr.create(stmt.belongsTo.thisClassVariable)):
     #                 if(isinstance(classObj, ClassObject)):
     #                     classMethod = ClassMethodObject(classObj, obj)
     #                     newObjs.add(classMethod)
@@ -536,12 +541,12 @@ class Analysis:
     def processNewStaticMethod(self, stmtInfo: Tuple[NewStaticMethod], objs: Set[Object]):
         stmt, = *stmtInfo, 
         assert(isinstance(stmt, NewStaticMethod))
-        target = VarPtr(stmt.target)
+        target = VarPtr.create(stmt.target)
         newObjs = set()
         for obj in objs:
             if(isinstance(obj, FunctionObject) and isinstance(stmt.belongsTo, ClassCodeBlock)):
                 
-                staticMethod = StaticMethodObject(obj)
+                staticMethod = self.objectPool.create(OBJ_STATIC_METHOD, obj)
                 newObjs.add(staticMethod)
         if(newObjs):
             self.workList.append((ADD_POINTS_TO, target, newObjs))
@@ -551,22 +556,27 @@ class Analysis:
         assert(isinstance(stmt, NewSuper))
         if(operand == "type"):
             newObjs = set()
-            target = VarPtr(stmt.target)
+            target = VarPtr.create(stmt.target)
             for obj in objs:
                 if(isinstance(obj, ClassObject)):
-                    for boundObj in self.pointToSet.get(VarPtr(stmt.bound)):
-                        newObjs.add(SuperObject(obj, boundObj))
+                    for boundObj in self.pointToSet.get(VarPtr.create(stmt.bound)):
+                        newObj = self.objectPool.create(OBJ_SUPER, obj, boundObj)
+                        newObjs.add(newObj)
             if(newObjs):
                 self.workList.append((ADD_POINTS_TO, target, newObjs))
         else:
             newObjs = set()
-            target = VarPtr(stmt.target)
+            target = VarPtr.create(stmt.target)
             for obj in objs:
                 if(isinstance(obj, ClassObject)):
-                    for typeObj in self.pointToSet.get(VarPtr(stmt.type)):
-                        newObjs.add(SuperObject(typeObj, obj))
+                    for typeObj in self.pointToSet.get(VarPtr.create(stmt.type)):
+                        newObj = self.objectPool.create(OBJ_SUPER, typeObj, obj)
+                        newObjs.add(newObj)
             if(newObjs):
                 self.workList.append((ADD_POINTS_TO, target, newObjs))
+
+    def addCallEdge(self, callsite: IRStmt, callee: str):
+        self.callgraph[callsite.belongsTo.readable_name].add(callee)
 
 
         

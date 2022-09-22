@@ -8,7 +8,8 @@ from .CodeGenerator import CodeBlockGenerator
 if typing.TYPE_CHECKING:
     from ..ModuleManager import ModuleManager
     
-builtin_names = list(builtins.__dict__.keys())
+# builtin_names = list(builtins.__dict__.keys())
+builtin_names = ["object"]
 
 class ModuleGenerator(CodeBlockGenerator):
     codeBlock: ModuleCodeBlock

@@ -1,5 +1,6 @@
 
 import json
+from PyPt.PTA import json_utils
 from PyPt.PTA.Analysis import Analysis
 from PyPt.ModuleManager import ModuleManager
 
@@ -17,7 +18,7 @@ def testScript(path, filename):
     test(moduleManager)
     
 def testModule(moduleName, cwd):
-    moduleManager = ModuleManager(cwd, maxDepth=1,verbose=True)
+    moduleManager = ModuleManager(cwd, maxDepth=0,verbose=True)
     moduleManager.addEntry(module=moduleName)
     test(moduleManager)
 
@@ -37,22 +38,20 @@ def test(moduleManager: ModuleManager):
     
 
     
-    with open(os.path.join(result, "Point-To Set.txt"), "w") as f:
-        analysis.pointToSet.dump(f)
+    with open(os.path.join(result, "Point-To Set.json"), "w") as f:
+        f.write(analysis.pointToSet.to_json())
 
-    with open(os.path.join(result, "CallGraph.txt"), "w") as f:
-        analysis.callgraph.dump(f)
+    with open(os.path.join(result, "CallGraph.json"), "w") as f:
+        json.dump(analysis.callgraph, f, default=json_utils.default,indent=4)
 
-    with open(os.path.join(result, "Pointer Flow.txt"), "w") as f:
-        analysis.pointerFlow.dump(f)
+    with open(os.path.join(result, "Pointer Flow.json"), "w") as f:
+        f.write(analysis.pointerFlow.to_json())
 
-    with open(os.path.join(result, "Class Hiearchy.txt"), "w") as f:
-        analysis.classHiearchy.dump(f)
+    with open(os.path.join(result, "Class Hiearchy.json"), "w") as f:
+        f.write(analysis.classHiearchy.to_json())
 
-    with open(os.path.join(result, "callgraph.json"), "w") as f:
-        json.dump(analysis.callgraph.export(), f, indent=4)
 
-    print("Done                                                   ")
+    # print("Done                                                   ")
 
-testScript("scope/class_attr", "main.py")
-# testModule("flask", "/home/jerry/Documents/test_projects/flask/src")
+# testScript("call/assigned_call", "main.py")
+testModule("flask", "/home/jerry/Documents/test/projects/flask/src")

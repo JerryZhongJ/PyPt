@@ -12,11 +12,11 @@ if typing.TYPE_CHECKING:
 class Variable:
     id: str                                # include belongsTo's id
     belongsTo: 'CodeBlock'                # 'CodeBlock' to which it belongs
-    qualified_name: str
+    readable_name: str
     isTmp: bool
 
     def __str__(self):
-        return self.qualified_name
+        return self.readable_name
 
     def __repr__(self):
         return f"Variable: {self.id}"
@@ -24,7 +24,7 @@ class Variable:
     def __init__(self, name: str, belongsTo: 'CodeBlock', temp=False):
         # self.name = name
         self.belongsTo = belongsTo
-        self.qualified_name = f"{name}@{belongsTo.qualified_name}"
+        self.readable_name = f"{name}@{belongsTo.readable_name}"
         self.id = f"{name}@{belongsTo.id}"
         self.isTmp = temp
         
@@ -117,7 +117,7 @@ class NewModule(New):
         self.module = module
 
     def __str__(self):
-        return f"{self.target} = NewModule {self.module if isinstance(self.module, str) else self.module.qualified_name}"
+        return f"{self.target} = NewModule {self.module if isinstance(self.module, str) else self.module.readable_name}"
         
 
 class NewFunction(New):

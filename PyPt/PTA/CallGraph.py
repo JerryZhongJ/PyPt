@@ -35,13 +35,13 @@ class CallGraph:
         callgraph = self.foldToStmt()
         for caller, map in callgraph.items():
 
-            print(caller.qualified_name + ":", file=fp)    
+            print(caller.readable_name + ":", file=fp)    
             for stmt, callees in map.items():
                 head = f"{stmt} -> "
                 w = len(head)
                 
                 for callee in callees:
-                    print(f"{head:<{w}}{callee.qualified_name}", file=fp)
+                    print(f"{head:<{w}}{callee.readable_name}", file=fp)
                     head = ""
                 
             print("", file=fp)
@@ -51,7 +51,7 @@ class CallGraph:
         tmp = self.foldToCodeBlock()
         callgraph = {}
         for caller, callees in tmp.items():
-            callgraph[caller.qualified_name] = [callee.qualified_name for callee in callees if not callee.fake]
+            callgraph[caller.readable_name] = [callee.readable_name for callee in callees if not callee.fake]
         
         return callgraph
 

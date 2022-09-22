@@ -371,7 +371,7 @@ class ModuleManager:
             m_generator = m.__generator__
             tmp = p_codeblock.newTmpVariable()
             NewModule(tmp, m_codeblock, p_codeblock, p_codeblock.getNewID())
-            SetAttr(p_codeblock.globalVariable, partname, tmp, p_codeblock)
+            SetAttr(p_codeblock.globalVariable, partname, tmp, p_codeblock, p_codeblock.getNewID())
 
         
         return m

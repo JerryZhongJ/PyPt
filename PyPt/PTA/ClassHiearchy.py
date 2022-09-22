@@ -1,7 +1,10 @@
 
 from collections import defaultdict
 from email.mime import base
+import json
 from typing import Dict, Generator, List, Set, Tuple
+
+from . import json_utils
 
 from .PointToSet import PointToSet
 from .Pointers import VarPtr
@@ -125,27 +128,13 @@ class ClassHiearchy:
     def getMROs(self, classObj: ClassObject) -> Set[MRO]:
         return self.mros[classObj]
 
-    def dump(self, fp):
-        
-        for classObj, mros in self.mros.items():
-            head = f"{classObj}: "
-            w = len(head)
-            
-            for mro in mros:
-                print(f"{head:<{w}}{', '.join([str(parent) for parent in mro])}", file=fp)
-                head = ""
-            
-            
-
-        print("", file=fp)
-        
-        for classObj, subInfos in self.subClasses.items():
-            head = f"{classObj} -> "
-            w = len(head)
-            
-            for subInfo in subInfos:
-                print(f"{head:<{w}}{subInfo[0]} : {subInfo[1]}", file=fp)
-                head = ""
+    def to_json(self):
+        res = defaultdict(dict)
+        for cls, mros in self.mros.items():
+            res[str(cls)]["MROs"] = mros
+        for cls, subclasses in self.subClasses.items():
+            res[str(cls)]["subclasses"] = subclasses
+        return json.dumps(res, default=json_utils.default, indent=4)
 
 
 

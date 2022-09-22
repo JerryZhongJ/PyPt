@@ -19,7 +19,7 @@ class ContextElement:
     def __hash__(self):
         return hash(self.key)
     def __str__(self):
-        return f"{self.key.belongsTo.qualified_name}-{self.key.belongsTo.stmts.index(self.key)}"
+        return f"{self.key.belongsTo.readable_name}-{self.key.belongsTo.stmts.index(self.key)}"
 
 
 # Context consists of ContextElement, the newest are placed at the end, the first which is ctx[0] is the oldest

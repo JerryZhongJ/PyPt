@@ -35,7 +35,7 @@ class CSFunctionObject(CSObject, FunctionObject):
         return self.alloc_site.codeBlock
     def __str__(self):
         ctxChain_str = ", ".join(["#".join([str(e) for e in ctx if e]) for ctx in self.ctxChain])
-        return f"({ctxChain_str})Function({self.getCodeBlock().qualified_name})"
+        return f"({ctxChain_str})Function({self.getCodeBlock().readable_name})"
     def __repr__(self):
         return self.__str__()
 
@@ -51,7 +51,7 @@ class CSClassObject(CSObject, ClassObject):
 
     def __str__(self):
         ctxChain_str = ", ".join(["#".join([str(e) for e in ctx if e]) for ctx in self.ctxChain])
-        return f"({ctxChain_str})Class({self.getCodeBlock().qualified_name})"
+        return f"({ctxChain_str})Class({self.getCodeBlock().readable_name})"
     def __repr__(self):
         return self.__str__()
 
@@ -73,7 +73,7 @@ class CSInstanceObject(CSObject, InstanceObject):
 
     def __str__(self):
         ctxChain_str = ", ".join(["#".join([str(e) for e in ctx if e]) for ctx in self.ctxChain])
-        return f"({ctxChain_str})Instance {self.type.getCodeBlock().qualified_name}({self.alloc_site})"
+        return f"({ctxChain_str})Instance {self.type.getCodeBlock().readable_name}({self.alloc_site})"
     def __repr__(self):
         return self.__str__()
     

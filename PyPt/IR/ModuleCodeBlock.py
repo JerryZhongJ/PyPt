@@ -9,7 +9,7 @@ class ModuleCodeBlock(CodeBlock):
     globalVariable: Variable                    # $global, all code blocks in a module share a single $global variable 
     def __init__(self, name:str, fake=False):
         super().__init__(name, None, fake)
-        self.id = self.qualified_name           # Module's id = qualified name, cause I don't think there are duplicate modules
+        self.id = self.readable_name           # Module's id = qualified name, cause I don't think there are duplicate modules
         self.module = self
         self.globalVariable = Variable("$global", self)
         # self.done = False

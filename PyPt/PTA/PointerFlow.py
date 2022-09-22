@@ -1,20 +1,22 @@
 from collections import defaultdict
+import json
+from . import json_utils
 from typing import Dict, Set
 from .Pointers import Pointer
 
 
 class PointerFlow:
     forward: Dict[Pointer, Set[Pointer]]
-    backward: Dict[Pointer, Set[Pointer]]
+    # backward: Dict[Pointer, Set[Pointer]]
     def __init__(self):
         self.forward = defaultdict(set)
-        self.backward = defaultdict(set)
+        # self.backward = defaultdict(set)
 
     def put(self, source: Pointer, target: Pointer) -> bool:
         
         if(target not in self.forward[source]):
             self.forward[source].add(target)
-            self.backward[target].add(source)
+            # self.backward[target].add(source)
             return True
         else:
             return False
@@ -22,29 +24,16 @@ class PointerFlow:
     def successors(self, source) -> Set[Pointer]:
         return self.forward[source]
             
-    def precedents(self, target) -> Set[Pointer]:
-        return self.backward[target]
+    # def precedents(self, target) -> Set[Pointer]:
+    #     return self.backward[target]
 
-    def dump(self, fp):
-        print("-> :", file=fp)
-        
-        for ptr, allSucc in self.forward.items():
-            head = f"{ptr} -> "
-            w = len(head)
-            
-            for succ in allSucc:
-                print(f"{head:<{w}}{succ}", file=fp)
-                head = ""
-            
-            
-
-        print("", file=fp)
-        print("<- :", file=fp)
-        
-        for ptr, allPred in self.backward.items():
-            head = f"{ptr} <- "
-            w = len(head)
-            
-            for pred in allPred:
-                print(f"{head:<{w}}{pred}", file=fp)
-                head = ""
+    def to_json(self):
+        forward = {str(ptr):s for ptr, s in self.forward.items()}
+        backward = defaultdict(set)
+        for src, s in self.forward.items():
+            for des in s:
+                backward[str(des)].add(src)
+        return json.dumps(
+                    {"forward":forward, "backward":backward}, 
+                    default=json_utils.default,
+                    indent=4)

@@ -9,7 +9,7 @@ if typing.TYPE_CHECKING:
 
 class CodeBlock:
     module: 'ModuleCodeBlock'
-    qualified_name: str
+    readable_name: str
     id: str
     stmts: List[IRStmt]
     enclosing: 'CodeBlock'                          # reference to enclosing scope, this is used in name resolution. 
@@ -21,9 +21,9 @@ class CodeBlock:
     def __init__(self, name: str, enclosing: 'CodeBlock', fake=False):
         # self.name = name
         if(enclosing):
-            self.qualified_name = f"{enclosing.qualified_name}.{name}"
+            self.readable_name = f"{enclosing.readable_name}.{name}"
         else:
-            self.qualified_name = name
+            self.readable_name = name
         self.stmts = []
         self.enclosing = enclosing
         self.fake = fake
@@ -49,13 +49,13 @@ class CodeBlock:
         return tmp
     
     def dump(self, rootDirectory: str):
-        moduleName = self.module.qualified_name
+        moduleName = self.module.readable_name
         path = moduleName.replace(".", "/")
         path = os.path.join(rootDirectory, path)
         if(not os.path.exists(path)):
             os.makedirs(path)
             
-        filename = self.qualified_name[len(moduleName):] + ".ir"
+        filename = self.readable_name[len(moduleName):] + ".ir"
         path = os.path.join(path, filename)
         with open(path, "w") as f:
             for stmt in self.stmts:

@@ -1,6 +1,9 @@
 
 from collections import defaultdict
+import json
 from typing import Dict, Set
+
+from PyPt.PTA import json_utils
 
 from ..IR.CodeBlock import CodeBlock
 
@@ -68,46 +71,7 @@ class PointToSet:
         return self.attrPtrSet[obj].keys()
 
     
-    def dump(self, fp):
-    
-        pointToSet:Dict[CodeBlock, Dict[VarPtr, Set[Object]]] = {varPtr.var.belongsTo:{} for varPtr in self.varPtrSet}
-        for varPtr, pointTo in self.varPtrSet.items():
-            pointToSet[varPtr.var.belongsTo][varPtr] = pointTo
-
-        
-        for codeBlock, map in pointToSet.items():
-            print(codeBlock.qualified_name + ":", file=fp)
-            
-            
-            for var, objs in map.items():
-                head = f"{var} -> "
-                w = len(head)
-                
-                for obj in objs:
-                    print(f"{head:<{w}}{obj}", file=fp)
-                    head = ""
-                
-            print("", file=fp)
-
-        for obj, map in self.attrPtrSet.items():
-            
-            if(map):
-                print(str(obj) + ": ", file=fp)
-            
-                for attr, objs in map.items():
-                    head = f".{attr} -> "
-                    w = len(head)
-                    
-                    for obj in objs:
-                        print(f"{head:<{w}}{obj}", file=fp)
-                        head = ""
-                print("", file=fp)
-                
-                
-
-
-        
-
-        
-        
-    
+    def to_json(self):
+        attrPtrSet = {str(AttrPtr(obj, attr)):objs for obj, d in self.attrPtrSet.items() for attr, objs in d.items()}
+        varPtrSet = {str(varPtr): s for varPtr, s in self.varPtrSet.items()}
+        return json.dumps(attrPtrSet | varPtrSet, default=json_utils.default, indent=4)

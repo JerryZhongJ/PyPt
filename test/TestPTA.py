@@ -22,8 +22,8 @@ class TestBase(unittest.TestCase):
         self.maxDiff = None
 
     def assertEqual(self, first: Dict[str, list], second: Dict[str, List]) -> None:
-        first = {k:v for k, v in first.items() if v}
-        second = {k:v for k, v in second.items() if v}
+        first = {k:list(v) for k, v in first.items() if v}
+        second = {k:list(v) for k, v in second.items() if v}
         for v in first.values():
             v.sort()
         for v in second.values():
@@ -46,7 +46,7 @@ class TestBase(unittest.TestCase):
         entrys = moduleManager.getEntrys()
         analysis = analysisType()
         analysis.analyze(entrys)
-        output = analysis.callgraph.export()
+        output = analysis.callgraph
 
         # get expected output
         expectedPath = os.path.join(path, "callgraph.json")
